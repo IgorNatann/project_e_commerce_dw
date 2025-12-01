@@ -1,0 +1,193 @@
+# ========================================
+# .gitignore - Data Warehouse E-commerce
+# ========================================
+
+# ============ CREDENCIAIS & SECRETS ============
+.env
+.env.local
+.env.production
+config.ini
+secrets.json
+connection_strings.txt
+*.key
+*.pem
+
+# ============ PYTHON ============
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb_checkpoints/
+
+# ============ SQL SERVER ============
+# Backup files
+*.bak
+*.trn
+*.log
+
+# SQL Server temporary files
+*.ldf
+*.mdf
+*.ndf
+
+# Execution plans
+*.sqlplan
+
+# ============ DATA FILES ============
+# Large data files (não versionar!)
+data/raw/*.csv
+data/raw/*.xlsx
+data/raw/*.json
+data/staging/*.csv
+data/staging/*.parquet
+
+# Manter estrutura de pastas vazias
+!data/raw/.gitkeep
+!data/staging/.gitkeep
+
+# ============ LOGS ============
+logs/
+*.log
+log/
+*.txt
+
+# ============ IDE / EDITORS ============
+# VS Code
+.vscode/settings.json.local
+*.code-workspace
+
+# JetBrains (PyCharm, DataGrip)
+.idea/
+*.iml
+*.iws
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============ OS ============
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+
+# ============ TEMPORARY FILES ============
+# Temporary SQL files
+temp/
+tmp/
+*.tmp
+~$*
+
+# Arquivos de backup do editor
+*.bak
+*.backup
+*.old
+
+# ============ DOCUMENTATION ============
+# Build artifacts
+docs/_build/
+site/
+
+# ============ OUTROS ============
+# Compressed files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Executables
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Package files
+*.jar
+*.war
+*.ear
+
+# ============ PROJECT SPECIFIC ============
+# Arquivos grandes de dados de teste
+data/test_data_large.csv
+data/full_dataset.csv
+
+# Exports de dashboards com dados sensíveis
+dashboards/exports/
+*.pbix
+*.twbx
+
+# Credentials para Metabase
+metabase_credentials.txt
+
+# Notas pessoais
+NOTES.md
+TODO_PESSOAL.md
+
+# ============ KEEP EMPTY FOLDERS ============
+# Usar .gitkeep para manter pastas vazias no git
+!**/.gitkeep
