@@ -250,7 +250,7 @@ VALUES (
 -- Produto 5: Livro (Produto Descontinuado)
 INSERT INTO dim.DIM_PRODUTO (
     produto_original_id, codigo_sku, codigo_barras, nome_produto,
-    descricao_curta, categoria, subcategoria,
+    descricao_curta, categoria, subcategoria, linha_produto,
     marca, fabricante, fornecedor_id, nome_fornecedor, pais_origem,
     peso_kg,
     preco_custo, preco_sugerido, margem_sugerida_percent,
