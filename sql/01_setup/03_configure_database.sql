@@ -1,8 +1,8 @@
 -- ========================================
 -- SCRIPT: 03_configure_database.sql
 -- DESCRIÇÃO: Configurações de otimização para DW
--- AUTOR: Seu Nome
--- DATA: 2024-12-01
+-- AUTOR: Igor Natan
+-- DATA: 2025-12-01
 -- PRÉ-REQUISITO: 02_create_schemas.sql
 -- ========================================
 
