@@ -1,8 +1,8 @@
 -- ========================================
 -- SCRIPT: 01_dim_data.sql
 -- DESCRIÇÃO: Criação e população da DIM_DATA
--- AUTOR: Seu Nome
--- DATA: 2024-12-01
+-- AUTOR: Igor Natan
+-- DATA: 2025-12-01
 -- PRÉ-REQUISITO: Scripts em 01_setup executados
 -- ========================================
 
