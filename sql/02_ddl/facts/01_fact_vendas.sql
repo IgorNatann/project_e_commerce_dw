@@ -1,8 +1,8 @@
 -- ========================================
--- SCRIPT: 07_fact_vendas.sql
+-- SCRIPT: 01_fact_vendas.sql
 -- DESCRIÇÃO: Criação da FACT_VENDAS (Tabela Fato Principal)
 -- AUTOR: Data Warehouse E-commerce Project
--- DATA: 2024-12-08
+-- DATA: 2025-12-08
 -- PRÉ-REQUISITOS: Todas as dimensões criadas
 -- ========================================
 
@@ -450,6 +450,10 @@ DECLARE @vendedor_id INT;
 DECLARE @quantidade INT;
 DECLARE @preco DECIMAL(10,2);
 DECLARE @custo DECIMAL(10,2);
+DECLARE @valor_total_bruto DECIMAL(15,2);
+DECLARE @valor_total_descontos DECIMAL(15,2);
+DECLARE @valor_total_liquido DECIMAL(15,2);
+DECLARE @custo_total DECIMAL(15,2);
 DECLARE @desconto_pct DECIMAL(5,2);
 DECLARE @numero_ped VARCHAR(20);
 
@@ -474,9 +478,9 @@ BEGIN
     SELECT TOP 1 
         @produto_id = produto_id,
         @preco = preco_sugerido,
-        @custo = custo_medio
+        @custo = preco_custo
     FROM dim.DIM_PRODUTO 
-    WHERE eh_ativo = 1
+    WHERE situacao = 'Ativo'
     ORDER BY NEWID();
     
     -- Selecionar região aleatória
@@ -509,6 +513,12 @@ BEGIN
     -- Número do pedido
     SET @numero_ped = 'PED-2024-' + RIGHT('000000' + CAST(@i AS VARCHAR), 6);
     
+    -- Calcular valores já arredondados para evitar conflito com CHECK
+    SET @valor_total_bruto = ROUND(@quantidade * @preco, 2);
+    SET @valor_total_descontos = ROUND(@valor_total_bruto * (@desconto_pct / 100.0), 2);
+    SET @valor_total_liquido = @valor_total_bruto - @valor_total_descontos;
+    SET @custo_total = ROUND(@quantidade * @custo, 2);
+
     -- Inserir venda
     INSERT INTO fact.FACT_VENDAS (
         data_id, cliente_id, produto_id, regiao_id, vendedor_id,
@@ -529,15 +539,15 @@ BEGIN
         @data_id, @cliente_id, @produto_id, @regiao_id, @vendedor_id,
         @quantidade,
         @preco,
-        @quantidade * @preco, -- valor bruto
-        (@quantidade * @preco) * (@desconto_pct / 100), -- descontos
-        (@quantidade * @preco) - ((@quantidade * @preco) * (@desconto_pct / 100)), -- líquido
-        @quantidade * @custo, -- custo
+        @valor_total_bruto, -- valor bruto (2 casas)
+        @valor_total_descontos, -- descontos (2 casas)
+        @valor_total_liquido, -- liquido coerente
+        @custo_total, -- custo (2 casas)
         0, -- sem devolução inicial
         0,
         CASE WHEN @vendedor_id IS NOT NULL THEN 3.5 ELSE NULL END, -- 3.5% comissão
         CASE WHEN @vendedor_id IS NOT NULL 
-            THEN ((@quantidade * @preco) - ((@quantidade * @preco) * (@desconto_pct / 100))) * 0.035
+            THEN @valor_total_liquido * 0.035
             ELSE NULL 
         END,
         @numero_ped,
@@ -914,3 +924,5 @@ PRINT '========================================';
 PRINT 'PRÓXIMO SCRIPT: 08_fact_metas.sql';
 PRINT '========================================';
 GO
+
+
