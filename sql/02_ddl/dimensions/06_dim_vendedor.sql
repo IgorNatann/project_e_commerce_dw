@@ -290,10 +290,6 @@ CREATE TABLE dim.DIM_VENDEDOR
     CONSTRAINT UK_DIM_VENDEDOR_email 
         UNIQUE (email),
     
-    -- Unique: CPF deve ser único (se informado)
-    CONSTRAINT UK_DIM_VENDEDOR_cpf 
-        UNIQUE (cpf),
-    
     -- Unique: Matrícula deve ser única (se informada)
     CONSTRAINT UK_DIM_VENDEDOR_matricula 
         UNIQUE (matricula),
@@ -418,7 +414,14 @@ CREATE NONCLUSTERED INDEX IX_DIM_VENDEDOR_lideres
 PRINT '  ✅ IX_DIM_VENDEDOR_lideres';
 PRINT '     Uso: Listar apenas líderes de equipe';
 
--- Índice 9: Performance snapshot
+-- Índice 9: CPF único quando informado (índice filtrado)
+CREATE UNIQUE NONCLUSTERED INDEX IX_DIM_VENDEDOR_cpf 
+    ON dim.DIM_VENDEDOR(cpf)
+    WHERE cpf IS NOT NULL;
+PRINT '   IX_DIM_VENDEDOR_cpf';
+PRINT '     Uso: Garantir unicidade de CPF apenas quando preenchido';
+
+-- �?ndice 10: Performance snapshot
 CREATE NONCLUSTERED INDEX IX_DIM_VENDEDOR_performance 
     ON dim.DIM_VENDEDOR(ranking_mes_anterior)
     INCLUDE (vendedor_id, nome_vendedor, total_vendas_mes_anterior)
@@ -965,3 +968,4 @@ PRINT '========================================';
 PRINT 'PRÓXIMO SCRIPT: 07_fact_vendas_update.sql';
 PRINT '========================================';
 GO
+
