@@ -613,3 +613,198 @@ GROUP BY metodo_desconto
 ORDER BY total DESC;
 PRINT '';
 
+-- 4. Ativos agora
+PRINT '4. Descontos Válidos Hoje:';
+SELECT 
+    codigo_desconto,
+    tipo_desconto,
+    metodo_desconto,
+    valor_desconto,
+    data_fim_validade
+FROM dim.DIM_DESCONTO
+WHERE eh_ativo = 1
+  AND data_inicio_validade <= GETDATE()
+  AND (data_fim_validade IS NULL OR data_fim_validade >= GETDATE())
+ORDER BY data_inicio_validade DESC;
+PRINT '';
+
+-- 5. Por situação
+PRINT '5. Descontos por Situação:';
+SELECT 
+    situacao,
+    COUNT(*) AS total
+FROM dim.DIM_DESCONTO
+GROUP BY situacao
+ORDER BY total DESC;
+PRINT '';
+
+-- 6. Listagem completa
+PRINT '6. Amostra de Descontos:';
+SELECT 
+    desconto_id,
+    codigo_desconto,
+    tipo_desconto,
+    metodo_desconto,
+    valor_desconto,
+    situacao
+FROM dim.DIM_DESCONTO
+ORDER BY desconto_id;
+PRINT '';
+
+-- ========================================
+-- 7. CRIAR VIEW AUXILIAR
+-- ========================================
+
+PRINT '========================================';
+PRINT 'CRIANDO VIEW AUXILIAR';
+PRINT '========================================';
+PRINT '';
+
+IF OBJECT_ID('dim.VW_DESCONTOS_ATIVOS', 'V') IS NOT NULL
+    DROP VIEW dim.VW_DESCONTOS_ATIVOS;
+GO
+
+CREATE VIEW dim.VW_DESCONTOS_ATIVOS
+AS
+/*
+╔════════════════════════════════════════════════════════════════════════╗
+║  View: VW_DESCONTOS_ATIVOS                                             ║
+║  Propósito: Mostrar apenas descontos válidos e utilizáveis            ║
+║  Uso: SELECT * FROM dim.VW_DESCONTOS_ATIVOS                           ║
+╚════════════════════════════════════════════════════════════════════════╝
+*/
+SELECT 
+    desconto_id,
+    desconto_original_id,
+    codigo_desconto,
+    nome_campanha,
+    descricao,
+    tipo_desconto,
+    metodo_desconto,
+    valor_desconto,
+    -- Regras
+    min_valor_compra_regra,
+    max_valor_desconto_regra,
+    max_usos_por_cliente,
+    max_usos_total,
+    aplica_em,
+    restricao_produtos,
+    restricao_clientes,
+    -- Validade
+    data_inicio_validade,
+    data_fim_validade,
+    CASE 
+        WHEN data_fim_validade IS NULL THEN 'Sem Expiração'
+        WHEN data_fim_validade >= GETDATE() THEN 'Válido'
+        ELSE 'Expirado'
+    END AS status_validade,
+    DATEDIFF(DAY, GETDATE(), data_fim_validade) AS dias_ate_expirar,
+    -- Performance
+    total_usos_realizados,
+    total_receita_gerada,
+    total_desconto_concedido,
+    -- Controle
+    origem_campanha,
+    canal_divulgacao,
+    eh_cumulativo,
+    requer_aprovacao,
+    -- Cálculos
+    CASE 
+        WHEN total_usos_realizados > 0 
+        THEN total_receita_gerada / total_usos_realizados
+        ELSE 0
+    END AS ticket_medio_com_desconto,
+    CASE 
+        WHEN total_usos_realizados > 0 
+        THEN total_desconto_concedido / total_usos_realizados
+        ELSE 0
+    END AS desconto_medio_por_uso
+FROM dim.DIM_DESCONTO
+WHERE eh_ativo = 1 
+  AND situacao = 'Ativo'
+  AND data_inicio_validade <= GETDATE()
+  AND (data_fim_validade IS NULL OR data_fim_validade >= GETDATE());
+GO
+
+PRINT '✅ View dim.VW_DESCONTOS_ATIVOS criada!';
+PRINT '';
+
+-- ========================================
+-- 8. TESTAR VIEW
+-- ========================================
+
+PRINT '========================================';
+PRINT 'TESTANDO VIEW';
+PRINT '========================================';
+PRINT '';
+
+PRINT 'Descontos Válidos:';
+SELECT 
+    codigo_desconto,
+    tipo_desconto,
+    CAST(valor_desconto AS VARCHAR) + '%' AS desconto,
+    status_validade,
+    dias_ate_expirar
+FROM dim.VW_DESCONTOS_ATIVOS
+ORDER BY dias_ate_expirar;
+PRINT '';
+
+-- ========================================
+-- 9. ESTATÍSTICAS FINAIS
+-- ========================================
+
+PRINT '========================================';
+PRINT 'ESTATÍSTICAS FINAIS';
+PRINT '========================================';
+PRINT '';
+
+SELECT 
+    '📊 RESUMO DA DIM_DESCONTO' AS titulo,
+    (SELECT COUNT(*) FROM dim.DIM_DESCONTO) AS total_descontos,
+    (SELECT COUNT(*) FROM dim.DIM_DESCONTO WHERE eh_ativo = 1) AS ativos,
+    (SELECT COUNT(*) FROM dim.VW_DESCONTOS_ATIVOS) AS validos_hoje,
+    (SELECT COUNT(DISTINCT tipo_desconto) FROM dim.DIM_DESCONTO) AS tipos_diferentes,
+    (SELECT COUNT(DISTINCT metodo_desconto) FROM dim.DIM_DESCONTO) AS metodos_diferentes;
+
+PRINT '';
+PRINT '✅✅✅ DIM_DESCONTO CRIADA E VALIDADA COM SUCESSO! ✅✅✅';
+PRINT '';
+PRINT '========================================';
+PRINT 'ESTRUTURA COMPLETA';
+PRINT '========================================';
+PRINT '';
+PRINT '📋 Campos principais:';
+PRINT '   • Identificação: codigo_desconto, nome_campanha';
+PRINT '   • Tipo: cupom, promoção, progressivo, fidelidade, cashback';
+PRINT '   • Método: percentual, fixo, frete grátis, brinde, combo';
+PRINT '   • Regras: mínimo, máximo, limites de uso';
+PRINT '   • Validade: data início e fim';
+PRINT '   • Aplicação: pedido, produto, categoria, frete';
+PRINT '   • Performance: usos, receita, desconto concedido';
+PRINT '';
+PRINT '========================================';
+PRINT 'PRÓXIMO PASSO';
+PRINT '========================================';
+PRINT '';
+PRINT '📌 Agora vamos criar:';
+PRINT '   FACT_DESCONTOS - Registro de uso de cada desconto';
+PRINT '';
+PRINT '🔗 Esta FACT vai conectar:';
+PRINT '   • FACT_DESCONTOS → DIM_DESCONTO (qual cupom?)';
+PRINT '   • FACT_DESCONTOS → FACT_VENDAS (em qual venda?)';
+PRINT '   • FACT_DESCONTOS → DIM_DATA (quando?)';
+PRINT '   • FACT_DESCONTOS → DIM_CLIENTE (quem usou?)';
+PRINT '   • FACT_DESCONTOS → DIM_PRODUTO (em qual produto?)';
+PRINT '';
+PRINT '🎯 Análises que vamos conseguir fazer:';
+PRINT '   • Quantas vezes cada cupom foi usado?';
+PRINT '   • Qual cupom gerou mais receita?';
+PRINT '   • Qual o ROI de cada campanha?';
+PRINT '   • Como descontos afetam a margem?';
+PRINT '   • Quais produtos têm mais desconto?';
+PRINT '   • Análise temporal de uso de cupons';
+PRINT '';
+PRINT '========================================';
+PRINT 'PRÓXIMO SCRIPT: 10_fact_descontos.sql';
+PRINT '========================================';
+GO
