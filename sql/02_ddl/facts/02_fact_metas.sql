@@ -686,4 +686,78 @@ SELECT TOP 5
     nome_vendedor,
     nome_mes + '/' + CAST(ano AS VARCHAR) AS periodo,
     CAST(valor_meta AS DECIMAL(10,2)) AS meta,
-    CAST(valor_realizado AS DECIMAL(10,2
+    CAST(valor_realizado AS DECIMAL(10,2)) AS realizado,
+    CAST(percentual_atingido AS DECIMAL(5,2)) AS perc_atingido,
+    faixa_performance
+FROM fact.VW_METAS_COMPLETA
+ORDER BY percentual_atingido DESC;
+PRINT '';
+
+PRINT '2. Ranking do último mês:';
+SELECT TOP 10
+    ranking_periodo,
+    nome_vendedor,
+    nome_equipe,
+    CAST(valor_realizado AS DECIMAL(10,2)) AS realizado,
+    CAST(percentual_atingido AS DECIMAL(5,2)) AS perc
+FROM fact.VW_METAS_COMPLETA
+WHERE data_periodo = (SELECT MAX(data_periodo) FROM fact.VW_METAS_COMPLETA)
+ORDER BY ranking_periodo;
+PRINT '';
+
+-- ========================================
+-- 10. ESTATÍSTICAS FINAIS
+-- ========================================
+
+PRINT '========================================';
+PRINT 'ESTATÍSTICAS FINAIS';
+PRINT '========================================';
+PRINT '';
+
+SELECT 
+    '📊 RESUMO DA FACT_METAS' AS titulo,
+    (SELECT COUNT(*) FROM fact.FACT_METAS) AS total_metas,
+    (SELECT COUNT(DISTINCT vendedor_id) FROM fact.FACT_METAS) AS vendedores_com_meta,
+    (SELECT COUNT(DISTINCT data_id) FROM fact.FACT_METAS) AS periodos_cadastrados,
+    (SELECT SUM(CASE WHEN meta_batida = 1 THEN 1 ELSE 0 END) FROM fact.FACT_METAS) AS metas_atingidas,
+    (SELECT AVG(percentual_atingido) FROM fact.FACT_METAS) AS percentual_medio,
+    (SELECT SUM(valor_realizado) FROM fact.FACT_METAS) AS faturamento_total;
+
+PRINT '';
+PRINT '✅✅✅ FACT_METAS CRIADA E VALIDADA COM SUCESSO! ✅✅✅';
+PRINT '';
+PRINT '========================================';
+PRINT 'EXERCÍCIO 1 - COMPLETO!';
+PRINT '========================================';
+PRINT '';
+PRINT '✅ DIM_EQUIPE criada';
+PRINT '✅ DIM_VENDEDOR criada';
+PRINT '✅ FACT_VENDAS conectada com vendedores';
+PRINT '✅ FACT_METAS criada';
+PRINT '';
+PRINT '🎯 ANÁLISES POSSÍVEIS AGORA:';
+PRINT '   • Performance de vendedores vs metas';
+PRINT '   • Ranking de vendedores por período';
+PRINT '   • Taxa de atingimento de metas';
+PRINT '   • Comparação entre equipes';
+PRINT '   • Evolução temporal de performance';
+PRINT '   • Identificação de top performers';
+PRINT '   • Análise de consistência (quem sempre bate meta)';
+PRINT '';
+PRINT '========================================';
+PRINT 'PRÓXIMOS PASSOS - EXERCÍCIO 2';
+PRINT '========================================';
+PRINT '';
+PRINT '📌 Agora vamos criar:';
+PRINT '   1. DIM_DESCONTO - Dimensão de cupons/campanhas';
+PRINT '   2. FACT_DESCONTOS - Múltiplos descontos por venda';
+PRINT '';
+PRINT '🔗 QUERIES ÚTEIS:';
+PRINT '   • SELECT * FROM fact.VW_METAS_COMPLETA';
+PRINT '   • SELECT * FROM fact.VW_VENDAS_COMPLETA';
+PRINT '   • SELECT * FROM dim.VW_VENDEDORES_ATIVOS';
+PRINT '';
+PRINT '========================================';
+PRINT 'PRÓXIMO SCRIPT: 09_dim_desconto.sql';
+PRINT '========================================';
+GO
