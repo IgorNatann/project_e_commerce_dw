@@ -1,304 +1,359 @@
-# 🏢 Data Warehouse E-commerce
+# 🏪 Data Warehouse E-commerce
 
-[![SQL Server](https://img.shields.io/badge/SQL%20Server-2019%2B-red)](https://www.microsoft.com/sql-server)
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue)](https://www.python.org/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+> Modelo dimensional completo para análise de vendas, desempenho de vendedores e campanhas de desconto
 
-Data Warehouse dimensional para análise de e-commerce, incluindo vendas, descontos, metas de vendedores e gestão de estoque multi-warehouse.
+[![SQL Server](https://img.shields.io/badge/SQL%20Server-2019+-CC2927?style=flat&logo=microsoft-sql-server)](https://www.microsoft.com/sql-server)
+[![Star Schema](https://img.shields.io/badge/Model-Star%20Schema-blue)](https://en.wikipedia.org/wiki/Star_schema)
+[![Kimball](https://img.shields.io/badge/Method-Kimball-green)](https://www.kimballgroup.com/)
 
 ## 📋 Índice
 
 - [Sobre o Projeto](#sobre-o-projeto)
 - [Arquitetura](#arquitetura)
-- [Tecnologias](#tecnologias)
-- [Estrutura do Projeto](#estrutura-do-projeto)
-- [Instalação](#instalação)
-- [Uso](#uso)
-- [Modelo Dimensional](#modelo-dimensional)
-- [Queries de Exemplo](#queries-de-exemplo)
-- [Dashboards](#dashboards)
-- [Contribuindo](#contribuindo)
-- [Licença](#licença)
+- [Estrutura do Repositório](#estrutura-do-repositório)
+- [Quick Start](#quick-start)
+- [Documentação Completa](#documentação-completa)
+- [Análises Suportadas](#análises-suportadas)
+- [Roadmap](#roadmap)
+
+---
 
 ## 🎯 Sobre o Projeto
 
-Este Data Warehouse foi desenvolvido seguindo a **metodologia Kimball** (modelagem dimensional) para análise de um e-commerce fictício. O projeto suporta análises de:
+Este Data Warehouse foi desenvolvido seguindo a **metodologia Kimball** para análise de dados de e-commerce. O modelo suporta análises complexas de vendas, performance de equipes, metas e efetividade de campanhas de desconto.
 
-- 📊 **Vendas**: Análise de receita, ticket médio, sazonalidade
-- 👥 **Vendedores**: Performance vs. metas, ranking de equipes
-- 🏷️ **Descontos**: ROI de campanhas, impacto na margem
-- 📦 **Estoque**: Giro por warehouse, produtos parados, transferências
+### ✨ Características Principais
 
-### Características Principais
+- **7 Dimensões** modeladas com hierarquias completas
+- **3 Tabelas Fato** para diferentes processos de negócio
+- **Star Schema** otimizado para performance analítica
+- **10+ Views** auxiliares para facilitar consultas
+- **Dados de exemplo** para testes e validação
+- **Documentação completa** inline e em markdown
 
-- ✅ **5 Tabelas Fato** e **8 Dimensões**
-- ✅ Suporta múltiplos warehouses (centros de distribuição)
-- ✅ Rastreamento de descontos em múltiplos níveis
-- ✅ Snapshots diários de estoque
-- ✅ Hierarquias temporais completas
-- ✅ ~100.000 vendas de dados sintéticos
+### 🎓 Propósito Educacional
+
+Este projeto serve como:
+- **Referência** de modelagem dimensional
+- **Template** para projetos similares
+- **Material didático** com comentários explicativos
+- **Boas práticas** de SQL e DW design
+
+---
 
 ## 🏗️ Arquitetura
 
-```
-┌─────────────────────────────────────────────┐
-│          CAMADA DE APRESENTAÇÃO             │
-│   Metabase / Power BI / Grafana            │
-└──────────────────┬──────────────────────────┘
-                   │
-┌──────────────────▼──────────────────────────┐
-│       DATA WAREHOUSE (SQL Server)           │
-│  ┌──────────────────────────────────────┐  │
-│  │   DIMENSÕES (8)                      │  │
-│  │  • DIM_DATA                          │  │
-│  │  • DIM_CLIENTE                       │  │
-│  │  • DIM_PRODUTO                       │  │
-│  │  • DIM_REGIAO                        │  │
-│  │  • DIM_EQUIPE                        │  │
-│  │  • DIM_VENDEDOR                      │  │
-│  │  • DIM_DESCONTO                      │  │
-│  │  • DIM_WAREHOUSE                     │  │
-│  └──────────────────────────────────────┘  │
-│  ┌──────────────────────────────────────┐  │
-│  │   FATOS (5)                          │  │
-│  │  • FACT_VENDAS                       │  │
-│  │  • FACT_METAS                        │  │
-│  │  • FACT_DESCONTOS                    │  │
-│  │  • FACT_MOVIMENTACOES                │  │
-│  │  • FACT_ESTOQUE_DIARIO               │  │
-│  └──────────────────────────────────────┘  │
-└─────────────────────────────────────────────┘
-```
-
-## 🛠️ Tecnologias
-
-- **Banco de Dados**: SQL Server 2019+
-- **ETL/Geração de Dados**: Python 3.9+
-- **Bibliotecas Python**:
-  - `pandas`: Manipulação de dados
-  - `sqlalchemy`: Conexão com SQL Server
-  - `faker`: Geração de dados sintéticos
-  - `python-dotenv`: Gerenciamento de variáveis de ambiente
-- **Visualização**: Metabase (opcional)
-- **Versionamento**: Git
-
-## 📂 Estrutura do Projeto
+### Modelo Dimensional
 
 ```
-dw-ecommerce/
-├── sql/                 # Scripts SQL organizados por fase
-│   ├── 01_setup/
-│   ├── 02_ddl/
-│   ├── 03_dml/
-│   ├── 04_views/
-│   └── 06_queries/
-├── python/              # Scripts Python para ETL e geração de dados
-├── docs/                # Documentação técnica
-├── dashboards/          # Configurações de dashboards
-└── tests/               # Testes de qualidade de dados
+┌─────────────────────────────────────────────────────────────┐
+│                      STAR SCHEMA                            │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│     DIM_DATA          DIM_EQUIPE         DIM_DESCONTO      │
+│         │                  │                    │          │
+│         │                  │                    │          │
+│         ├──────────┬───────┼────────┬───────────┤          │
+│         │          │       │        │           │          │
+│    FACT_VENDAS  ──────  DIM_VENDEDOR  ──  FACT_DESCONTOS  │
+│         │          │                 │                     │
+│         ├──────────┼─────────────────┘                     │
+│         │          │                                       │
+│   DIM_CLIENTE  DIM_PRODUTO  DIM_REGIAO                    │
+│                                                             │
+│                   FACT_METAS ── DIM_VENDEDOR               │
+│                        │                                    │
+│                    DIM_DATA                                 │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Instalação
+### Principais Componentes
+
+#### 📐 Dimensões (7)
+1. **DIM_DATA** - Hierarquia temporal completa
+2. **DIM_CLIENTE** - Segmentação e localização
+3. **DIM_PRODUTO** - Categorias e fornecedores
+4. **DIM_REGIAO** - Hierarquia geográfica
+5. **DIM_VENDEDOR** - Força de vendas
+6. **DIM_EQUIPE** - Times comerciais
+7. **DIM_DESCONTO** - Campanhas e cupons
+
+#### 📊 Tabelas Fato (3)
+1. **FACT_VENDAS** - Transações de venda (transacional)
+2. **FACT_METAS** - Metas vs realizado (periódica)
+3. **FACT_DESCONTOS** - Descontos aplicados (eventos)
+
+---
+
+## 📁 Estrutura do Repositório
+
+```
+PROJECT_E-COMMERCE_DW/
+│
+├── 📄 README.md                          # Este arquivo
+├── 📄 .gitignore
+│
+├── 📂 docs/                              # Documentação detalhada
+│   ├── 📂 decisoes/                      # Decisões de design
+│   ├── 📂 modelagem/                     # Modelo de dados
+│   └── 📂 queries/                       # Exemplos de análises
+│
+├── 📂 sql/                               # Scripts SQL
+│   ├── 📂 01_setup/                      # Criação inicial
+│   │   ├── 01_create_database.sql
+│   │   ├── 02_create_schemas.sql
+│   │   └── 03_configure_database.sql
+│   │
+│   ├── 📂 02_ddl/                        # Definição de estruturas
+│   │   ├── 📂 dimensions/                # Dimensões
+│   │   ├── 📂 facts/                     # Tabelas fato
+│   │   └── 📂 indexes/                   # Índices
+│   │
+│   ├── 📂 04_views/                      # Views auxiliares
+│   │   ├── 01_vw_calendario_completo.sql
+│   │   ├── 02_vw_produtos_ativos.sql
+│   │   ├── 03_vw_hierarquia_geografica.sql
+│   │   ├── 04_master_views.sql
+│   │   ├── 05_vw_descontos_ativos.sql
+│   │   ├── 06_vw_vendedores_ativos.sql
+│   │   ├── 07_vw_hierarquia_vendedores.sql
+│   │   ├── 08_dw_analise_equipe_vendedores.sql
+│   │   ├── 09_vw_equipes_ativas.sql
+│   │   ├── 10_vw_ranking_equipes_meta.sql
+│   │   └── 11_vw_analise_regional_equipes.sql
+│   │
+│   ├── 📂 05_procedures/                 # Stored procedures (futuro)
+│   ├── 📂 06_queries/                    # Queries analíticas
+│   └── 📂 99_maintenance/                # Manutenção
+│
+├── 📂 dashboards/                        # Dashboards e visualizações
+├── 📂 data/                              # Dados de exemplo (CSV)
+├── 📂 notebooks/                         # Jupyter notebooks
+├── 📂 python/                            # Scripts Python (ETL)
+├── 📂 scripts/                           # Scripts auxiliares
+└── 📂 tests/                             # Testes de validação
+```
+
+---
+
+## 🚀 Quick Start
 
 ### Pré-requisitos
 
-- SQL Server 2019+ instalado
-- Python 3.9+ instalado
-- Git instalado
+- SQL Server 2019 ou superior
+- SQL Server Management Studio (SSMS) ou Azure Data Studio
+- Permissões para criar databases
 
-### Passo 1: Clonar o Repositório
+### Instalação
 
-```bash
-git clone https://github.com/seu-usuario/dw-ecommerce.git
-cd dw-ecommerce
-```
-
-### Passo 2: Configurar Ambiente Python
+#### 1️⃣ Clone o repositório
 
 ```bash
-# Criar ambiente virtual
-python -m venv venv
-
-# Ativar ambiente virtual
-# Windows:
-venv\Scripts\activate
-# Linux/Mac:
-source venv/bin/activate
-
-# Instalar dependências
-pip install -r python/requirements.txt
+git clone https://github.com/seu-usuario/project-e-commerce-dw.git
+cd project-e-commerce-dw
 ```
 
-### Passo 3: Configurar Variáveis de Ambiente
-
-```bash
-# Copiar arquivo de exemplo
-cp python/.env.example python/.env
-
-# Editar .env com suas credenciais
-# DB_SERVER=localhost
-# DB_NAME=DW_ECOMMERCE
-# DB_USER=seu_usuario
-# DB_PASSWORD=sua_senha
-```
-
-### Passo 4: Criar Database e Estrutura
-
-```bash
-# Executar scripts SQL na ordem
-# No VS Code com extensão SQL Server:
-# Abrir sql/01_setup/01_create_database.sql
-# Executar (Ctrl+Shift+E)
-
-# Ou via linha de comando:
-sqlcmd -S localhost -i sql/01_setup/01_create_database.sql
-sqlcmd -S localhost -d DW_ECOMMERCE -i sql/02_ddl/dimensions/01_dim_data.sql
-# ... repetir para todos os arquivos DDL
-```
-
-### Passo 5: Gerar Dados Sintéticos
-
-```bash
-python python/data_generation/generate_clientes.py
-python python/data_generation/generate_produtos.py
-python python/data_generation/generate_vendas.py
-# ... etc
-```
-
-## 💻 Uso
-
-### Executar Queries de Análise
+#### 2️⃣ Execute os scripts na ordem
 
 ```sql
--- Vendas por mês (2024)
+-- 1. Setup inicial
+USE master;
+GO
+:r sql/01_setup/01_create_database.sql
+:r sql/01_setup/02_create_schemas.sql
+:r sql/01_setup/03_configure_database.sql
+
+-- 2. Criação das Dimensões (DDL)
 USE DW_ECOMMERCE;
 GO
+:r sql/02_ddl/dimensions/02_dim_data.sql
+:r sql/02_ddl/dimensions/03_dim_cliente.sql
+:r sql/02_ddl/dimensions/03_dim_produto.sql
+:r sql/02_ddl/dimensions/04_dim_regiao.sql
+:r sql/02_ddl/dimensions/05_dim_equipe.sql
+:r sql/02_ddl/dimensions/06_dim_vendedor.sql
+:r sql/02_ddl/dimensions/07_dim_desconto.sql
 
-SELECT 
-    d.periodo_mes,
-    SUM(v.valor_total_liquido) as receita_total,
-    COUNT(DISTINCT v.venda_id) as total_vendas,
-    AVG(v.valor_total_liquido) as ticket_medio
-FROM fact.FACT_VENDAS v
-INNER JOIN dim.DIM_DATA d ON v.data_id = d.data_id
-WHERE d.ano = 2024
-GROUP BY d.periodo_mes
-ORDER BY d.periodo_mes;
+-- 3. Criação das Facts (DDL)
+:r sql/02_ddl/facts/07_fact_vendas.sql
+:r sql/02_ddl/facts/08_fact_metas.sql
+:r sql/02_ddl/facts/09_fact_descontos.sql
+
+-- 4. Views auxiliares
+:r sql/04_views/01_vw_calendario_completo.sql
+:r sql/04_views/02_vw_produtos_ativos.sql
+-- ... demais views
 ```
 
-Ver mais exemplos em: [`sql/06_queries/`](sql/06_queries/)
-
-## 📊 Modelo Dimensional
-
-### Star Schema
-
-![Star Schema](docs/modelagem/diagrams/star_schema.png)
-
-### Dimensões
-
-| Dimensão | Descrição | Registros |
-|----------|-----------|-----------|
-| DIM_DATA | Hierarquia temporal (2020-2025) | ~2.191 |
-| DIM_CLIENTE | Clientes do e-commerce | ~10.000 |
-| DIM_PRODUTO | Catálogo de produtos | ~500 |
-| DIM_REGIAO | Geografia (país, estado, cidade) | ~100 |
-| DIM_EQUIPE | Equipes de vendedores | ~10 |
-| DIM_VENDEDOR | Vendedores | ~50 |
-| DIM_DESCONTO | Cupons e campanhas | ~100 |
-| DIM_WAREHOUSE | Centros de distribuição | ~5 |
-
-### Tabelas Fato
-
-| Fato | Granularidade | Registros |
-|------|---------------|-----------|
-| FACT_VENDAS | 1 item vendido | ~100.000 |
-| FACT_METAS | 1 meta mensal por vendedor | ~600 |
-| FACT_DESCONTOS | 1 desconto aplicado | ~30.000 |
-| FACT_MOVIMENTACOES | 1 movimentação de estoque | ~200.000 |
-| FACT_ESTOQUE_DIARIO | 1 snapshot diário por produto/warehouse | ~90.000 |
-
-### Decisões de Design
-
-- **Granularidade FACT_VENDAS**: 1 linha = 1 item vendido em 1 pedido
-- **SCD Type**: Type 1 (sobrescrever) para todas dimensões
-- **Transferências**: 2 linhas (saída + entrada) em FACT_MOVIMENTACOES
-- **Snapshots**: Métricas semi-aditivas (não somar no tempo)
-
-Ver documentação completa: [`docs/modelagem/`](docs/modelagem/)
-
-## 🔍 Queries de Exemplo
-
-### Top 10 Produtos Mais Vendidos
+#### 3️⃣ Validar instalação
 
 ```sql
-SELECT TOP 10
+-- Verificar tabelas criadas
+SELECT 
+    SCHEMA_NAME(schema_id) AS schema_name,
+    name AS table_name,
+    type_desc
+FROM sys.objects
+WHERE type IN ('U', 'V')
+ORDER BY schema_name, type_desc, name;
+
+-- Contar registros
+SELECT 'DIM_DATA' AS tabela, COUNT(*) AS registros FROM dim.DIM_DATA
+UNION ALL
+SELECT 'DIM_CLIENTE', COUNT(*) FROM dim.DIM_CLIENTE
+UNION ALL
+SELECT 'DIM_PRODUTO', COUNT(*) FROM dim.DIM_PRODUTO
+UNION ALL
+SELECT 'FACT_VENDAS', COUNT(*) FROM fact.FACT_VENDAS;
+```
+
+### 🎬 Primeira Query
+
+```sql
+-- Top 5 produtos mais vendidos no último mês
+SELECT TOP 5
     p.nome_produto,
     p.categoria,
-    SUM(v.quantidade_vendida) as total_unidades,
-    SUM(v.valor_total_liquido) as receita_total
-FROM fact.FACT_VENDAS v
-INNER JOIN dim.DIM_PRODUTO p ON v.produto_id = p.produto_id
+    SUM(fv.quantidade_vendida) AS qtd_vendida,
+    SUM(fv.valor_total_liquido) AS receita_total
+FROM fact.FACT_VENDAS fv
+JOIN dim.DIM_PRODUTO p ON fv.produto_id = p.produto_id
+JOIN dim.DIM_DATA d ON fv.data_id = d.data_id
+WHERE d.data_completa >= DATEADD(MONTH, -1, GETDATE())
 GROUP BY p.nome_produto, p.categoria
 ORDER BY receita_total DESC;
 ```
 
-### Performance Vendedor vs Meta
+---
 
-```sql
-SELECT 
-    vend.nome_vendedor,
-    eq.nome_equipe,
-    SUM(m.valor_meta) as meta_total,
-    SUM(v.valor_total_liquido) as vendas_realizadas,
-    CAST(SUM(v.valor_total_liquido) / NULLIF(SUM(m.valor_meta), 0) * 100 AS DECIMAL(5,2)) as perc_atingido
-FROM fact.FACT_METAS m
-INNER JOIN dim.DIM_VENDEDOR vend ON m.vendedor_id = vend.vendedor_id
-INNER JOIN dim.DIM_EQUIPE eq ON vend.equipe_id = eq.equipe_id
-LEFT JOIN fact.FACT_VENDAS v ON vend.vendedor_id = v.vendedor_id
-GROUP BY vend.nome_vendedor, eq.nome_equipe
-ORDER BY perc_atingido DESC;
-```
+## 📚 Documentação Completa
 
-Mais queries: [`sql/06_queries/`](sql/06_queries/)
+### 📖 Guias Principais
 
-## 📈 Dashboards
+- **[Visão Geral da Modelagem](docs/modelagem/01_visao_geral.md)** - Entenda a arquitetura
+- **[Dimensões Detalhadas](docs/modelagem/02_dimensoes.md)** - Todas as dimensões explicadas
+- **[Tabelas Fato](docs/modelagem/03_fatos.md)** - Granularidade e métricas
+- **[Relacionamentos](docs/modelagem/04_relacionamentos.md)** - Mapa de FKs
+- **[Decisões de Design](docs/decisoes/01_decisoes_modelagem.md)** - Por que fizemos assim
+- **[Queries e Análises](docs/queries/README.md)** - Exemplos práticos
 
-### KPIs Principais
+### 🛠️ Guias Técnicos
 
-- **Receita Total**: R$ XX.XXX.XXX
-- **Ticket Médio**: R$ XXX
-- **Total de Vendas**: XXX.XXX
-- **Taxa de Conversão**: XX%
-- **Produtos com Estoque Baixo**: XX
+- **[Como Executar Scripts](sql/README.md)** - Ordem e dependências
+- **[Views Auxiliares](sql/04_views/README.md)** - Catálogo de views
+- **[Dicionário de Dados](docs/modelagem/05_dicionario_dados.md)** - Todos os campos
 
-Ver configurações: [`dashboards/`](dashboards/)
+---
+
+## 📊 Análises Suportadas
+
+### 🎯 Vendas e Performance
+
+- ✅ Vendas por período (dia, mês, trimestre, ano)
+- ✅ Vendas por região e hierarquia geográfica
+- ✅ Vendas por categoria de produto
+- ✅ Análise de margem e lucratividade
+- ✅ Taxa de devolução por produto/fornecedor
+- ✅ Ticket médio por segmento de cliente
+- ✅ Sazonalidade e tendências
+
+### 👥 Vendedores e Equipes
+
+- ✅ Performance individual de vendedores
+- ✅ Atingimento de metas (% realizado vs meta)
+- ✅ Ranking de vendedores por período
+- ✅ Comparação entre equipes e regionais
+- ✅ Análise de comissionamento
+- ✅ Vendas com vs sem vendedor (e-commerce direto)
+
+### 🎟️ Descontos e Campanhas
+
+- ✅ ROI de cupons e campanhas
+- ✅ Impacto de descontos na margem
+- ✅ Efetividade por tipo de desconto
+- ✅ Produtos mais descontados
+- ✅ Ticket médio com/sem desconto
+- ✅ Análise de múltiplos descontos por pedido
+
+---
+
+## 🗺️ Roadmap
+
+### ✅ Fase 1 - Concluída
+- [x] Modelo dimensional base (7 dimensões, 3 facts)
+- [x] Dados de exemplo
+- [x] Views auxiliares
+- [x] Documentação inline
+
+### 🚧 Fase 2 - Em Progresso
+- [ ] Documentação completa em Markdown
+- [ ] Queries analíticas prontas
+- [ ] Diagramas visuais (ER Diagram)
+- [ ] Testes de integridade
+
+### 📋 Fase 3 - Planejada
+- [ ] Scripts Python para ETL
+- [ ] Dashboards em Power BI
+- [ ] Procedures para carga incremental
+- [ ] Data quality checks
+- [ ] Aggregate tables
+
+### 🔮 Fase 4 - Futuro
+- [ ] DIM_CANAL (multicanal)
+- [ ] FACT_ESTOQUE
+- [ ] FACT_PAGAMENTOS
+- [ ] SCD Type 2 para dimensões críticas
+- [ ] Machine Learning (previsões)
+
+---
 
 ## 🤝 Contribuindo
 
 Contribuições são bem-vindas! Por favor:
 
-1. Fork o projeto
+1. Faça fork do projeto
 2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
 3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
 4. Push para a branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
 
-## 📄 Licença
+---
 
-Distribuído sob a licença MIT. Veja `LICENSE` para mais informações.
+## 📝 Licença
+
+Este projeto é open source e está disponível sob a [MIT License](LICENSE).
+
+---
 
 ## 👤 Autor
 
 **Seu Nome**
 - GitHub: [@IgorNatann](https://github.com/IgorNatann)
-- LinkedIn: [Igor Natan](https://www.linkedin.com/in/igor-natan/)
-
-## 🙏 Agradecimentos
-
-- Metodologia Kimball para modelagem dimensional
-- Comunidade SQL Server
-- [Faker](https://faker.readthedocs.io/) para geração de dados sintéticos
+- LinkedIn: [@igornatan](https://www.linkedin.com/in/igornatan)
 
 ---
 
-⭐ **Se este projeto te ajudou, considere dar uma estrela!** ⭐
+## 🙏 Agradecimentos
+
+- Metodologia Kimball Group
+- Comunidade SQL Server
+- Contribuidores do projeto
+
+---
+
+## 📞 Suporte
+
+- 📖 [Documentação Completa](docs/)
+- 🐛 [Reportar Bug](https://github.com/seu-usuario/project-e-commerce-dw/issues)
+- 💡 [Solicitar Feature](https://github.com/seu-usuario/project-e-commerce-dw/issues)
+- 💬 [Discussões](https://github.com/seu-usuario/project-e-commerce-dw/discussions)
+
+---
+
+<div align="center">
+
+**[⬆ Voltar ao topo](#-data-warehouse-e-commerce)**
+
+Feito com ❤️ para a comunidade de Data Engineering
+
+</div>
