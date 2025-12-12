@@ -618,4 +618,4 @@ SELECT
     SUM(fd.valor_desconto_aplicado) AS total_descontos
 FROM fact.FACT_VENDAS fv
 LEFT JOIN fact.FACT_DESCONTOS fd ON fv.venda_id = fd.venda_id
-GROUP BY fv.venda_id, fv.numerodocs: adiciona Dimensões - Documentação Detalhada do projeto
+GROUP BY fv.venda_id, fv.numero
