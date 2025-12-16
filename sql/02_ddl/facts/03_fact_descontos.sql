@@ -693,4 +693,4 @@ SELECT TOP 5
     CAST(percentual_desconto_efetivo AS DECIMAL(5,2)) AS perc,
     status_margem
 FROM fact.VW_DESCONTOS_COMPLETA
-ORDER BY valor_desc
+ORDER BY desconto
