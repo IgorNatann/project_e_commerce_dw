@@ -366,8 +366,9 @@ Vamos criar metas para os últimos 6 meses:
 
 PRINT 'Gerando metas dos últimos 6 meses...';
 
-DECLARE @mes_atual DATE = DATEFIRST(DATEADD(MONTH, -5, GETDATE())); -- 6 meses atrás
-DECLARE @mes_fim DATE = DATEFIRST(GETDATE());
+DECLARE @mes_inicio_atual DATE = DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1); -- primeiro dia do mês corrente
+DECLARE @mes_atual DATE = DATEADD(MONTH, -5, @mes_inicio_atual); -- 6 meses atrás (sempre no 1º dia do mês)
+DECLARE @mes_fim DATE = @mes_inicio_atual;
 DECLARE @mes_loop DATE;
 DECLARE @vendedor_loop INT;
 DECLARE @meta_base DECIMAL(15,2);
@@ -436,7 +437,7 @@ BEGIN
             CASE WHEN @qtd_realizada > 0 THEN @realizado / @qtd_realizada ELSE NULL END, -- ticket médio
             CASE WHEN @realizado >= @meta_base THEN 1 ELSE 0 END, -- bateu meta
             CASE WHEN @realizado > @meta_base THEN 1 ELSE 0 END, -- superou meta
-            CASE WHEN @mes_loop < DATEFIRST(GETDATE()) THEN 1 ELSE 0 END, -- período fechado
+            CASE WHEN @mes_loop < @mes_inicio_atual THEN 1 ELSE 0 END, -- período fechado
             'Mensal'
         );
         
@@ -715,7 +716,7 @@ PRINT '========================================';
 PRINT '';
 
 SELECT 
-    '📊 RESUMO DA FACT_METAS' AS titulo,
+    'RESUMO DA FACT_METAS' AS titulo,
     (SELECT COUNT(*) FROM fact.FACT_METAS) AS total_metas,
     (SELECT COUNT(DISTINCT vendedor_id) FROM fact.FACT_METAS) AS vendedores_com_meta,
     (SELECT COUNT(DISTINCT data_id) FROM fact.FACT_METAS) AS periodos_cadastrados,
