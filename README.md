@@ -95,7 +95,7 @@ PROJECT_E-COMMERCE_DW/
 │
 ├── 📂 docs/                              # Documentação detalhada
 │   ├── 📂 decisoes/                      # Decisões de design
-│   ├── 📂 modelagem/                     # Modelo de dados
+│   ├── 📂 modelagem/                     # Decisões de Modelo de dados
 │   └── 📂 queries/                       # Exemplos de análises
 │
 ├── 📂 sql/                               # Scripts SQL
