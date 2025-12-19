@@ -17,18 +17,18 @@
 
 ### Estrutura das Entradas
 
-Cada campo est? documentado com:
+Cada campo está documentado com:
 
-| Elemento | Descri??o |
+| Elemento | Descrição |
 |----------|-----------|
-| **Campo** | Nome t?cnico do campo |
+| **Campo** | Nome técnico do campo |
 | **Tipo** | Tipo de dados SQL Server |
-| **Obrigat?rio** | NULL ou NOT NULL |
-| **Descri??o** | O que o campo representa |
-| **Exemplo** | Valor v?lido ou exemplo |
-| **Regras** | Constraints e valida??es |
+| **Obrigatório** | NULL ou NOT NULL |
+| **Descrição** | O que o campo representa |
+| **Exemplo** | Valor válido ou exemplo |
+| **Regras** | Constraints e validações |
 
-**Origem:** quando aplic?vel, indicada no rodap? de cada tabela.
+**Origem:** quando aplicável, indicada no rodapé de cada tabela.
 
 
 ### Navegação Rápida
@@ -81,35 +81,35 @@ Padrão de Nomes:
 
 ## 📐 DIMENSÕES
 
-## DIM_DATA - Dimens?o Temporal
+## DIM_DATA - Dimensão Temporal
 
 **Schema:** `dim.DIM_DATA`  
 **Registros:** ~2.192 (2020-2025)  
-**Crescimento:** Gerado por script; ampliar intervalo conforme necess?rio
+**Crescimento:** Gerado por script; ampliar intervalo conforme necessário
 
 ### Campos
 
-| Campo | Tipo | Obr. | Descri??o | Exemplo | Regras |
+| Campo | Tipo | Obr. | Descrição | Exemplo | Regras |
 |-------|------|------|-----------|---------|--------|
-| ?? **data_id** | INT | ? | PK surrogate (IDENTITY) | `1` | PRIMARY KEY |
-| ?? **data_completa** | DATE | ? | Data completa | `2024-12-31` | UNIQUE |
-| ?? **ano** | INT | ? | Ano (4 d?gitos) | `2024` | `>= 2020` |
-| ?? **trimestre** | INT | ? | Trimestre do ano | `4` | `BETWEEN 1 AND 4` |
-| ?? **mes** | INT | ? | M?s (1-12) | `12` | `BETWEEN 1 AND 12` |
-| ?? **dia** | INT | ? | Dia do m?s | `31` | `BETWEEN 1 AND 31` |
-| ?? **semana_do_ano** | INT | ? | Semana do ano | `52` | `BETWEEN 1 AND 53` |
-| ?? **dia_da_semana** | INT | ? | Dia da semana (1=Dom) | `7` | `BETWEEN 1 AND 7` |
-| ?? **nome_mes** | VARCHAR(20) | ? | Nome do m?s | `Dezembro` | - |
-| ?? **nome_mes_abrev** | VARCHAR(3) | ? | Abrevia??o do m?s | `Dez` | - |
-| ?? **nome_dia_semana** | VARCHAR(20) | ? | Nome do dia | `S?bado` | - |
-| ?? **nome_dia_semana_abrev** | VARCHAR(3) | ? | Abrevia??o do dia | `S?b` | - |
-| ??? **eh_fim_de_semana** | BIT | ? | Flag fim de semana | `1` | 1=Sim, 0=N?o |
-| ??? **eh_feriado** | BIT | ? | Flag feriado nacional | `1` | 1=Sim, 0=N?o |
-| ?? **nome_feriado** | VARCHAR(50) | ? | Nome do feriado | `Natal` | NULL se n?o feriado |
-| ?? **dia_do_ano** | INT | ? | Dia do ano (ordinal) | `365` | `BETWEEN 1 AND 366` |
-| ??? **eh_ano_bissexto** | BIT | ? | Ano bissexto | `1` | 1=Sim, 0=N?o |
-| ?? **periodo_mes** | VARCHAR(7) | ? | Ano-M?s formatado | `2024-12` | `YYYY-MM` |
-| ?? **periodo_trimestre** | VARCHAR(7) | ? | Ano-Trimestre formatado | `2024-Q4` | `YYYY-Qn` |
+| 🔑 **data_id** | INT | ✓ | PK surrogate (IDENTITY) | `1` | PRIMARY KEY |
+| 🗓️ **data_completa** | DATE | ✓ | Data completa | `2024-12-31` | UNIQUE |
+| 📝 **ano** | INT | ✓ | Ano (4 dígitos) | `2024` | `>= 2020` |
+| 📝 **trimestre** | INT | ✓ | Trimestre do ano | `4` | `BETWEEN 1 AND 4` |
+| 📝 **mes** | INT | ✓ | Mês (1-12) | `12` | `BETWEEN 1 AND 12` |
+| 📝 **dia** | INT | ✓ | Dia do mês | `31` | `BETWEEN 1 AND 31` |
+| 📝 **semana_do_ano** | INT | ✓ | Semana do ano | `52` | `BETWEEN 1 AND 53` |
+| 📝 **dia_da_semana** | INT | ✓ | Dia da semana (1=Dom) | `7` | `BETWEEN 1 AND 7` |
+| 📝 **nome_mes** | VARCHAR(20) | ✓ | Nome do mês | `Dezembro` | - |
+| 📝 **nome_mes_abrev** | VARCHAR(3) | ✓ | Abreviação do mês | `Dez` | - |
+| 📝 **nome_dia_semana** | VARCHAR(20) | ✓ | Nome do dia | `Sábado` | - |
+| 📝 **nome_dia_semana_abrev** | VARCHAR(3) | ✓ | Abreviação do dia | `Sáb` | - |
+| 🏷️ **eh_fim_de_semana** | BIT | ✓ | Flag fim de semana | `1` | 1=Sim, 0=Não |
+| 🏷️ **eh_feriado** | BIT | ✓ | Flag feriado nacional | `1` | 1=Sim, 0=Não |
+| 📝 **nome_feriado** | VARCHAR(50) | ✗ | Nome do feriado | `Natal` | NULL se não feriado |
+| 📝 **dia_do_ano** | INT | ✓ | Dia do ano (ordinal) | `365` | `BETWEEN 1 AND 366` |
+| 🏷️ **eh_ano_bissexto** | BIT | ✓ | Ano bissexto | `1` | 1=Sim, 0=Não |
+| 📝 **periodo_mes** | VARCHAR(7) | ✓ | Ano-Mês formatado | `2024-12` | `YYYY-MM` |
+| 📝 **periodo_trimestre** | VARCHAR(7) | ✓ | Ano-Trimestre formatado | `2024-Q4` | `YYYY-Qn` |
 
 **Hierarquia Temporal:**
 ```
@@ -117,12 +117,12 @@ ano -> trimestre -> mes -> dia
 ano -> semana_do_ano
 ```
 
-**Origem:** Gerada pelo script (n?o vem de sistema fonte)
+**Origem:** Gerada pelo script (não vem de sistema fonte)
 
 ---
 
 
-## DIM_CLIENTE - Dimens?o Cliente
+## DIM_CLIENTE - Dimensão Cliente
 
 **Schema:** `dim.DIM_CLIENTE`  
 **Registros Estimados:** 10.000 - 1.000.000  
@@ -131,37 +131,37 @@ ano -> semana_do_ano
 
 ### Campos
 
-| Campo | Tipo | Obr. | Descri??o | Exemplo | Regras |
+| Campo | Tipo | Obr. | Descrição | Exemplo | Regras |
 |-------|------|------|-----------|---------|--------|
-| ?? **cliente_id** | INT | ? | PK - Surrogate Key | `1` | PRIMARY KEY IDENTITY |
-| ?? **cliente_original_id** | INT | ? | Natural Key do sistema de origem | `45123` | UNIQUE |
-| ?? **nome_cliente** | VARCHAR(100) | ? | Nome completo ou raz?o social | `Jo?o Silva` | - |
-| ?? **email** | VARCHAR(100) | ? | Email principal | `joao@email.com` | - |
-| ?? **telefone** | VARCHAR(20) | ? | Telefone | `(11) 98765-4321` | - |
-| ?? **cpf_cnpj** | VARCHAR(18) | ? | CPF ou CNPJ | `123.456.789-00` | - |
-| ??? **data_nascimento** | DATE | ? | Data de nascimento | `1985-03-15` | - |
-| ?? **genero** | CHAR(1) | ? | G?nero | `M` | `IN ('M','F','O')` |
-| ?? **tipo_cliente** | VARCHAR(20) | ? | Novo, Recorrente, VIP ou Inativo | `Recorrente` | `IN ('Novo','Recorrente','VIP','Inativo')` |
-| ?? **segmento** | VARCHAR(20) | ? | Pessoa F?sica ou Jur?dica | `Pessoa F?sica` | `IN ('Pessoa F?sica','Pessoa Jur?dica')` |
-| ?? **score_credito** | INT | ? | Score de cr?dito | `850` | `>= 0` |
-| ?? **categoria_valor** | VARCHAR(20) | ? | Categoria de valor | `Ouro` | `IN ('Bronze','Prata','Ouro','Platinum')` |
-| ?? **endereco_completo** | VARCHAR(200) | ? | Logradouro | `Av. Paulista, 1000` | - |
-| ?? **numero** | VARCHAR(10) | ? | N?mero | `1000` | - |
-| ?? **complemento** | VARCHAR(50) | ? | Complemento | `Apto 12` | - |
-| ?? **bairro** | VARCHAR(50) | ? | Bairro | `Bela Vista` | - |
-| ?? **cidade** | VARCHAR(100) | ? | Cidade | `S?o Paulo` | - |
-| ?? **estado** | CHAR(2) | ? | UF | `SP` | `LEN = 2` |
-| ?? **pais** | VARCHAR(50) | ? | Pa?s | `Brasil` | Default: `Brasil` |
-| ?? **cep** | VARCHAR(10) | ? | CEP | `01310-100` | - |
-| ??? **data_primeiro_cadastro** | DATE | ? | Data do primeiro cadastro | `2020-01-15` | - |
-| ??? **data_ultima_compra** | DATE | ? | ?ltima compra | `2024-11-28` | - |
-| ??? **data_ultima_atualizacao** | DATETIME | ? | ?ltima atualiza??o | `2024-12-15 10:00:00` | - |
-| ?? **total_compras_historico** | INT | ? | Total de compras hist?ricas | `145` | `>= 0` |
-| ?? **valor_total_gasto_historico** | DECIMAL(12,2) | ? | Valor total gasto | `87500.00` | `>= 0` |
-| ?? **ticket_medio_historico** | DECIMAL(10,2) | ? | Ticket m?dio | `603.45` | - |
-| ??? **eh_ativo** | BIT | ? | Status do cliente | `1` | 1=Ativo, 0=Inativo |
-| ??? **aceita_email_marketing** | BIT | ? | Opt-in de marketing | `1` | 1=Sim, 0=N?o |
-| ??? **eh_cliente_vip** | BIT | ? | Flag de cliente VIP | `1` | 1=Sim, 0=N?o |
+| 🔑 **cliente_id** | INT | ✓ | PK - Surrogate Key | `1` | PRIMARY KEY IDENTITY |
+| 🔗 **cliente_original_id** | INT | ✓ | Natural Key do sistema de origem | `45123` | UNIQUE |
+| 📝 **nome_cliente** | VARCHAR(100) | ✓ | Nome completo ou razão social | `João Silva` | - |
+| 📝 **email** | VARCHAR(100) | ✗ | Email principal | `joao@email.com` | - |
+| 📝 **telefone** | VARCHAR(20) | ✗ | Telefone | `(11) 98765-4321` | - |
+| 📝 **cpf_cnpj** | VARCHAR(18) | ✗ | CPF ou CNPJ | `123.456.789-00` | - |
+| 🗓️ **data_nascimento** | DATE | ✗ | Data de nascimento | `1985-03-15` | - |
+| 📝 **genero** | CHAR(1) | ✗ | Gênero | `M` | `IN ('M','F','O')` |
+| 📝 **tipo_cliente** | VARCHAR(20) | ✓ | Novo, Recorrente, VIP ou Inativo | `Recorrente` | `IN ('Novo','Recorrente','VIP','Inativo')` |
+| 📝 **segmento** | VARCHAR(20) | ✓ | Pessoa Física ou Jurídica | `Pessoa Física` | `IN ('Pessoa Física','Pessoa Jurídica')` |
+| 📝 **score_credito** | INT | ✗ | Score de crédito | `850` | `>= 0` |
+| 📝 **categoria_valor** | VARCHAR(20) | ✗ | Categoria de valor | `Ouro` | `IN ('Bronze','Prata','Ouro','Platinum')` |
+| 📝 **endereco_completo** | VARCHAR(200) | ✗ | Logradouro | `Av. Paulista, 1000` | - |
+| 📝 **numero** | VARCHAR(10) | ✗ | Número | `1000` | - |
+| 📝 **complemento** | VARCHAR(50) | ✗ | Complemento | `Apto 12` | - |
+| 📝 **bairro** | VARCHAR(50) | ✗ | Bairro | `Bela Vista` | - |
+| 📝 **cidade** | VARCHAR(100) | ✓ | Cidade | `São Paulo` | - |
+| 📝 **estado** | CHAR(2) | ✓ | UF | `SP` | `LEN = 2` |
+| 📝 **pais** | VARCHAR(50) | ✓ | País | `Brasil` | Default: `Brasil` |
+| 📝 **cep** | VARCHAR(10) | ✗ | CEP | `01310-100` | - |
+| 🗓️ **data_primeiro_cadastro** | DATE | ✓ | Data do primeiro cadastro | `2020-01-15` | - |
+| 🗓️ **data_ultima_compra** | DATE | ✗ | Última compra | `2024-11-28` | - |
+| 🗓️ **data_ultima_atualizacao** | DATETIME | ✓ | Última atualização | `2024-12-15 10:00:00` | - |
+| 📊 **total_compras_historico** | INT | ✓ | Total de compras históricas | `145` | `>= 0` |
+| 📊 **valor_total_gasto_historico** | DECIMAL(12,2) | ✓ | Valor total gasto | `87500.00` | `>= 0` |
+| 📊 **ticket_medio_historico** | DECIMAL(10,2) | ✗ | Ticket médio | `603.45` | - |
+| 🏷️ **eh_ativo** | BIT | ✓ | Status do cliente | `1` | 1=Ativo, 0=Inativo |
+| 🏷️ **aceita_email_marketing** | BIT | ✓ | Opt-in de marketing | `1` | 1=Sim, 0=Não |
+| 🏷️ **eh_cliente_vip** | BIT | ✓ | Flag de cliente VIP | `1` | 1=Sim, 0=Não |
 
 **Origem:** Sistema transacional/CRM
 
@@ -172,7 +172,7 @@ ano -> semana_do_ano
 - Inativo: sem compra recente
 
 **Categoria de Valor (categoria_valor):**
-- Bronze: at? R$ 1.000
+- Bronze: até R$ 1.000
 - Prata: R$ 1.000 - R$ 10.000
 - Ouro: R$ 10.000 - R$ 50.000
 - Platinum: acima de R$ 50.000
@@ -180,56 +180,56 @@ ano -> semana_do_ano
 ---
 
 
-## DIM_PRODUTO - Dimens?o Produto
+## DIM_PRODUTO - Dimensão Produto
 
 **Schema:** `dim.DIM_PRODUTO`  
 **Registros Estimados:** 1.000 - 100.000  
-**Crescimento:** M?dio (novos produtos mensalmente)  
+**Crescimento:** Médio (novos produtos mensalmente)  
 **SCD Type:** Type 1
 
 ### Campos
 
-| Campo | Tipo | Obr. | Descri??o | Exemplo | Regras |
+| Campo | Tipo | Obr. | Descrição | Exemplo | Regras |
 |-------|------|------|-----------|---------|--------|
-| ?? **produto_id** | INT | ? | PK - Surrogate Key | `1` | PRIMARY KEY IDENTITY |
-| ?? **produto_original_id** | INT | ? | Natural Key do ERP | `78945` | UNIQUE |
-| ?? **codigo_sku** | VARCHAR(50) | ? | Stock Keeping Unit | `DELL-NB-INS15-001` | UNIQUE |
-| ?? **codigo_barras** | VARCHAR(20) | ? | EAN/UPC | `7891234567890` | - |
-| ?? **nome_produto** | VARCHAR(150) | ? | Nome do produto | `Notebook Dell Inspiron 15` | - |
-| ?? **descricao_curta** | VARCHAR(255) | ? | Descri??o curta | `Notebook i5 8GB 256GB` | - |
-| ?? **descricao_completa** | VARCHAR(MAX) | ? | Descri??o completa | `Detalhes t?cnicos...` | - |
-| ?? **categoria** | VARCHAR(50) | ? | Categoria principal | `Eletr?nicos` | - |
-| ?? **subcategoria** | VARCHAR(50) | ? | Subcategoria | `Notebooks` | - |
-| ?? **linha_produto** | VARCHAR(50) | ? | Linha do produto | `Linha Inspiron` | - |
-| ?? **marca** | VARCHAR(50) | ? | Marca | `Dell` | - |
-| ?? **fabricante** | VARCHAR(100) | ? | Fabricante | `Dell Inc.` | - |
-| ?? **fornecedor_id** | INT | ? | ID do fornecedor | `101` | - |
-| ?? **nome_fornecedor** | VARCHAR(100) | ? | Nome do fornecedor | `Tech Supply` | - |
-| ?? **pais_origem** | VARCHAR(50) | ? | Pa?s de origem | `Estados Unidos` | - |
-| ?? **peso_kg** | DECIMAL(8,3) | ? | Peso em kg | `2.150` | `>= 0` |
-| ?? **altura_cm** | DECIMAL(6,2) | ? | Altura em cm | `2.50` | `>= 0` |
-| ?? **largura_cm** | DECIMAL(6,2) | ? | Largura em cm | `35.80` | `>= 0` |
-| ?? **profundidade_cm** | DECIMAL(6,2) | ? | Profundidade em cm | `24.00` | `>= 0` |
-| ?? **cor_principal** | VARCHAR(30) | ? | Cor principal | `Preto` | - |
-| ?? **material** | VARCHAR(50) | ? | Material | `Mesh/Borracha` | - |
-| ?? **preco_custo** | DECIMAL(10,2) | ? | Custo de aquisi??o | `2400.00` | `>= 0` |
-| ?? **preco_sugerido** | DECIMAL(10,2) | ? | Pre?o de tabela | `3499.00` | `>= 0` |
-| ?? **margem_sugerida_percent** | DECIMAL(5,2) | ? | Margem sugerida (%) | `31.42` | `BETWEEN 0 AND 100` |
-| ??? **eh_perecivel** | BIT | ? | Produto perec?vel | `0` | 1=Sim, 0=N?o |
-| ??? **eh_fragil** | BIT | ? | Produto fr?gil | `1` | 1=Sim, 0=N?o |
-| ??? **requer_refrigeracao** | BIT | ? | Precisa refrigerar | `0` | 1=Sim, 0=N?o |
-| ?? **idade_minima_venda** | INT | ? | Idade m?nima | `18` | - |
-| ?? **estoque_minimo** | INT | ? | Estoque m?nimo | `5` | `>= 0` |
-| ?? **estoque_maximo** | INT | ? | Estoque m?ximo | `100` | `>= estoque_minimo` |
-| ?? **prazo_reposicao_dias** | INT | ? | Prazo de reposi??o | `15` | - |
-| ?? **situacao** | VARCHAR(20) | ? | Status | `Ativo` | `IN ('Ativo','Inativo','Descontinuado')` |
-| ??? **data_lancamento** | DATE | ? | Data de lan?amento | `2023-06-15` | - |
-| ??? **data_descontinuacao** | DATE | ? | Data de descontinua??o | `2018-12-31` | - |
-| ??? **data_cadastro** | DATETIME | ? | Data de cadastro | `2024-01-01 00:00:00` | - |
-| ??? **data_ultima_atualizacao** | DATETIME | ? | ?ltima atualiza??o | `2024-12-15 09:00:00` | - |
-| ?? **palavras_chave** | VARCHAR(200) | ? | Palavras-chave | `notebook, i5, 8gb` | - |
-| ?? **avaliacao_media** | DECIMAL(2,1) | ? | Avalia??o m?dia | `4.5` | `BETWEEN 0 AND 5` |
-| ?? **total_avaliacoes** | INT | ? | Total de avalia??es | `127` | `>= 0` |
+| 🔑 **produto_id** | INT | ✓ | PK - Surrogate Key | `1` | PRIMARY KEY IDENTITY |
+| 🔗 **produto_original_id** | INT | ✓ | Natural Key do ERP | `78945` | UNIQUE |
+| 📝 **codigo_sku** | VARCHAR(50) | ✓ | Stock Keeping Unit | `DELL-NB-INS15-001` | UNIQUE |
+| 📝 **codigo_barras** | VARCHAR(20) | ✗ | EAN/UPC | `7891234567890` | - |
+| 📝 **nome_produto** | VARCHAR(150) | ✓ | Nome do produto | `Notebook Dell Inspiron 15` | - |
+| 📝 **descricao_curta** | VARCHAR(255) | ✗ | Descrição curta | `Notebook i5 8GB 256GB` | - |
+| 📝 **descricao_completa** | VARCHAR(MAX) | ✗ | Descrição completa | `Detalhes técnicos...` | - |
+| 📝 **categoria** | VARCHAR(50) | ✓ | Categoria principal | `Eletrônicos` | - |
+| 📝 **subcategoria** | VARCHAR(50) | ✓ | Subcategoria | `Notebooks` | - |
+| 📝 **linha_produto** | VARCHAR(50) | ✗ | Linha do produto | `Linha Inspiron` | - |
+| 📝 **marca** | VARCHAR(50) | ✓ | Marca | `Dell` | - |
+| 📝 **fabricante** | VARCHAR(100) | ✗ | Fabricante | `Dell Inc.` | - |
+| 🔗 **fornecedor_id** | INT | ✓ | ID do fornecedor | `101` | - |
+| 📝 **nome_fornecedor** | VARCHAR(100) | ✓ | Nome do fornecedor | `Tech Supply` | - |
+| 📝 **pais_origem** | VARCHAR(50) | ✗ | País de origem | `Estados Unidos` | - |
+| 📊 **peso_kg** | DECIMAL(8,3) | ✗ | Peso em kg | `2.150` | `>= 0` |
+| 📝 **altura_cm** | DECIMAL(6,2) | ✗ | Altura em cm | `2.50` | `>= 0` |
+| 📝 **largura_cm** | DECIMAL(6,2) | ✗ | Largura em cm | `35.80` | `>= 0` |
+| 📝 **profundidade_cm** | DECIMAL(6,2) | ✗ | Profundidade em cm | `24.00` | `>= 0` |
+| 📝 **cor_principal** | VARCHAR(30) | ✗ | Cor principal | `Preto` | - |
+| 📝 **material** | VARCHAR(50) | ✗ | Material | `Mesh/Borracha` | - |
+| 📊 **preco_custo** | DECIMAL(10,2) | ✓ | Custo de aquisição | `2400.00` | `>= 0` |
+| 📊 **preco_sugerido** | DECIMAL(10,2) | ✓ | Preço de tabela | `3499.00` | `>= 0` |
+| 📊 **margem_sugerida_percent** | DECIMAL(5,2) | ✗ | Margem sugerida (%) | `31.42` | `BETWEEN 0 AND 100` |
+| 🏷️ **eh_perecivel** | BIT | ✓ | Produto perecível | `0` | 1=Sim, 0=Não |
+| 🏷️ **eh_fragil** | BIT | ✓ | Produto frágil | `1` | 1=Sim, 0=Não |
+| 🏷️ **requer_refrigeracao** | BIT | ✓ | Precisa refrigerar | `0` | 1=Sim, 0=Não |
+| 📝 **idade_minima_venda** | INT | ✗ | Idade mínima | `18` | - |
+| 📊 **estoque_minimo** | INT | ✓ | Estoque mínimo | `5` | `>= 0` |
+| 📊 **estoque_maximo** | INT | ✓ | Estoque máximo | `100` | `>= estoque_minimo` |
+| 📝 **prazo_reposicao_dias** | INT | ✗ | Prazo de reposição | `15` | - |
+| 📝 **situacao** | VARCHAR(20) | ✓ | Status | `Ativo` | `IN ('Ativo','Inativo','Descontinuado')` |
+| 🗓️ **data_lancamento** | DATE | ✗ | Data de lançamento | `2023-06-15` | - |
+| 🗓️ **data_descontinuacao** | DATE | ✗ | Data de descontinuação | `2018-12-31` | - |
+| 🗓️ **data_cadastro** | DATETIME | ✓ | Data de cadastro | `2024-01-01 00:00:00` | - |
+| 🗓️ **data_ultima_atualizacao** | DATETIME | ✓ | Última atualização | `2024-12-15 09:00:00` | - |
+| 📝 **palavras_chave** | VARCHAR(200) | ✗ | Palavras-chave | `notebook, i5, 8gb` | - |
+| 📊 **avaliacao_media** | DECIMAL(2,1) | ✗ | Avaliação média | `4.5` | `BETWEEN 0 AND 5` |
+| 📊 **total_avaliacoes** | INT | ✓ | Total de avaliações | `127` | `>= 0` |
 
 **Hierarquia de Categorias:**
 ```
@@ -409,55 +409,55 @@ vendedor.gerente_id → vendedor.vendedor_id
 
 ---
 
-## DIM_DESCONTO - Dimens?o Desconto
+## DIM_DESCONTO - Dimensão Desconto
 
 **Schema:** `dim.DIM_DESCONTO`  
 **Registros Estimados:** 100 - 1.000  
-**Crescimento:** M?dio (novas campanhas)  
+**Crescimento:** Médio (novas campanhas)  
 **SCD Type:** Type 1
 
 ### Campos
 
-| Campo | Tipo | Obr. | Descri??o | Exemplo | Regras |
+| Campo | Tipo | Obr. | Descrição | Exemplo | Regras |
 |-------|------|------|-----------|---------|--------|
-| ?? **desconto_id** | INT | ? | PK - Surrogate Key | `1` | PRIMARY KEY IDENTITY |
-| ?? **desconto_original_id** | INT | ? | Natural Key (Marketing) | `7890` | UNIQUE |
-| ?? **codigo_desconto** | VARCHAR(50) | ? | C?digo do cupom | `BLACKFRIDAY2024` | UNIQUE |
-| ?? **nome_campanha** | VARCHAR(150) | ? | Nome da campanha | `Black Friday 2024` | - |
-| ?? **descricao** | VARCHAR(500) | ? | Descri??o da promo??o | `15% em toda loja` | - |
-| ?? **tipo_desconto** | VARCHAR(30) | ? | Natureza do desconto | `Cupom` | `IN ('Cupom','Promo??o Autom?tica','Desconto Progressivo','Fidelidade','Primeira Compra','Cashback')` |
-| ?? **metodo_desconto** | VARCHAR(30) | ? | Como ? calculado | `Percentual` | `IN ('Percentual','Valor Fixo','Frete Gr?tis','Brinde','Combo')` |
-| ?? **valor_desconto** | DECIMAL(10,2) | ? | Valor do desconto | `15.00` | `> 0` ou NULL |
-| ?? **min_valor_compra_regra** | DECIMAL(15,2) | ? | M?nimo do pedido | `200.00` | - |
-| ?? **max_valor_desconto_regra** | DECIMAL(15,2) | ? | Teto do desconto | `100.00` | - |
-| ?? **max_usos_por_cliente** | INT | ? | Limite por cliente | `1` | - |
-| ?? **max_usos_total** | INT | ? | Limite global | `1000` | - |
-| ?? **aplica_em** | VARCHAR(30) | ? | Escopo do desconto | `Pedido Total` | `IN ('Pedido Total','Produto Espec?fico','Categoria','Frete','Item Individual')` |
-| ?? **restricao_produtos** | VARCHAR(500) | ? | Produtos/categorias eleg?veis | `Eletr?nicos,Inform?tica` | - |
-| ?? **restricao_clientes** | VARCHAR(500) | ? | Restri??es de p?blico | `Novos Clientes` | - |
-| ??? **data_inicio_validade** | DATETIME | ? | In?cio da validade | `2024-11-25 00:00:00` | - |
-| ??? **data_fim_validade** | DATETIME | ? | Fim da validade | `2024-11-29 23:59:59` | - |
-| ?? **origem_campanha** | VARCHAR(50) | ? | Origem da campanha | `Marketing Digital` | - |
-| ?? **canal_divulgacao** | VARCHAR(50) | ? | Canal de divulga??o | `Instagram` | - |
-| ?? **total_usos_realizados** | INT | ? | Total de usos | `250` | `>= 0` |
-| ?? **total_receita_gerada** | DECIMAL(15,2) | ? | Receita gerada | `125000.00` | `>= 0` |
-| ?? **total_desconto_concedido** | DECIMAL(15,2) | ? | Total concedido | `15000.00` | `>= 0` |
-| ?? **situacao** | VARCHAR(20) | ? | Status do cupom | `Ativo` | `IN ('Ativo','Pausado','Expirado','Esgotado','Cancelado')` |
-| ??? **eh_ativo** | BIT | ? | Flag de uso | `1` | 1=Ativo, 0=Inativo |
-| ??? **requer_aprovacao** | BIT | ? | Requer aprova??o | `0` | 1=Sim, 0=N?o |
-| ??? **eh_cumulativo** | BIT | ? | Pode acumular | `0` | 1=Sim, 0=N?o |
-| ??? **data_criacao** | DATETIME | ? | Data de cria??o | `2024-01-01 00:00:00` | - |
-| ??? **data_ultima_atualizacao** | DATETIME | ? | ?ltima atualiza??o | `2024-12-15 10:30:00` | - |
-| ?? **usuario_criador** | VARCHAR(100) | ? | Usu?rio criador | `maria.silva` | - |
-| ?? **observacoes** | VARCHAR(500) | ? | Observa??es | `Campanha sazonal` | - |
+| 🔑 **desconto_id** | INT | ✓ | PK - Surrogate Key | `1` | PRIMARY KEY IDENTITY |
+| 🔗 **desconto_original_id** | INT | ✓ | Natural Key (Marketing) | `7890` | UNIQUE |
+| 📝 **codigo_desconto** | VARCHAR(50) | ✓ | Código do cupom | `BLACKFRIDAY2024` | UNIQUE |
+| 📝 **nome_campanha** | VARCHAR(150) | ✗ | Nome da campanha | `Black Friday 2024` | - |
+| 📝 **descricao** | VARCHAR(500) | ✗ | Descrição da promoção | `15% em toda loja` | - |
+| 📝 **tipo_desconto** | VARCHAR(30) | ✓ | Natureza do desconto | `Cupom` | `IN ('Cupom','Promoção Automática','Desconto Progressivo','Fidelidade','Primeira Compra','Cashback')` |
+| 📝 **metodo_desconto** | VARCHAR(30) | ✓ | Como é calculado | `Percentual` | `IN ('Percentual','Valor Fixo','Frete Grátis','Brinde','Combo')` |
+| 📊 **valor_desconto** | DECIMAL(10,2) | ✗ | Valor do desconto | `15.00` | `> 0` ou NULL |
+| 📊 **min_valor_compra_regra** | DECIMAL(15,2) | ✗ | Mínimo do pedido | `200.00` | - |
+| 📊 **max_valor_desconto_regra** | DECIMAL(15,2) | ✗ | Teto do desconto | `100.00` | - |
+| 📝 **max_usos_por_cliente** | INT | ✗ | Limite por cliente | `1` | - |
+| 📝 **max_usos_total** | INT | ✗ | Limite global | `1000` | - |
+| 📝 **aplica_em** | VARCHAR(30) | ✓ | Escopo do desconto | `Pedido Total` | `IN ('Pedido Total','Produto Específico','Categoria','Frete','Item Individual')` |
+| 📝 **restricao_produtos** | VARCHAR(500) | ✗ | Produtos/categorias elegíveis | `Eletrônicos,Informática` | - |
+| 📝 **restricao_clientes** | VARCHAR(500) | ✗ | Restrições de público | `Novos Clientes` | - |
+| 🗓️ **data_inicio_validade** | DATETIME | ✓ | Início da validade | `2024-11-25 00:00:00` | - |
+| 🗓️ **data_fim_validade** | DATETIME | ✗ | Fim da validade | `2024-11-29 23:59:59` | - |
+| 📝 **origem_campanha** | VARCHAR(50) | ✗ | Origem da campanha | `Marketing Digital` | - |
+| 📝 **canal_divulgacao** | VARCHAR(50) | ✗ | Canal de divulgação | `Instagram` | - |
+| 📊 **total_usos_realizados** | INT | ✓ | Total de usos | `250` | `>= 0` |
+| 📊 **total_receita_gerada** | DECIMAL(15,2) | ✓ | Receita gerada | `125000.00` | `>= 0` |
+| 📊 **total_desconto_concedido** | DECIMAL(15,2) | ✓ | Total concedido | `15000.00` | `>= 0` |
+| 📝 **situacao** | VARCHAR(20) | ✓ | Status do cupom | `Ativo` | `IN ('Ativo','Pausado','Expirado','Esgotado','Cancelado')` |
+| 🏷️ **eh_ativo** | BIT | ✓ | Flag de uso | `1` | 1=Ativo, 0=Inativo |
+| 🏷️ **requer_aprovacao** | BIT | ✓ | Requer aprovação | `0` | 1=Sim, 0=Não |
+| 🏷️ **eh_cumulativo** | BIT | ✓ | Pode acumular | `0` | 1=Sim, 0=Não |
+| 🗓️ **data_criacao** | DATETIME | ✓ | Data de criação | `2024-01-01 00:00:00` | - |
+| 🗓️ **data_ultima_atualizacao** | DATETIME | ✓ | Última atualização | `2024-12-15 10:30:00` | - |
+| 📝 **usuario_criador** | VARCHAR(100) | ✗ | Usuário criador | `maria.silva` | - |
+| 📝 **observacoes** | VARCHAR(500) | ✗ | Observações | `Campanha sazonal` | - |
 
 **Origem:** Sistema de campanhas/marketing
 
-**Observa??o:** o significado de `valor_desconto` depende do `metodo_desconto` (percentual, valor fixo, frete gr?tis, etc.).
+**Observação:** o significado de `valor_desconto` depende do `metodo_desconto` (percentual, valor fixo, frete grátis, etc.).
 
 ---
 
-## ?? Tabelas Fato
+## 📦 Tabelas Fato
 
 ## FACT_VENDAS - Vendas (Transacional)
 
@@ -466,63 +466,63 @@ vendedor.gerente_id → vendedor.vendedor_id
 
 ### Campos
 
-| Campo | Tipo | Obr. | Descri??o | Exemplo | Regras |
+| Campo | Tipo | Obr. | Descrição | Exemplo | Regras |
 |-------|------|------|-----------|---------|--------|
-| ?? **venda_id** | BIGINT | ? | PK da venda (surrogate) | `1` | PRIMARY KEY IDENTITY |
-| ?? **data_id** | INT | ? | FK -> DIM_DATA | `1826` | - |
-| ?? **cliente_id** | INT | ? | FK -> DIM_CLIENTE | `123` | - |
-| ?? **produto_id** | INT | ? | FK -> DIM_PRODUTO | `456` | - |
-| ?? **regiao_id** | INT | ? | FK -> DIM_REGIAO | `789` | - |
-| ?? **vendedor_id** | INT | ? | FK -> DIM_VENDEDOR | `12` | NULL = venda direta |
-| ?? **quantidade_vendida** | INT | ? | Quantidade vendida | `2` | `> 0` |
-| ?? **preco_unitario_tabela** | DECIMAL(10,2) | ? | Pre?o unit?rio sem desconto | `3500.00` | `>= 0` |
-| ?? **valor_total_bruto** | DECIMAL(15,2) | ? | Valor antes de desconto | `7000.00` | `>= 0` |
-| ?? **valor_total_descontos** | DECIMAL(15,2) | ? | Total de descontos | `700.00` | `>= 0` |
-| ?? **valor_total_liquido** | DECIMAL(15,2) | ? | Valor final pago | `6300.00` | `= bruto - descontos` |
-| ?? **custo_total** | DECIMAL(15,2) | ? | Custo total | `4000.00` | `>= 0` |
-| ?? **quantidade_devolvida** | INT | ? | Quantidade devolvida | `1` | `>= 0` e `<= quantidade_vendida` |
-| ?? **valor_devolvido** | DECIMAL(15,2) | ? | Valor devolvido | `3150.00` | `>= 0` |
-| ?? **percentual_comissao** | DECIMAL(5,2) | ? | % de comiss?o | `3.50` | `BETWEEN 0 AND 100` |
-| ?? **valor_comissao** | DECIMAL(15,2) | ? | Valor da comiss?o | `220.50` | - |
-| ?? **numero_pedido** | VARCHAR(20) | ? | N?mero do pedido | `PED-2024-123456` | - |
-| ??? **teve_desconto** | BIT | ? | Indicador de desconto | `1` | 1=Sim, 0=N?o |
-| ??? **data_inclusao** | DATETIME | ? | Data de inclus?o no DW | `2024-12-31 10:00:00` | - |
-| ??? **data_atualizacao** | DATETIME | ? | ?ltima atualiza??o | `2024-12-31 10:00:00` | - |
+| 🔑 **venda_id** | BIGINT | ✓ | PK da venda (surrogate) | `1` | PRIMARY KEY IDENTITY |
+| 🔗 **data_id** | INT | ✓ | FK -> DIM_DATA | `1826` | - |
+| 🔗 **cliente_id** | INT | ✓ | FK -> DIM_CLIENTE | `123` | - |
+| 🔗 **produto_id** | INT | ✓ | FK -> DIM_PRODUTO | `456` | - |
+| 🔗 **regiao_id** | INT | ✓ | FK -> DIM_REGIAO | `789` | - |
+| 🔗 **vendedor_id** | INT | ✗ | FK -> DIM_VENDEDOR | `12` | NULL = venda direta |
+| 📊 **quantidade_vendida** | INT | ✓ | Quantidade vendida | `2` | `> 0` |
+| 📊 **preco_unitario_tabela** | DECIMAL(10,2) | ✓ | Preço unitário sem desconto | `3500.00` | `>= 0` |
+| 📊 **valor_total_bruto** | DECIMAL(15,2) | ✓ | Valor antes de desconto | `7000.00` | `>= 0` |
+| 📊 **valor_total_descontos** | DECIMAL(15,2) | ✓ | Total de descontos | `700.00` | `>= 0` |
+| 📊 **valor_total_liquido** | DECIMAL(15,2) | ✓ | Valor final pago | `6300.00` | `= bruto - descontos` |
+| 📊 **custo_total** | DECIMAL(15,2) | ✓ | Custo total | `4000.00` | `>= 0` |
+| 📊 **quantidade_devolvida** | INT | ✓ | Quantidade devolvida | `1` | `>= 0` e `<= quantidade_vendida` |
+| 📊 **valor_devolvido** | DECIMAL(15,2) | ✓ | Valor devolvido | `3150.00` | `>= 0` |
+| 📊 **percentual_comissao** | DECIMAL(5,2) | ✗ | % de comissão | `3.50` | `BETWEEN 0 AND 100` |
+| 📊 **valor_comissao** | DECIMAL(15,2) | ✗ | Valor da comissão | `220.50` | - |
+| 📝 **numero_pedido** | VARCHAR(20) | ✓ | Número do pedido | `PED-2024-123456` | - |
+| 🏷️ **teve_desconto** | BIT | ✓ | Indicador de desconto | `1` | 1=Sim, 0=Não |
+| 🗓️ **data_inclusao** | DATETIME | ✓ | Data de inclusão no DW | `2024-12-31 10:00:00` | - |
+| 🗓️ **data_atualizacao** | DATETIME | ✓ | Última atualização | `2024-12-31 10:00:00` | - |
 
-**Origem:** Sistema de vendas + c?lculos ETL
+**Origem:** Sistema de vendas + cálculos ETL
 
 ---
 
-## FACT_METAS - Metas (Snapshot Peri?dico)
+## FACT_METAS - Metas (Snapshot Periódico)
 
 **Schema:** `fact.FACT_METAS`  
-**Granularidade:** 1 meta por vendedor por per?odo
+**Granularidade:** 1 meta por vendedor por período
 
 ### Campos
 
-| Campo | Tipo | Obr. | Descri??o | Exemplo | Regras |
+| Campo | Tipo | Obr. | Descrição | Exemplo | Regras |
 |-------|------|------|-----------|---------|--------|
-| ?? **meta_id** | BIGINT | ? | PK da meta (surrogate) | `1` | PRIMARY KEY IDENTITY |
-| ?? **vendedor_id** | INT | ? | FK -> DIM_VENDEDOR | `12` | - |
-| ?? **data_id** | INT | ? | FK -> DIM_DATA (1? dia do per?odo) | `1826` | - |
-| ?? **valor_meta** | DECIMAL(15,2) | ? | Meta em R$ | `50000.00` | `> 0` |
-| ?? **quantidade_meta** | INT | ? | Meta de quantidade | `20` | - |
-| ?? **valor_realizado** | DECIMAL(15,2) | ? | Valor realizado | `52500.00` | `>= 0` |
-| ?? **quantidade_realizada** | INT | ? | Quantidade realizada | `22` | `>= 0` |
-| ?? **percentual_atingido** | DECIMAL(5,2) | ? | % da meta atingida | `105.00` | `>= 0` |
-| ?? **gap_meta** | DECIMAL(15,2) | ? | Diferen?a meta x realizado | `2500.00` | - |
-| ?? **ticket_medio_realizado** | DECIMAL(10,2) | ? | Ticket m?dio | `2386.36` | - |
-| ?? **ranking_periodo** | INT | ? | Ranking no per?odo | `1` | 1=melhor |
-| ?? **quartil_performance** | VARCHAR(10) | ? | Quartil de performance | `Q1` | `IN ('Q1','Q2','Q3','Q4')` |
-| ??? **meta_batida** | BIT | ? | Meta atingida | `1` | `percentual_atingido >= 100` |
-| ??? **meta_superada** | BIT | ? | Meta superada | `1` | `percentual_atingido > 100` |
-| ??? **eh_periodo_fechado** | BIT | ? | Per?odo fechado | `1` | 1=Sim, 0=N?o |
-| ?? **tipo_periodo** | VARCHAR(20) | ? | Tipo do per?odo | `Mensal` | `IN ('Mensal','Trimestral','Anual')` |
-| ?? **observacoes** | VARCHAR(500) | ? | Observa??es | `Meta ajustada` | - |
-| ??? **data_inclusao** | DATETIME | ? | Data de inclus?o | `2024-12-01 00:00:00` | - |
-| ??? **data_ultima_atualizacao** | DATETIME | ? | ?ltima atualiza??o | `2024-12-31 23:59:59` | - |
+| 🔑 **meta_id** | BIGINT | ✓ | PK da meta (surrogate) | `1` | PRIMARY KEY IDENTITY |
+| 🔗 **vendedor_id** | INT | ✓ | FK -> DIM_VENDEDOR | `12` | - |
+| 🔗 **data_id** | INT | ✓ | FK -> DIM_DATA (1º dia do período) | `1826` | - |
+| 📊 **valor_meta** | DECIMAL(15,2) | ✓ | Meta em R$ | `50000.00` | `> 0` |
+| 📊 **quantidade_meta** | INT | ✗ | Meta de quantidade | `20` | - |
+| 📊 **valor_realizado** | DECIMAL(15,2) | ✓ | Valor realizado | `52500.00` | `>= 0` |
+| 📊 **quantidade_realizada** | INT | ✓ | Quantidade realizada | `22` | `>= 0` |
+| 📊 **percentual_atingido** | DECIMAL(5,2) | ✓ | % da meta atingida | `105.00` | `>= 0` |
+| 📊 **gap_meta** | DECIMAL(15,2) | ✓ | Diferença meta x realizado | `2500.00` | - |
+| 📊 **ticket_medio_realizado** | DECIMAL(10,2) | ✗ | Ticket médio | `2386.36` | - |
+| 📝 **ranking_periodo** | INT | ✗ | Ranking no período | `1` | 1=melhor |
+| 📝 **quartil_performance** | VARCHAR(10) | ✗ | Quartil de performance | `Q1` | `IN ('Q1','Q2','Q3','Q4')` |
+| 🏷️ **meta_batida** | BIT | ✓ | Meta atingida | `1` | `percentual_atingido >= 100` |
+| 🏷️ **meta_superada** | BIT | ✓ | Meta superada | `1` | `percentual_atingido > 100` |
+| 🏷️ **eh_periodo_fechado** | BIT | ✓ | Período fechado | `1` | 1=Sim, 0=Não |
+| 📝 **tipo_periodo** | VARCHAR(20) | ✓ | Tipo do período | `Mensal` | `IN ('Mensal','Trimestral','Anual')` |
+| 📝 **observacoes** | VARCHAR(500) | ✗ | Observações | `Meta ajustada` | - |
+| 🗓️ **data_inclusao** | DATETIME | ✓ | Data de inclusão | `2024-12-01 00:00:00` | - |
+| 🗓️ **data_ultima_atualizacao** | DATETIME | ✓ | Última atualização | `2024-12-31 23:59:59` | - |
 
-**Origem:** Metas do RH/CRM + c?lculo do realizado via FACT_VENDAS
+**Origem:** Metas do RH/CRM + cálculo do realizado via FACT_VENDAS
 
 ---
 
@@ -533,66 +533,66 @@ vendedor.gerente_id → vendedor.vendedor_id
 
 ### Campos
 
-| Campo | Tipo | Obr. | Descri??o | Exemplo | Regras |
+| Campo | Tipo | Obr. | Descrição | Exemplo | Regras |
 |-------|------|------|-----------|---------|--------|
-| ?? **desconto_aplicado_id** | BIGINT | ? | PK da aplica??o | `1` | PRIMARY KEY IDENTITY |
-| ?? **desconto_id** | INT | ? | FK -> DIM_DESCONTO | `12` | - |
-| ?? **venda_id** | BIGINT | ? | FK -> FACT_VENDAS | `1450` | Fact-to-Fact |
-| ?? **data_aplicacao_id** | INT | ? | FK -> DIM_DATA | `1826` | - |
-| ?? **cliente_id** | INT | ? | FK -> DIM_CLIENTE | `123` | - |
-| ?? **produto_id** | INT | ? | FK -> DIM_PRODUTO | `456` | NULL = pedido/frete |
-| ?? **nivel_aplicacao** | VARCHAR(30) | ? | N?vel do desconto | `Item` | `IN ('Item','Pedido','Frete','Categoria')` |
-| ?? **valor_desconto_aplicado** | DECIMAL(15,2) | ? | Valor concedido | `300.00` | `>= 0` |
-| ?? **valor_sem_desconto** | DECIMAL(15,2) | ? | Valor antes do desconto | `3000.00` | `>= 0` |
-| ?? **valor_com_desconto** | DECIMAL(15,2) | ? | Valor final | `2700.00` | `= sem_desconto - desconto` |
-| ?? **margem_antes_desconto** | DECIMAL(15,2) | ? | Margem antes | `900.00` | - |
-| ?? **margem_apos_desconto** | DECIMAL(15,2) | ? | Margem ap?s | `600.00` | - |
-| ?? **impacto_margem** | DECIMAL(15,2) | ? | Impacto na margem | `300.00` | - |
-| ?? **percentual_desconto_efetivo** | DECIMAL(5,2) | ? | % efetivo | `10.00` | `BETWEEN 0 AND 100` |
-| ??? **desconto_aprovado** | BIT | ? | Aprovado | `1` | 1=Sim, 0=N?o |
-| ?? **motivo_rejeicao** | VARCHAR(200) | ? | Motivo de rejei??o | `Limite excedido` | - |
-| ?? **numero_pedido** | VARCHAR(20) | ? | N?mero do pedido | `PED-2024-123456` | - |
-| ??? **data_inclusao** | DATETIME | ? | Data de inclus?o | `2024-11-25 10:00:00` | - |
-| ??? **data_atualizacao** | DATETIME | ? | ?ltima atualiza??o | `2024-11-25 10:00:00` | - |
+| 🔑 **desconto_aplicado_id** | BIGINT | ✓ | PK da aplicação | `1` | PRIMARY KEY IDENTITY |
+| 🔗 **desconto_id** | INT | ✓ | FK -> DIM_DESCONTO | `12` | - |
+| 🔗 **venda_id** | BIGINT | ✓ | FK -> FACT_VENDAS | `1450` | Fact-to-Fact |
+| 🔗 **data_aplicacao_id** | INT | ✓ | FK -> DIM_DATA | `1826` | - |
+| 🔗 **cliente_id** | INT | ✓ | FK -> DIM_CLIENTE | `123` | - |
+| 🔗 **produto_id** | INT | ✗ | FK -> DIM_PRODUTO | `456` | NULL = pedido/frete |
+| 📝 **nivel_aplicacao** | VARCHAR(30) | ✓ | Nível do desconto | `Item` | `IN ('Item','Pedido','Frete','Categoria')` |
+| 📊 **valor_desconto_aplicado** | DECIMAL(15,2) | ✓ | Valor concedido | `300.00` | `>= 0` |
+| 📊 **valor_sem_desconto** | DECIMAL(15,2) | ✓ | Valor antes do desconto | `3000.00` | `>= 0` |
+| 📊 **valor_com_desconto** | DECIMAL(15,2) | ✓ | Valor final | `2700.00` | `= sem_desconto - desconto` |
+| 📊 **margem_antes_desconto** | DECIMAL(15,2) | ✗ | Margem antes | `900.00` | - |
+| 📊 **margem_apos_desconto** | DECIMAL(15,2) | ✗ | Margem após | `600.00` | - |
+| 📊 **impacto_margem** | DECIMAL(15,2) | ✗ | Impacto na margem | `300.00` | - |
+| 📊 **percentual_desconto_efetivo** | DECIMAL(5,2) | ✓ | % efetivo | `10.00` | `BETWEEN 0 AND 100` |
+| 🏷️ **desconto_aprovado** | BIT | ✓ | Aprovado | `1` | 1=Sim, 0=Não |
+| 📝 **motivo_rejeicao** | VARCHAR(200) | ✗ | Motivo de rejeição | `Limite excedido` | - |
+| 📝 **numero_pedido** | VARCHAR(20) | ✓ | Número do pedido | `PED-2024-123456` | - |
+| 🗓️ **data_inclusao** | DATETIME | ✓ | Data de inclusão | `2024-11-25 10:00:00` | - |
+| 🗓️ **data_atualizacao** | DATETIME | ✓ | Última atualização | `2024-11-25 10:00:00` | - |
 
-**Origem:** Aplica??o de cupons/promos + c?lculo de impacto
+**Origem:** Aplicação de cupons/promos + cálculo de impacto
 
 ---
 
-## ?? Views Auxiliares
+## 🔍 Views Auxiliares
 
-Views para consumo e an?lise. Para detalhes de colunas e regras, consulte `sql/04_views/README.md`.
+Views para consumo e análise. Para detalhes de colunas e regras, consulte `sql/04_views/README.md`.
 
-| View | Prop?sito | Origem principal |
+| View | Propósito | Origem principal |
 |------|-----------|------------------|
-| `dim.VW_CALENDARIO_COMPLETO` | Calend?rio completo com per?odos e flags | `dim.DIM_DATA` |
-| `dim.VW_PRODUTOS_ATIVOS` | Produtos ativos para an?lise | `dim.DIM_PRODUTO` |
-| `dim.VW_CATALOGO_PRODUTOS` | Cat?logo com faixa de pre?o e selo | `dim.DIM_PRODUTO` |
-| `dim.VW_CLIENTES_ATIVOS` | Clientes ativos e rec?ncia | `dim.DIM_CLIENTE` |
-| `dim.VW_HIERARQUIA_GEOGRAFICA` | Hierarquia geogr?fica | `dim.DIM_REGIAO` |
+| `dim.VW_CALENDARIO_COMPLETO` | Calendário completo com períodos e flags | `dim.DIM_DATA` |
+| `dim.VW_PRODUTOS_ATIVOS` | Produtos ativos para análise | `dim.DIM_PRODUTO` |
+| `dim.VW_CATALOGO_PRODUTOS` | Catálogo com faixa de preço e selo | `dim.DIM_PRODUTO` |
+| `dim.VW_CLIENTES_ATIVOS` | Clientes ativos e recência | `dim.DIM_CLIENTE` |
+| `dim.VW_HIERARQUIA_GEOGRAFICA` | Hierarquia geográfica | `dim.DIM_REGIAO` |
 | `dim.VW_VENDEDORES_ATIVOS` | Vendedores ativos + equipe | `dim.DIM_VENDEDOR`, `dim.DIM_EQUIPE` |
 | `dim.VW_HIERARQUIA_VENDEDORES` | Hierarquia gerencial | `dim.DIM_VENDEDOR` |
 | `dim.VW_ANALISE_EQUIPE_VENDEDORES` | Indicadores por equipe | `dim.DIM_EQUIPE`, `dim.DIM_VENDEDOR` |
 | `dim.VW_EQUIPES_ATIVAS` | Equipes ativas | `dim.DIM_EQUIPE` |
-| `dim.VW_RANKING_EQUIPES_META` | Ranking de equipes por meta | `fact.FACT_METAS`, dimens?es |
-| `dim.VW_ANALISE_REGIONAL_EQUIPES` | An?lise regional de equipes | dimens?es + fatos |
-| `dim.VW_DESCONTOS_ATIVOS` | Cupons/descontos v?lidos | `dim.DIM_DESCONTO` |
-| `fact.VW_VENDAS_COMPLETA` | Vendas com joins de dimens?es | `fact.FACT_VENDAS` + dims |
+| `dim.VW_RANKING_EQUIPES_META` | Ranking de equipes por meta | `fact.FACT_METAS`, dimensões |
+| `dim.VW_ANALISE_REGIONAL_EQUIPES` | Análise regional de equipes | dimensões + fatos |
+| `dim.VW_DESCONTOS_ATIVOS` | Cupons/descontos válidos | `dim.DIM_DESCONTO` |
+| `fact.VW_VENDAS_COMPLETA` | Vendas com joins de dimensões | `fact.FACT_VENDAS` + dims |
 | `fact.VW_METAS_COMPLETA` | Metas com contexto | `fact.FACT_METAS` + dims |
 | `fact.VW_DESCONTOS_COMPLETA` | Descontos aplicados com contexto | `fact.FACT_DESCONTOS` + dims |
 
 ---
 
-## ?? Gloss?rio de Termos
+## 📚 Glossário de Termos
 
-- **Dimens?o:** tabela descritiva com atributos de contexto (quem, onde, quando, etc.).
-- **Fato:** tabela com m?tricas num?ricas do neg?cio (vendas, metas, descontos).
-- **Gr?o (Granularidade):** n?vel de detalhe de cada linha na tabela fato.
-- **Star Schema:** modelo em estrela com fatos no centro e dimens?es ao redor.
+- **Dimensão:** tabela descritiva com atributos de contexto (quem, onde, quando, etc.).
+- **Fato:** tabela com métricas numéricas do negócio (vendas, metas, descontos).
+- **Grão (Granularidade):** nível de detalhe de cada linha na tabela fato.
+- **Star Schema:** modelo em estrela com fatos no centro e dimensões ao redor.
 - **Chave Natural:** identificador vindo do sistema de origem (ex: cliente_original_id).
-- **Chave Surrogada:** identificador interno do DW (IDENTITY) sem significado de neg?cio.
-- **SCD Type 1:** sobrescreve atributos quando h? mudan?a (sem hist?rico).
-- **Periodic Snapshot Fact:** fato peri?dico com estado por per?odo (ex: metas mensais).
+- **Chave Surrogada:** identificador interno do DW (IDENTITY) sem significado de negócio.
+- **SCD Type 1:** sobrescreve atributos quando há mudança (sem histórico).
+- **Periodic Snapshot Fact:** fato periódico com estado por período (ex: metas mensais).
 - **Transaction Fact:** fato transacional linha-a-linha (ex: itens de venda).
 - **Degenerate Dimension:** atributo textual mantido na fact (ex: numero_pedido).
 - **Fact-to-Fact:** relacionamento entre tabelas fato (ex: FACT_DESCONTOS -> FACT_VENDAS).
