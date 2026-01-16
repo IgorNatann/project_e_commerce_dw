@@ -834,7 +834,7 @@ CHECK (valor_com_desconto = valor_sem_desconto - valor_desconto_aplicado)
 
 ### O
 - **observacoes** - DIM_EQUIPE, DIM_VENDEDOR, DIM_DESCONTO, FACT_METAS (VARCHAR)
-IM_DESCONTO, FACT_METAS (VARCHAR)
+DIM_DESCONTO, FACT_METAS (VARCHAR)
 
 ### P
 - **pais** - DIM_CLIENTE, DIM_REGIAO (VARCHAR)
