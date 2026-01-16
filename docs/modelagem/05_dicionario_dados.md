@@ -708,162 +708,324 @@ CHECK (valor_com_desconto = valor_sem_desconto - valor_desconto_aplicado)
 <details>
 <summary>Clique para expandir lista completa (185 campos)</summary>
 
-| Campo | Tabelas |
-|-------|---------|
-| aceita_novos_clientes | DIM_VENDEDOR |
-| ano | DIM_DATA |
-| aplica_em | DIM_DESCONTO |
-| area | DIM_VENDEDOR |
-| area_km2 | DIM_REGIAO |
-| cargo | DIM_VENDEDOR |
-| categoria | DIM_PRODUTO |
-| categoria_equipe | DIM_EQUIPE |
-| cep_final | DIM_REGIAO |
-| cep_inicial | DIM_REGIAO |
-| cidade | DIM_CLIENTE, DIM_REGIAO |
-| cidade_atuacao | DIM_VENDEDOR |
-| cidade_sede | DIM_EQUIPE |
-| cliente_id | DIM_CLIENTE (PK), FACT_VENDAS, FACT_DESCONTOS |
-| cliente_original_id | DIM_CLIENTE |
-| codigo_desconto | DIM_DESCONTO |
-| codigo_equipe | DIM_EQUIPE |
-| codigo_ibge | DIM_REGIAO |
-| codigo_sku | DIM_PRODUTO |
-| cpf | DIM_VENDEDOR |
-| custo_medio | DIM_PRODUTO |
-| custo_total | FACT_VENDAS |
-| data_aplicacao_id | FACT_DESCONTOS |
-| data_atualizacao | FACT_VENDAS |
-| data_cadastro | DIM_CLIENTE, DIM_REGIAO |
-| data_completa | DIM_DATA |
-| data_contratacao | DIM_VENDEDOR |
-| data_criacao | DIM_EQUIPE |
-| data_desligamento | DIM_VENDEDOR |
-| data_fim_validade | DIM_DESCONTO |
-| data_id | DIM_DATA (PK), FACT_VENDAS, FACT_METAS |
-| data_inativacao | DIM_EQUIPE |
-| data_inclusao | FACT_VENDAS, FACT_METAS, FACT_DESCONTOS |
-| data_inicio_validade | DIM_DESCONTO |
-| data_primeira_venda | DIM_VENDEDOR |
-| data_ultima_atualizacao | DIM_REGIAO, DIM_EQUIPE, DIM_VENDEDOR, FACT_METAS |
-| data_ultima_compra | DIM_CLIENTE |
-| data_ultima_venda | DIM_VENDEDOR |
-| ddd | DIM_REGIAO |
-| densidade_demografica | DIM_REGIAO |
-| departamento | DIM_VENDEDOR |
-| desconto_aprovado | FACT_DESCONTOS |
-| desconto_aplicado_id | FACT_DESCONTOS (PK) |
-| desconto_id | DIM_DESCONTO (PK), FACT_DESCONTOS |
-| desconto_original_id | DIM_DESCONTO |
-| dia_ano | DIM_DATA |
-| dia_mes | DIM_DATA |
-| dia_semana | DIM_DATA |
-| dimensoes | DIM_PRODUTO |
-| eh_ativo | DIM_CLIENTE, DIM_PRODUTO, DIM_REGIAO, DIM_EQUIPE, DIM_VENDEDOR |
-| eh_ativa | DIM_EQUIPE |
-| eh_feriado | DIM_DATA |
-| eh_fim_de_semana | DIM_DATA |
-| eh_lider | DIM_VENDEDOR |
-| eh_periodo_fechado | FACT_METAS |
-| email | DIM_CLIENTE, DIM_VENDEDOR |
-| email_lider | DIM_EQUIPE |
-| email_pessoal | DIM_VENDEDOR |
-| equipe_id | DIM_EQUIPE (PK), DIM_VENDEDOR |
-| equipe_original_id | DIM_EQUIPE |
-| estado | DIM_CLIENTE, DIM_REGIAO |
-| estado_atuacao | DIM_VENDEDOR |
-| estado_sede | DIM_EQUIPE |
-| fornecedor_id | DIM_PRODUTO |
-| fuso_horario | DIM_REGIAO |
-| gap_meta | FACT_METAS |
-| gerente_id | DIM_VENDEDOR |
-| idh | DIM_REGIAO |
-| impacto_margem | FACT_DESCONTOS |
-| latitude | DIM_REGIAO |
-| lider_equipe_id | DIM_EQUIPE |
-| longitude | DIM_REGIAO |
-| marca | DIM_PRODUTO |
-| margem_antes_desconto | FACT_DESCONTOS |
-| margem_apos_desconto | FACT_DESCONTOS |
-| matricula | DIM_VENDEDOR |
-| max_valor_desconto_regra | DIM_DESCONTO |
-| mes | DIM_DATA |
-| meta_anual_equipe | DIM_EQUIPE |
-| meta_batida | FACT_METAS |
-| meta_id | FACT_METAS (PK) |
-| meta_mensal_base | DIM_VENDEDOR |
-| meta_mensal_equipe | DIM_EQUIPE |
-| meta_superada | FACT_METAS |
-| meta_trimestral_base | DIM_VENDEDOR |
-| meta_trimestral_equipe | DIM_EQUIPE |
-| metodo_desconto | DIM_DESCONTO |
-| min_valor_compra_regra | DIM_DESCONTO |
-| motivo_desligamento | DIM_VENDEDOR |
-| nivel_aplicacao | FACT_DESCONTOS |
-| nivel_senioridade | DIM_VENDEDOR |
-| nome_campanha | DIM_DESCONTO |
-| nome_cliente | DIM_CLIENTE |
-| nome_dia_semana | DIM_DATA |
-| nome_equipe | DIM_EQUIPE, DIM_VENDEDOR |
-| nome_estado | DIM_REGIAO |
-| nome_feriado | DIM_DATA |
-| nome_fornecedor | DIM_PRODUTO |
-| nome_gerente | DIM_VENDEDOR |
-| nome_lider | DIM_EQUIPE |
-| nome_mes | DIM_DATA |
-| nome_produto | DIM_PRODUTO |
-| nome_vendedor | DIM_VENDEDOR |
-| numero_pedido | FACT_VENDAS, FACT_DESCONTOS |
-| observacoes | DIM_EQUIPE, DIM_VENDEDOR, FACT_METAS |
-| pais | DIM_CLIENTE, DIM_REGIAO |
-| percentual_atingido | FACT_METAS |
-| percentual_comissao | FACT_VENDAS |
-| percentual_comissao_padrao | DIM_VENDEDOR |
-| percentual_meta_mes_anterior | DIM_EQUIPE, DIM_VENDEDOR |
-| peso_kg | DIM_PRODUTO |
-| pib_per_capita | DIM_REGIAO |
-| populacao_estimada | DIM_REGIAO |
-| porte_municipio | DIM_REGIAO |
-| preco_sugerido | DIM_PRODUTO |
-| preco_unitario_tabela | FACT_VENDAS |
-| produto_id | DIM_PRODUTO (PK), FACT_VENDAS, FACT_DESCONTOS |
-| produto_original_id | DIM_PRODUTO |
-| quantidade_devolvida | FACT_VENDAS |
-| quantidade_meta | FACT_METAS |
-| quantidade_realizada | FACT_METAS |
-| quantidade_vendida | FACT_VENDAS |
-| quartil_performance | FACT_METAS |
-| qtd_membros_atual | DIM_EQUIPE |
-| qtd_membros_ideal | DIM_EQUIPE |
-| qtd_meta_vendas_mes | DIM_EQUIPE |
-| ranking_mes_anterior | DIM_VENDEDOR |
-| ranking_periodo | FACT_METAS |
-| ranking_ultimo_mes | DIM_EQUIPE |
-| regiao_id | DIM_REGIAO (PK), FACT_VENDAS |
-| regiao_original_id | DIM_REGIAO |
-| regiao_pais | DIM_REGIAO |
-| regional | DIM_EQUIPE |
-| segmento | DIM_CLIENTE |
-| situacao | DIM_EQUIPE, DIM_VENDEDOR, DIM_DESCONTO |
-| subcategoria | DIM_PRODUTO |
-| telefone_celular | DIM_VENDEDOR |
-| telefone_comercial | DIM_VENDEDOR |
-| territorio_vendas | DIM_VENDEDOR |
-| ticket_medio_realizado | FACT_METAS |
-| tipo_cliente | DIM_CLIENTE |
-| tipo_comissao | DIM_VENDEDOR |
-| tipo_desconto | DIM_DESCONTO |
-| tipo_equipe | DIM_EQUIPE |
-| tipo_municipio | DIM_REGIAO |
-| tipo_periodo | FACT_METAS |
-| tipo_vendedor | DIM_VENDEDOR |
-| total_vendas_acumulado_ano | DIM_VENDEDOR |
-| total_vendas_mes_anterior | DIM_EQUIPE, DIM_VENDEDOR |
-| total_vendas_mes_atual | DIM_VENDEDOR |
-| teve_desconto | FACT_VENDAS |
-| trimestre | DIM_DATA |
-| valor_comissao | FACT_VENDAS |
-| valor_com_desconto | FACT_DESCONTOS |
-| valor_desconto | DIM_DESCONTO |
-| valor_desconto_aplicado | FACT_DESCONTOS |
-| valor_devolvido | FACT_VENDAS
+### A
+- **aceita_novos_clientes** - DIM_VENDEDOR (BIT)
+- **ano** - DIM_DATA (INT)
+- **aplica_em** - DIM_DESCONTO (VARCHAR)
+- **area** - DIM_VENDEDOR (VARCHAR)
+- **area_km2** - DIM_REGIAO (DECIMAL)
+
+### C
+- **cargo** - DIM_VENDEDOR (VARCHAR)
+- **categoria** - DIM_PRODUTO (VARCHAR)
+- **categoria_equipe** - DIM_EQUIPE (VARCHAR)
+- **cep_final** - DIM_REGIAO (VARCHAR)
+- **cep_inicial** - DIM_REGIAO (VARCHAR)
+- **cidade** - DIM_CLIENTE, DIM_REGIAO (VARCHAR)
+- **cidade_atuacao** - DIM_VENDEDOR (VARCHAR)
+- **cidade_sede** - DIM_EQUIPE (VARCHAR)
+- **cliente_id** - DIM_CLIENTE (PK), FACT_VENDAS, FACT_DESCONTOS (FK)
+- **cliente_original_id** - DIM_CLIENTE (INT)
+- **codigo_desconto** - DIM_DESCONTO (VARCHAR)
+- **codigo_equipe** - DIM_EQUIPE (VARCHAR)
+- **codigo_ibge** - DIM_REGIAO (VARCHAR)
+- **codigo_sku** - DIM_PRODUTO (VARCHAR)
+- **cpf** - DIM_VENDEDOR (VARCHAR)
+- **custo_medio** - DIM_PRODUTO (DECIMAL)
+- **custo_total** - FACT_VENDAS (DECIMAL)
+
+### D
+- **data_aplicacao_id** - FACT_DESCONTOS (FK)
+- **data_cadastro** - DIM_CLIENTE, DIM_REGIAO (DATE)
+- **data_completa** - DIM_DATA (DATE)
+- **data_contratacao** - DIM_VENDEDOR (DATE)
+- **data_criacao** - DIM_EQUIPE, DIM_DESCONTO (DATE/DATETIME)
+- **data_desligamento** - DIM_VENDEDOR (DATE)
+- **data_fim_validade** - DIM_DESCONTO (DATE)
+- **data_id** - DIM_DATA (PK), FACT_VENDAS, FACT_METAS (FK)
+- **data_inativacao** - DIM_EQUIPE (DATE)
+- **data_inclusao** - FACT_VENDAS, FACT_METAS, FACT_DESCONTOS (DATETIME)
+- **data_inicio_validade** - DIM_DESCONTO (DATE)
+- **data_primeira_venda** - DIM_VENDEDOR (DATE)
+- **data_ultima_atualizacao** - DIM_REGIAO, DIM_EQUIPE, DIM_VENDEDOR, FACT_METAS (DATETIME)
+- **data_ultima_compra** - DIM_CLIENTE (DATE)
+- **data_ultima_venda** - DIM_VENDEDOR (DATE)
+- **ddd** - DIM_REGIAO (CHAR)
+- **densidade_demografica** - DIM_REGIAO (DECIMAL)
+- **departamento** - DIM_VENDEDOR (VARCHAR)
+- **desconto_aplicado_id** - FACT_DESCONTOS (PK)
+- **desconto_aprovado** - FACT_DESCONTOS (BIT)
+- **desconto_id** - DIM_DESCONTO (PK), FACT_DESCONTOS (FK)
+- **desconto_original_id** - DIM_DESCONTO (INT)
+- **dia_ano** - DIM_DATA (INT)
+- **dia_mes** - DIM_DATA (INT)
+- **dia_semana** - DIM_DATA (INT)
+- **dimensoes** - DIM_PRODUTO (VARCHAR)
+
+### E
+- **eh_ativo** - DIM_CLIENTE, DIM_PRODUTO, DIM_REGIAO, DIM_EQUIPE, DIM_VENDEDOR (BIT)
+- **eh_ativa** - DIM_EQUIPE (BIT)
+- **eh_feriado** - DIM_DATA (BIT)
+- **eh_fim_de_semana** - DIM_DATA (BIT)
+- **eh_lider** - DIM_VENDEDOR (BIT)
+- **eh_periodo_fechado** - FACT_METAS (BIT)
+- **email** - DIM_CLIENTE, DIM_VENDEDOR (VARCHAR)
+- **email_lider** - DIM_EQUIPE (VARCHAR)
+- **email_pessoal** - DIM_VENDEDOR (VARCHAR)
+- **equipe_id** - DIM_EQUIPE (PK), DIM_VENDEDOR (FK)
+- **equipe_original_id** - DIM_EQUIPE (INT)
+- **estado** - DIM_CLIENTE, DIM_REGIAO (CHAR/VARCHAR)
+- **estado_atuacao** - DIM_VENDEDOR (CHAR)
+- **estado_sede** - DIM_EQUIPE (CHAR)
+
+### F
+- **fornecedor_id** - DIM_PRODUTO (INT)
+- **fuso_horario** - DIM_REGIAO (VARCHAR)
+
+### G
+- **gap_meta** - FACT_METAS (DECIMAL)
+- **gerente_id** - DIM_VENDEDOR (FK self-join)
+
+### I
+- **idh** - DIM_REGIAO (DECIMAL)
+- **impacto_margem** - FACT_DESCONTOS (DECIMAL)
+
+### L
+- **latitude** - DIM_REGIAO (DECIMAL)
+- **lider_equipe_id** - DIM_EQUIPE (FK)
+- **longitude** - DIM_REGIAO (DECIMAL)
+
+### M
+- **mês** - DIM_DATA (INT)
+- **marca** - DIM_PRODUTO (VARCHAR)
+- **margem_antes_desconto** - FACT_DESCONTOS (DECIMAL)
+- **margem_apos_desconto** - FACT_DESCONTOS (DECIMAL)
+- **matricula** - DIM_VENDEDOR (VARCHAR)
+- **max_valor_desconto_regra** - DIM_DESCONTO (DECIMAL)
+- **meta_anual_equipe** - DIM_EQUIPE (DECIMAL)
+- **meta_batida** - FACT_METAS (BIT)
+- **meta_id** - FACT_METAS (PK)
+- **meta_mensal_base** - DIM_VENDEDOR (DECIMAL)
+- **meta_mensal_equipe** - DIM_EQUIPE (DECIMAL)
+- **meta_superada** - FACT_METAS (BIT)
+- **meta_trimestral_base** - DIM_VENDEDOR (DECIMAL)
+- **meta_trimestral_equipe** - DIM_EQUIPE (DECIMAL)
+- **metodo_desconto** - DIM_DESCONTO (VARCHAR)
+- **min_valor_compra_regra** - DIM_DESCONTO (DECIMAL)
+- **motivo_desligamento** - DIM_VENDEDOR (VARCHAR)
+
+### N
+- **nivel_aplicacao** - FACT_DESCONTOS (VARCHAR)
+- **nivel_senioridade** - DIM_VENDEDOR (VARCHAR)
+- **nome_cliente** - DIM_CLIENTE (VARCHAR)
+- **nome_campanha** - DIM_DESCONTO (VARCHAR)
+- **nome_dia_semana** - DIM_DATA (VARCHAR)
+- **nome_equipe** - DIM_EQUIPE, DIM_VENDEDOR (VARCHAR)
+- **nome_estado** - DIM_REGIAO (VARCHAR)
+- **nome_exibicao** - DIM_VENDEDOR (VARCHAR)
+- **nome_feriado** - DIM_DATA (VARCHAR)
+- **nome_fornecedor** - DIM_PRODUTO (VARCHAR)
+- **nome_gerente** - DIM_VENDEDOR (VARCHAR)
+- **nome_lider** - DIM_EQUIPE (VARCHAR)
+- **nome_mes** - DIM_DATA (VARCHAR)
+- **nome_produto** - DIM_PRODUTO (VARCHAR)
+- **nome_vendedor** - DIM_VENDEDOR (VARCHAR)
+- **numero_pedido** - FACT_VENDAS, FACT_DESCONTOS (VARCHAR)
+
+### O
+- **observacoes** - DIM_EQUIPE, DIM_VENDEDOR, DIM_DESCONTO, FACT_METAS (VARCHAR)
+DIM_DESCONTO, FACT_METAS (VARCHAR)
+
+### P
+- **pais** - DIM_CLIENTE, DIM_REGIAO (VARCHAR)
+- **percentual_atingido** - FACT_METAS (DECIMAL)
+- **percentual_comissao** - FACT_VENDAS (DECIMAL)
+- **percentual_comissao_padrao** - DIM_VENDEDOR (DECIMAL)
+- **percentual_meta_mes_anterior** - DIM_EQUIPE, DIM_VENDEDOR (DECIMAL)
+- **peso_kg** - DIM_PRODUTO (DECIMAL)
+- **pib_per_capita** - DIM_REGIAO (DECIMAL)
+- **populacao_estimada** - DIM_REGIAO (INT)
+- **porte_municipio** - DIM_REGIAO (VARCHAR)
+- **preco_sugerido** - DIM_PRODUTO (DECIMAL)
+- **preco_unitario_tabela** - FACT_VENDAS (DECIMAL)
+- **produto_id** - DIM_PRODUTO (PK), FACT_VENDAS, FACT_DESCONTOS (FK)
+- **produto_original_id** - DIM_PRODUTO (INT)
+
+### Q
+- **qtd_membros_atual** - DIM_EQUIPE (INT)
+- **qtd_membros_ideal** - DIM_EQUIPE (INT)
+- **qtd_meta_vendas_mes** - DIM_EQUIPE (INT)
+- **quantidade_devolvida** - FACT_VENDAS (INT)
+- **quantidade_meta** - FACT_METAS (INT)
+- **quantidade_realizada** - FACT_METAS (INT)
+- **quantidade_vendida** - FACT_VENDAS (INT)
+- **quartil_performance** - FACT_METAS (VARCHAR)
+
+### R
+- **ranking_periodo** - FACT_METAS (INT)
+- **ranking_ultimo_mes** - DIM_EQUIPE (INT)
+- **ranking_mes_anterior** - DIM_VENDEDOR (INT)
+- **regiao_id** - DIM_REGIAO (PK), FACT_VENDAS (FK)
+- **regiao_original_id** - DIM_REGIAO (INT)
+- **regiao_pais** - DIM_REGIAO (VARCHAR)
+- **regional** - DIM_EQUIPE (VARCHAR)
+
+### S
+- **segmento** - DIM_CLIENTE (VARCHAR)
+- **situacao** - DIM_EQUIPE, DIM_VENDEDOR, DIM_DESCONTO (VARCHAR)
+- **subcategoria** - DIM_PRODUTO (VARCHAR)
+
+### T
+- **telefone_celular** - DIM_VENDEDOR (VARCHAR)
+- **telefone_comercial** - DIM_VENDEDOR (VARCHAR)
+- **territorio_vendas** - DIM_VENDEDOR (VARCHAR)
+- **teve_desconto** - FACT_VENDAS (BIT)
+- **ticket_medio_realizado** - FACT_METAS (DECIMAL)
+- **tipo_cliente** - DIM_CLIENTE (VARCHAR)
+- **tipo_comissao** - DIM_VENDEDOR (VARCHAR)
+- **tipo_desconto** - DIM_DESCONTO (VARCHAR)
+- **tipo_equipe** - DIM_EQUIPE (VARCHAR)
+- **tipo_municipio** - DIM_REGIAO (VARCHAR)
+- **tipo_periodo** - FACT_METAS (VARCHAR)
+- **tipo_vendedor** - DIM_VENDEDOR (VARCHAR)
+- **total_vendas_acumulado_ano** - DIM_VENDEDOR (DECIMAL)
+- **total_vendas_mes_anterior** - DIM_EQUIPE, DIM_VENDEDOR (DECIMAL)
+- **total_vendas_mes_atual** - DIM_VENDEDOR (DECIMAL)
+- **trimestre** - DIM_DATA (INT)
+
+### V
+- **valor_comissao** - FACT_VENDAS (DECIMAL)
+- **valor_com_desconto** - FACT_DESCONTOS (DECIMAL)
+- **valor_desconto** - DIM_DESCONTO (DECIMAL)
+- **valor_desconto_aplicado** - FACT_DESCONTOS (DECIMAL)
+- **valor_devolvido** - FACT_VENDAS (DECIMAL)
+- **valor_meta** - FACT_METAS (DECIMAL)
+- **valor_realizado** - FACT_METAS (DECIMAL)
+- **valor_sem_desconto** - FACT_DESCONTOS (DECIMAL)
+- **valor_total_bruto** - FACT_VENDAS (DECIMAL)
+- **valor_total_descontos** - FACT_VENDAS (DECIMAL)
+- **valor_total_liquido** - FACT_VENDAS (DECIMAL)
+- **venda_id** - FACT_VENDAS (PK), FACT_DESCONTOS (FK)
+- **vendedor_id** - DIM_VENDEDOR (PK), FACT_VENDAS, FACT_METAS (FK)
+- **vendedor_original_id** - DIM_VENDEDOR (INT)
+
+---
+
+## 📚 REFERÊNCIAS CRUZADAS
+
+### Campos Desnormalizados Intencionais
+
+| Campo | Tabela | Origem | Motivo |
+|-------|--------|--------|--------|
+| nome_fornecedor | DIM_PRODUTO | DIM_FORNECEDOR (hipotética) | Performance em queries de produto |
+| nome_equipe | DIM_VENDEDOR | DIM_EQUIPE | Evitar JOIN em 80% das queries |
+| nome_gerente | DIM_VENDEDOR | DIM_VENDEDOR (self) | Performance em relatórios hierárquicos |
+| nome_lider | DIM_EQUIPE | DIM_VENDEDOR | Evitar JOIN circular |
+| cliente_id | FACT_DESCONTOS | FACT_VENDAS | Performance em análises de desconto por cliente |
+| produto_id | FACT_DESCONTOS | FACT_VENDAS | Performance em análises de desconto por produto |
+
+### Degenerate Dimensions
+
+| Campo | Tabela | Motivo |
+|-------|--------|--------|
+| numero_pedido | FACT_VENDAS | Agrupamento de itens do pedido, não justifica dimensão separada |
+| numero_pedido | FACT_DESCONTOS | Rastreabilidade com FACT_VENDAS |
+
+### Campos Calculados vs Armazenados
+
+| Campo | Tabela | Tipo | Fórmula |
+|-------|--------|------|---------|
+| valor_total_liquido | FACT_VENDAS | Armazenado | `valor_total_bruto - valor_total_descontos` |
+| valor_comissao | FACT_VENDAS | Armazenado | `valor_total_liquido × (percentual_comissao/100)` |
+| percentual_atingido | FACT_METAS | Armazenado | `(valor_realizado / valor_meta) × 100` |
+| gap_meta | FACT_METAS | Armazenado | `valor_realizado - valor_meta` |
+| impacto_margem | FACT_DESCONTOS | Armazenado | `margem_apos_desconto - margem_antes_desconto` |
+| lucro_bruto | (calculado) | View | `valor_total_liquido - custo_total` |
+| margem_percentual | (calculado) | View | `(lucro_bruto / valor_total_liquido) × 100` |
+
+**Razão para armazenar vs calcular:**
+- ✅ Armazenados: Usados frequentemente, complexos de calcular, constraint de integridade
+- ❌ Calculados: Simples, usados esporadicamente, derivados de campos armazenados
+
+---
+
+## ⚠️ CONVENÇÕES E PADRÕES
+
+### Nomenclatura
+
+| Elemento | Padrão | Exemplo |
+|----------|--------|---------|
+| Tabelas | UPPER_CASE com prefixo | `DIM_CLIENTE`, `FACT_VENDAS` |
+| Campos | snake_case | `nome_cliente`, `valor_total_liquido` |
+| PKs | `[tabela]_id` | `cliente_id`, `venda_id` |
+| FKs | Mesmo nome da PK referenciada | `cliente_id` em FACT aponta para `cliente_id` em DIM |
+| Views | Prefixo `VW_` | `VW_VENDAS_COMPLETA` |
+| Schemas | Minúsculas | `dim`, `fact` |
+
+### Tipos de Dados Padronizados
+
+| Uso | Tipo SQL Server | Exemplo |
+|-----|-----------------|---------|
+| IDs (dimensões) | `INT IDENTITY(1,1)` | `cliente_id INT` |
+| IDs (facts) | `BIGINT IDENTITY(1,1)` | `venda_id BIGINT` |
+| Valores monetários | `DECIMAL(15,2)` | `valor_total_liquido DECIMAL(15,2)` |
+| Percentuais | `DECIMAL(5,2)` | `percentual_comissao DECIMAL(5,2)` |
+| Textos curtos | `VARCHAR(n)` | `nome_cliente VARCHAR(200)` |
+| Textos fixos | `CHAR(n)` | `estado CHAR(2)` |
+| Datas | `DATE` | `data_cadastro DATE` |
+| Timestamps | `DATETIME` | `data_inclusao DATETIME` |
+| Flags | `BIT` | `eh_ativo BIT` |
+
+### Defaults Padrão
+
+| Campo | Default | Motivo |
+|-------|---------|--------|
+| `eh_ativo` | `1` | Registros novos são ativos por padrão |
+| `data_inclusao` | `GETDATE()` | Auditoria automática |
+| `data_ultima_atualizacao` | `GETDATE()` | Auditoria automática |
+| Valores monetários | `0` | Evitar NULLs em agregações |
+| Quantidades | `0` | Evitar NULLs em agregações |
+
+---
+
+## 📖 GLOSSÁRIO DE TERMOS
+
+| Termo | Definição |
+|-------|-----------|
+| **Surrogate Key** | Chave artificial gerada pelo DW (não vem do sistema fonte). Exemplo: `cliente_id INT IDENTITY` |
+| **Natural Key** | Chave do sistema origem. Exemplo: `cliente_original_id` (CPF, código ERP) |
+| **Foreign Key (FK)** | Campo que referencia a PK de outra tabela |
+| **Degenerate Dimension (DD)** | Atributo descritivo que fica na fact por não justificar dimensão separada. Exemplo: `numero_pedido` |
+| **Granularidade** | O que 1 linha da tabela representa. Exemplo: "1 item vendido em 1 pedido" |
+| **SCD Type 1** | Slowly Changing Dimension que sobrescreve valores (sem histórico) |
+| **SCD Type 2** | Slowly Changing Dimension que mantém histórico completo (múltiplas versões) |
+| **Fact Table** | Tabela que armazena métricas/eventos mensuráveis |
+| **Dimension Table** | Tabela que descreve contexto (quem, o que, onde, quando) |
+| **Star Schema** | Modelo com fact no centro e dimensions ao redor (formato de estrela) |
+| **Snowflake Schema** | Star schema com dimensões normalizadas (menos usado, mais complexo) |
+| **Additive Measure** | Métrica somável em todas dimensões. Exemplo: `quantidade_vendida` |
+| **Semi-Additive Measure** | Métrica somável apenas em algumas dimensões. Exemplo: `valor_meta` (não somar entre períodos) |
+| **Non-Additive Measure** | Métrica não somável, deve recalcular. Exemplo: `percentual_atingido` |
+| **Transaction Fact** | Fact que registra eventos conforme ocorrem. Exemplo: FACT_VENDAS |
+| **Periodic Snapshot** | Fact que congela estado em intervalos regulares. Exemplo: FACT_METAS |
+| **Drill-Down** | Detalhar de agregado para granular. Exemplo: Ano → Mês → Dia |
+| **Roll-Up** | Agregar de granular para agregado. Exemplo: Dia → Mês → Ano |
+| **Desnormalização** | Armazenar dados redundantes intencionalmente para performance |
+| **ETL** | Extract, Transform, Load - processo de carga de dados |
+| **OLAP** | Online Analytical Processing - sistemas analíticos |
+| **OLTP** | Online Transaction Processing - sistemas transacionais |
+
+---
+
+<div align="center">
+
+**[⬆ Voltar ao topo](#-dicionário-de-dados---dw-e-commerce)**
+
+**DICIONÁRIO DE DADOS COMPLETO**  
+*Versão 1.0 - Última atualização: Janeiro 2026*  
+
+📚 **Projeto:** Data Warehouse E-commerce  
+🏗️ **Arquitetura:** Star Schema (Metodologia Kimball)  
+📊 **Total:** 10 tabelas | ~180 campos | 15 relacionamentos  
+
+</div>
