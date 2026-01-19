@@ -618,4 +618,193 @@ SELECT
     SUM(fd.valor_desconto_aplicado) AS total_descontos
 FROM fact.FACT_VENDAS fv
 LEFT JOIN fact.FACT_DESCONTOS fd ON fv.venda_id = fd.venda_id
-GROUP BY fv.venda_id, fv.numero
+GROUP BY fv.venda_id, fv.numero_pedido, fv.valor_total_bruto, fv.valor_total_liquido
+HAVING COUNT(fd.desconto_aplicado_id) > 1  -- Apenas vendas com múltiplos descontos
+ORDER BY total_descontos DESC;
+
+Analisando o arquivo 03_fatos.md, posso ver que você parou no Pattern 4: Join entre Facts, especificamente na query SQL que estava sendo construída. A query foi interrompida na linha do GROUP BY.
+Vou retornar apenas o que faltou para completar a documentação:
+
+sql_pedido, fv.valor_total_bruto, fv.valor_total_liquido
+HAVING COUNT(fd.desconto_aplicado_id) > 1  -- Apenas vendas com múltiplos descontos
+ORDER BY total_descontos DESC;
+Pattern 5: Ranking e Percentis
+sql-- Top 20% de produtos por receita (Análise Pareto)
+WITH produto_receita AS (
+    SELECT 
+        p.produto_id,
+        p.nome_produto,
+        p.categoria,
+        SUM(fv.valor_total_liquido) AS receita,
+        NTILE(5) OVER (ORDER BY SUM(fv.valor_total_liquido) DESC) AS quintil
+    FROM fact.FACT_VENDAS fv
+    JOIN dim.DIM_PRODUTO p ON fv.produto_id = p.produto_id
+    GROUP BY p.produto_id, p.nome_produto, p.categoria
+)
+SELECT 
+    nome_produto,
+    categoria,
+    receita,
+    quintil,
+    CASE 
+        WHEN quintil = 1 THEN 'A - Top 20%'
+        WHEN quintil = 2 THEN 'B - Próximos 20%'
+        WHEN quintil = 3 THEN 'C - Médio 20%'
+        WHEN quintil = 4 THEN 'D - Abaixo Médio'
+        ELSE 'E - Bottom 20%'
+    END AS classificacao
+FROM produto_receita
+WHERE quintil = 1  -- Apenas top 20%
+ORDER BY receita DESC;
+Pattern 6: Performance vs Meta
+sql-- Análise integrada: Vendas realizadas vs Metas
+SELECT 
+    v.nome_vendedor,
+    v.nome_equipe,
+    d.ano,
+    d.mes,
+    fm.valor_meta,
+    fm.valor_realizado AS meta_registrada,
+    SUM(fv.valor_total_liquido) AS vendas_detalhadas,
+    fm.percentual_atingido,
+    CASE 
+        WHEN fm.meta_batida = 1 THEN '✅ Bateu'
+        ELSE '❌ Não bateu'
+    END AS status
+FROM fact.FACT_METAS fm
+JOIN dim.DIM_VENDEDOR v ON fm.vendedor_id = v.vendedor_id
+JOIN dim.DIM_DATA d ON fm.data_id = d.data_id
+LEFT JOIN fact.FACT_VENDAS fv ON fv.vendedor_id = fm.vendedor_id 
+    AND YEAR(fv.data_id) = d.ano 
+    AND MONTH(fv.data_id) = d.mes
+GROUP BY v.nome_vendedor, v.nome_equipe, d.ano, d.mes, 
+         fm.valor_meta, fm.valor_realizado, fm.percentual_atingido, fm.meta_batida
+ORDER BY d.ano DESC, d.mes DESC, fm.percentual_atingido DESC;
+
+📋 Checklist de Validação
+Validações de Integridade
+sql-- 1. Verificar órfãos em FACT_VENDAS
+SELECT COUNT(*) AS vendas_orfas
+FROM fact.FACT_VENDAS fv
+WHERE NOT EXISTS (SELECT 1 FROM dim.DIM_DATA d WHERE d.data_id = fv.data_id)
+   OR NOT EXISTS (SELECT 1 FROM dim.DIM_CLIENTE c WHERE c.cliente_id = fv.cliente_id)
+   OR NOT EXISTS (SELECT 1 FROM dim.DIM_PRODUTO p WHERE p.produto_id = fv.produto_id);
+-- Esperado: 0
+
+-- 2. Validar cálculos em FACT_VENDAS
+SELECT COUNT(*) AS inconsistencias_valor
+FROM fact.FACT_VENDAS
+WHERE valor_total_liquido <> (valor_total_bruto - valor_total_descontos);
+-- Esperado: 0
+
+-- 3. Validar unicidade em FACT_METAS
+SELECT vendedor_id, data_id, tipo_periodo, COUNT(*)
+FROM fact.FACT_METAS
+GROUP BY vendedor_id, data_id, tipo_periodo
+HAVING COUNT(*) > 1;
+-- Esperado: 0 linhas
+
+-- 4. Verificar coerência meta_batida em FACT_METAS
+SELECT COUNT(*) AS inconsistencias_meta
+FROM fact.FACT_METAS
+WHERE (meta_batida = 1 AND percentual_atingido < 100)
+   OR (meta_batida = 0 AND percentual_atingido >= 100);
+-- Esperado: 0
+
+-- 5. Validar relacionamento FACT_DESCONTOS → FACT_VENDAS
+SELECT COUNT(*) AS descontos_sem_venda
+FROM fact.FACT_DESCONTOS fd
+WHERE NOT EXISTS (
+    SELECT 1 FROM fact.FACT_VENDAS fv WHERE fv.venda_id = fd.venda_id
+);
+-- Esperado: 0
+Estatísticas de Volume
+sql-- Resumo de registros por tabela fato
+SELECT 
+    'FACT_VENDAS' AS tabela,
+    COUNT(*) AS total_registros,
+    MIN(data_id) AS periodo_inicio,
+    MAX(data_id) AS periodo_fim,
+    COUNT(DISTINCT cliente_id) AS entidades_unicas
+FROM fact.FACT_VENDAS
+
+UNION ALL
+
+SELECT 
+    'FACT_METAS',
+    COUNT(*),
+    MIN(data_id),
+    MAX(data_id),
+    COUNT(DISTINCT vendedor_id)
+FROM fact.FACT_METAS
+
+UNION ALL
+
+SELECT 
+    'FACT_DESCONTOS',
+    COUNT(*),
+    MIN(data_aplicacao_id),
+    MAX(data_aplicacao_id),
+    COUNT(DISTINCT desconto_id)
+FROM fact.FACT_DESCONTOS;
+
+🎓 Boas Práticas
+✅ Fazer
+
+✅ Usar BIGINT para PKs de facts (crescem muito)
+✅ Criar índices em todas FKs
+✅ Armazenar métricas calculadas frequentes (performance)
+✅ Particionar facts grandes por data
+✅ Implementar constraints de integridade
+✅ Documentar fórmulas de cálculo
+✅ Manter auditoria (data_inclusao, data_atualizacao)
+
+❌ Evitar
+
+❌ Usar VARCHAR para chaves numéricas
+❌ Atualizar facts transacionais após inserção
+❌ Misturar granularidades na mesma fact
+❌ Deixar FKs sem índices
+❌ Calcular métricas sempre na query (armazenar as principais)
+❌ Ignorar constraints de validação
+❌ Criar facts sem definir granularidade claramente
+
+
+🔮 Expansões Futuras
+Facts Adicionais Planejadas
+FACT_ESTOQUE
+
+Granularidade: 1 produto × 1 dia
+Tipo: Periodic Snapshot
+Métricas: quantidade_disponivel, valor_estoque, dias_cobertura
+Análises: Giro de estoque, ruptura, excesso
+
+FACT_LOGISTICA
+
+Granularidade: 1 envio
+Tipo: Accumulating Snapshot
+Métricas: prazo_entrega, custo_frete, status_entrega
+Análises: SLA de entrega, custo por região
+
+FACT_ATENDIMENTO
+
+Granularidade: 1 ticket de suporte
+Tipo: Accumulating Snapshot
+Métricas: tempo_resposta, tempo_resolucao, satisfacao
+Análises: Qualidade do atendimento, motivos de contato
+
+
+📚 Referências
+
+Dimensões - Especificação de todas as dimensões
+Relacionamentos - Mapa de FKs e integridade
+Queries de Exemplo - 22 exemplos práticos
+Decisões de Design - Justificativas
+
+
+<div align="center">
+⬆ Voltar ao topo
+Modelagem baseada em Ralph Kimball - The Data Warehouse Toolkit
+Facts otimizadas para análises de alta performance
+</div>
+
