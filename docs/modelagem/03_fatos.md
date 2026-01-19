@@ -622,13 +622,12 @@ GROUP BY fv.venda_id, fv.numero_pedido, fv.valor_total_bruto, fv.valor_total_liq
 HAVING COUNT(fd.desconto_aplicado_id) > 1  -- Apenas vendas com múltiplos descontos
 ORDER BY total_descontos DESC;
 
-Analisando o arquivo 03_fatos.md, posso ver que você parou no Pattern 4: Join entre Facts, especificamente na query SQL que estava sendo construída. A query foi interrompida na linha do GROUP BY.
-Vou retornar apenas o que faltou para completar a documentação:
+```
 
-sql_pedido, fv.valor_total_bruto, fv.valor_total_liquido
-HAVING COUNT(fd.desconto_aplicado_id) > 1  -- Apenas vendas com múltiplos descontos
-ORDER BY total_descontos DESC;
-Pattern 5: Ranking e Percentis
+### Pattern 5: Ranking e Percentis
+
+```sql
+
 sql-- Top 20% de produtos por receita (Análise Pareto)
 WITH produto_receita AS (
     SELECT 
