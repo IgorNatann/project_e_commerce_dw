@@ -363,103 +363,96 @@ PRINT '';
 -- ========================================
 
 PRINT '========================================';
-PRINT 'INSERINDO DESCONTOS APLICADOS DE EXEMPLO';
+PRINT 'INSERINDO DESCONTOS APLICADOS DE EXEMPLO (SET-BASED)';
 PRINT '========================================';
 PRINT '';
 
-/*
-Vamos criar descontos aplicados baseados nas vendas existentes:
-• Pegar vendas que tiveram desconto
-• Aplicar cupons aleatórios
-• Simular múltiplos descontos em alguns pedidos
-*/
+PRINT 'Gerando descontos aplicados (set-based)...';
 
-PRINT 'Gerando descontos aplicados...';
+DECLARE @descontos_inseridos INT = 0;
 
-DECLARE @venda_loop BIGINT;
-DECLARE @cliente_loop INT;
-DECLARE @produto_loop INT;
-DECLARE @data_loop INT;
-DECLARE @valor_bruto DECIMAL(15,2);
-DECLARE @valor_desconto DECIMAL(15,2);
-DECLARE @valor_liquido DECIMAL(15,2);
-DECLARE @numero_pedido_loop VARCHAR(20);
-DECLARE @desconto_aleatorio INT;
-DECLARE @custo_item DECIMAL(15,2);
-
--- Cursor para vendas com desconto
-DECLARE vendas_cursor CURSOR FOR
-SELECT 
-    venda_id,
-    cliente_id,
-    produto_id,
-    data_id,
-    valor_total_bruto,
-    valor_total_descontos,
-    valor_total_liquido,
-    numero_pedido,
-    custo_total
-FROM fact.FACT_VENDAS
-WHERE teve_desconto = 1;
-
-OPEN vendas_cursor;
-FETCH NEXT FROM vendas_cursor INTO 
-    @venda_loop, @cliente_loop, @produto_loop, @data_loop,
-    @valor_bruto, @valor_desconto, @valor_liquido, @numero_pedido_loop, @custo_item;
-
-WHILE @@FETCH_STATUS = 0
+IF NOT EXISTS (SELECT 1 FROM dim.DIM_DESCONTO WHERE eh_ativo = 1)
 BEGIN
-    -- Selecionar desconto aleatório ativo
-    SELECT TOP 1 @desconto_aleatorio = desconto_id
+    THROW 52201, 'DIM_DESCONTO sem descontos ativos para gerar FACT_DESCONTOS.', 1;
+END;
+
+;WITH pool_desconto AS (
+    SELECT
+        ROW_NUMBER() OVER (ORDER BY desconto_id) AS rn,
+        desconto_id
     FROM dim.DIM_DESCONTO
     WHERE eh_ativo = 1
-    ORDER BY NEWID();
-    
-    -- Inserir desconto aplicado
-    INSERT INTO fact.FACT_DESCONTOS (
-        desconto_id,
-        venda_id,
-        data_aplicacao_id,
-        cliente_id,
-        produto_id,
-        nivel_aplicacao,
-        valor_desconto_aplicado,
-        valor_sem_desconto,
-        valor_com_desconto,
-        margem_antes_desconto,
-        margem_apos_desconto,
-        impacto_margem,
-        percentual_desconto_efetivo,
-        desconto_aprovado,
-        numero_pedido
-    )
-    VALUES (
-        @desconto_aleatorio,
-        @venda_loop,
-        @data_loop,
-        @cliente_loop,
-        @produto_loop,
-        'Item',
-        @valor_desconto,
-        @valor_bruto,
-        @valor_liquido,
-        @valor_bruto - @custo_item, -- margem antes
-        @valor_liquido - @custo_item, -- margem depois
-        @valor_desconto, -- impacto
-        (@valor_desconto / @valor_bruto) * 100, -- percentual
-        1,
-        @numero_pedido_loop
-    );
-    
-    FETCH NEXT FROM vendas_cursor INTO 
-        @venda_loop, @cliente_loop, @produto_loop, @data_loop,
-        @valor_bruto, @valor_desconto, @valor_liquido, @numero_pedido_loop, @custo_item;
-END
+),
+cnt AS (
+    SELECT COUNT(*) AS c_desconto
+    FROM pool_desconto
+),
+vendas_base AS (
+    SELECT
+        fv.venda_id,
+        fv.cliente_id,
+        fv.produto_id,
+        fv.data_id,
+        fv.valor_total_bruto,
+        fv.valor_total_descontos,
+        fv.valor_total_liquido,
+        fv.numero_pedido,
+        fv.custo_total
+    FROM fact.FACT_VENDAS fv
+    WHERE fv.teve_desconto = 1
+      AND fv.valor_total_descontos > 0
+),
+mapped AS (
+    SELECT
+        vb.*,
+        ((ABS(CHECKSUM(CAST(vb.venda_id AS VARCHAR(20)))) % c.c_desconto) + 1) AS desconto_rn
+    FROM vendas_base vb
+    CROSS JOIN cnt c
+)
+INSERT INTO fact.FACT_DESCONTOS (
+    desconto_id,
+    venda_id,
+    data_aplicacao_id,
+    cliente_id,
+    produto_id,
+    nivel_aplicacao,
+    valor_desconto_aplicado,
+    valor_sem_desconto,
+    valor_com_desconto,
+    margem_antes_desconto,
+    margem_apos_desconto,
+    impacto_margem,
+    percentual_desconto_efetivo,
+    desconto_aprovado,
+    numero_pedido
+)
+SELECT
+    d.desconto_id,
+    m.venda_id,
+    m.data_id,
+    m.cliente_id,
+    m.produto_id,
+    'Item' AS nivel_aplicacao,
+    m.valor_total_descontos AS valor_desconto_aplicado,
+    m.valor_total_bruto AS valor_sem_desconto,
+    m.valor_total_liquido AS valor_com_desconto,
+    m.valor_total_bruto - m.custo_total AS margem_antes_desconto,
+    m.valor_total_liquido - m.custo_total AS margem_apos_desconto,
+    m.valor_total_descontos AS impacto_margem,
+    CAST(CASE
+        WHEN m.valor_total_bruto > 0
+            THEN ROUND((m.valor_total_descontos / m.valor_total_bruto) * 100.0, 2)
+        ELSE 0
+    END AS DECIMAL(5,2)) AS percentual_desconto_efetivo,
+    1 AS desconto_aprovado,
+    m.numero_pedido
+FROM mapped m
+JOIN pool_desconto d ON d.rn = m.desconto_rn
+ORDER BY m.venda_id;
 
-CLOSE vendas_cursor;
-DEALLOCATE vendas_cursor;
+SET @descontos_inseridos = @@ROWCOUNT;
 
-PRINT '✅ Descontos aplicados inseridos!';
+PRINT '✅ ' + CAST(@descontos_inseridos AS VARCHAR) + ' descontos aplicados inseridos (set-based)!';
 PRINT '';
 
 -- ========================================
@@ -469,13 +462,13 @@ PRINT '';
 PRINT 'Atualizando estatísticas na DIM_DESCONTO...';
 
 UPDATE d
-SET 
+SET
     total_usos_realizados = ISNULL(uso.total_usos, 0),
     total_receita_gerada = ISNULL(uso.total_receita, 0),
     total_desconto_concedido = ISNULL(uso.total_desconto, 0)
 FROM dim.DIM_DESCONTO d
 LEFT JOIN (
-    SELECT 
+    SELECT
         desconto_id,
         COUNT(*) AS total_usos,
         SUM(valor_com_desconto) AS total_receita,
@@ -486,7 +479,6 @@ LEFT JOIN (
 
 PRINT '✅ Estatísticas atualizadas!';
 PRINT '';
-
 -- ========================================
 -- 7. ADICIONAR DOCUMENTAÇÃO
 -- ========================================
