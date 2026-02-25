@@ -84,8 +84,8 @@ Padrão de Nomes:
 ## DIM_DATA - Dimensão Temporal
 
 **Schema:** `dim.DIM_DATA`  
-**Registros:** ~2.192 (2020-2025)  
-**Crescimento:** Gerado por script; ampliar intervalo conforme necessário
+**Registros:** Variável (de `2020-01-01` até `31/12/(ano_atual + 5)`)  
+**Crescimento:** Dinâmico e automático (o script recalcula o intervalo com base no ano corrente)
 
 ### Campos
 
