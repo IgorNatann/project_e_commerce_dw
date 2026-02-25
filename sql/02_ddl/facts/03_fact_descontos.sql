@@ -1,5 +1,5 @@
 -- ========================================
--- SCRIPT: 10_fact_descontos.sql
+-- SCRIPT: 03_fact_descontos.sql
 -- DESCRIÇÃO: Criação da FACT_DESCONTOS (ÚLTIMA TABELA!)
 -- AUTOR: Data Warehouse E-commerce Project
 -- DATA: 2024-12-09
@@ -739,6 +739,6 @@ PRINT '   • SELECT * FROM dim.VW_DESCONTOS_ATIVOS';
 PRINT '   • SELECT * FROM fact.VW_VENDAS_COMPLETA';
 PRINT '';
 PRINT '========================================';
-PRINT 'FIM DO SCRIPT 10_fact_descontos.sql';
+PRINT 'FIM DO SCRIPT 03_fact_descontos.sql';
 PRINT '========================================';
 GO
