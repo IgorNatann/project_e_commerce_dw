@@ -2,7 +2,7 @@
 
 ## 📋 Visão Geral
 
-Este diretório contém as **11 views** auxiliares do Data Warehouse, que simplificam queries complexas e padronizam o acesso aos dados dimensionais e fatos.
+Este diretório contém as **10 views auxiliares** do Data Warehouse e **1 script master** de orquestração (`04_master_views.sql`), que simplificam queries complexas e padronizam o acesso aos dados dimensionais.
 
 ## 🎯 Propósito das Views
 
@@ -31,16 +31,16 @@ As views servem para:
 
 | Arquivo | View | Descrição | Base |
 |---------|------|-----------|------|
-| `08_vw_analise_equipe_vendedores.sql` | `dim.VW_ANALISE_EQUIPE_VENDEDORES` | Análise de composição | DIM_EQUIPE + DIM_VENDEDOR |
+| `08_dw_analise_equipe_vendedores.sql` | `dim.VW_ANALISE_EQUIPE_VENDEDORES` | Análise de composição | DIM_EQUIPE + DIM_VENDEDOR |
 | `09_vw_equipes_ativas.sql` | `dim.VW_EQUIPES_ATIVAS` | Equipes operacionais | DIM_EQUIPE |
 | `10_vw_ranking_equipes_meta.sql` | `dim.VW_RANKING_EQUIPES_META` | Ranking por meta | DIM_EQUIPE |
 | `11_vw_analise_regional_equipes.sql` | `dim.VW_ANALISE_REGIONAL_EQUIPES` | Agregação regional | DIM_EQUIPE |
 
-### Views Mestres (1)
+### Script Master (1)
 
 | Arquivo | View | Descrição | Base |
 |---------|------|-----------|------|
-| `04_master_views.sql` | `fact.VW_VENDAS_COMPLETA`<br>`fact.VW_METAS_COMPLETA` | Views analíticas principais | FACT_VENDAS + todas dims<br>FACT_METAS + dims |
+| `04_master_views.sql` | N/A | Orquestra execução e validação das 10 views auxiliares `dim` | Scripts `01,02,03,05,06,07,08,09,10,11` |
 
 ### Utilitários
 
@@ -55,12 +55,14 @@ As views servem para:
 ### Opção 1: Todas as views de uma vez
 
 ```sql
--- Via SSMS: executar cada script na ordem numérica
--- Ou via sqlcmd:
+-- Recomendado: usar script master
+sqlcmd -S SEU_SERVIDOR -d DW_ECOMMERCE -i 04_master_views.sql
+
+-- Alternativa: executar individualmente em ordem numérica
 sqlcmd -S SEU_SERVIDOR -d DW_ECOMMERCE -i 01_vw_calendario_completo.sql
 sqlcmd -S SEU_SERVIDOR -d DW_ECOMMERCE -i 02_vw_produtos_ativos.sql
 sqlcmd -S SEU_SERVIDOR -d DW_ECOMMERCE -i 03_vw_hierarquia_geografica.sql
--- ... (todas as demais)
+-- ... (demais scripts)
 ```
 
 ### Opção 2: View individual
@@ -343,7 +345,7 @@ ORDER BY total_subordinados DESC;
 ### 8️⃣ VW_ANALISE_EQUIPE_VENDEDORES
 
 **Nome Completo:** `dim.VW_ANALISE_EQUIPE_VENDEDORES`  
-**Script:** `08_vw_analise_equipe_vendedores.sql`  
+**Script:** `08_dw_analise_equipe_vendedores.sql`  
 **Tabela Base:** `dim.DIM_EQUIPE + dim.DIM_VENDEDOR`  
 
 **Propósito:**  
@@ -514,82 +516,33 @@ FROM dim.VW_ANALISE_REGIONAL_EQUIPES;
 
 ---
 
-## 📊 VIEWS MESTRES (FACTS)
+## 📊 SCRIPT MASTER
 
 ### 4️⃣ MASTER VIEWS
 
 **Script:** `04_master_views.sql`  
-**Contém:** 2 views principais
+**Função:** executar e validar as 10 views auxiliares `dim`.
 
-#### VW_VENDAS_COMPLETA
+**O que ele executa em ordem:**
+- `01_vw_calendario_completo.sql`
+- `02_vw_produtos_ativos.sql`
+- `03_vw_hierarquia_geografica.sql`
+- `05_vw_descontos_ativos.sql`
+- `06_vw_vendedores_ativos.sql`
+- `07_vw_hierarquia_vendedores.sql`
+- `08_dw_analise_equipe_vendedores.sql`
+- `09_vw_equipes_ativas.sql`
+- `10_vw_ranking_equipes_meta.sql`
+- `11_vw_analise_regional_equipes.sql`
 
-**Nome Completo:** `fact.VW_VENDAS_COMPLETA`  
-**Base:** `FACT_VENDAS + todas dimensões`  
+**Validação incluída:**
+- Checa presença das 10 views esperadas no schema `dim`
+- Retorna status (`OK` / `MISSING`) por view
+- Interrompe execução com `THROW` se alguma view não existir
 
-**Propósito:**  
-Eliminar necessidade de JOINs repetitivos em análises de vendas.
-
-**Campos Principais:**
-- Todos campos de FACT_VENDAS
-- Todos campos de negócio de todas dimensões relacionadas
-- **Campos Calculados:**
-  - `lucro_bruto` = valor_liquido - custo_total
-  - `margem_percentual` = lucro / liquido * 100
-  - `preco_medio_unitario` = liquido / quantidade
-- **Flags Derivadas:**
-  - `teve_devolucao` = quantidade_devolvida > 0
-  - `eh_venda_direta` = vendedor_id IS NULL
-
-**Exemplo de Uso:**
-```sql
--- Análise completa sem JOINs
-SELECT 
-    categoria,
-    nome_mes,
-    COUNT(*) AS vendas,
-    SUM(valor_total_liquido) AS receita,
-    AVG(margem_percentual) AS margem_media
-FROM fact.VW_VENDAS_COMPLETA
-WHERE ano = 2024
-GROUP BY categoria, nome_mes, mes
-ORDER BY categoria, mes;
-```
-
----
-
-#### VW_METAS_COMPLETA
-
-**Nome Completo:** `fact.VW_METAS_COMPLETA`  
-**Base:** `FACT_METAS + DIM_VENDEDOR + DIM_EQUIPE + DIM_DATA`  
-
-**Propósito:**  
-Análise de performance vs metas com contexto completo.
-
-**Campos Principais:**
-- Todos campos de FACT_METAS
-- Campos de DIM_VENDEDOR (nome, cargo, equipe)
-- Campos de DIM_EQUIPE (tipo_equipe, regional)
-- Campos de DIM_DATA (ano, mês, nome_mes)
-- **Campo Calculado:**
-  - `faixa_performance` = Classificação textual do atingimento
-    - Excepcional (120%+)
-    - Atingiu (100-120%)
-    - Próximo (80-100%)
-    - Abaixo (50-80%)
-    - Crítico (<50%)
-
-**Exemplo de Uso:**
-```sql
--- Atingimento por equipe
-SELECT 
-    nome_equipe,
-    COUNT(*) AS total_vendedores,
-    AVG(percentual_atingido) AS perc_medio,
-    SUM(CASE WHEN meta_batida = 1 THEN 1 ELSE 0 END) AS bateram_meta
-FROM fact.VW_METAS_COMPLETA
-WHERE ano = 2024 AND mes = 12
-GROUP BY nome_equipe
-ORDER BY perc_medio DESC;
+**Exemplo de uso:**
+```bash
+sqlcmd -S SEU_SERVIDOR -d DW_ECOMMERCE -i 04_master_views.sql
 ```
 
 ---
@@ -604,7 +557,7 @@ ORDER BY perc_medio DESC;
 - ✅ Documentar propósito e casos de uso
 - ✅ Nomear com prefixo `VW_`
 - ✅ Usar INNER JOIN quando possível (performance)
-- ✅ Incluir campos de todas dimensões relevantes nas views mestres
+- ✅ Manter `04_master_views.sql` como ponto único de execução/validação
 
 ### ❌ Evitar
 
@@ -634,9 +587,8 @@ Nível 2 (Dependem de outras tabelas):
 ├─ VW_RANKING_EQUIPES_META (→ DIM_EQUIPE)
 └─ VW_ANALISE_REGIONAL_EQUIPES (→ DIM_EQUIPE)
 
-Nível 3 (Views mestres - dependem de tudo):
-├─ VW_VENDAS_COMPLETA (→ FACT + todas dimensões)
-└─ VW_METAS_COMPLETA (→ FACT_METAS + dimensões)
+Nível 3 (Orquestração):
+└─ 04_master_views.sql (executa e valida as 10 views auxiliares)
 ```
 
 **Ordem de Criação Recomendada:** Seguir ordem numérica dos arquivos (01 → 11)
@@ -656,4 +608,4 @@ Nível 3 (Views mestres - dependem de tudo):
 | VW_ANALISE_EQUIPE_VENDEDORES | 10-100 | Dinâmica | 🔶 Média |
 | VW_EQUIPES_ATIVAS | 10-100 | ETL Semanal | ⚡ Rápida |
 | VW_RANKING_EQUIPES_META | 10-100 | Dinâmica | ⚡ Rápida |
-| VW_ANALISE_REGIONAL
+| VW_ANALISE_REGIONAL_EQUIPES | 5-20 | Dinâmica | ⚡ Rápida |

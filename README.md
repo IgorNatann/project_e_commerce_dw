@@ -12,7 +12,7 @@ Este repositorio implementa um Data Warehouse com abordagem Kimball:
 
 - 7 dimensoes (`dim`)
 - 3 tabelas fato (`fact`)
-- 11 views auxiliares em `sql/04_views`
+- 10 views auxiliares + 1 script master em `sql/04_views`
 - dados de exemplo incluidos nos scripts DDL
 - documentacao detalhada em `docs/`
 
@@ -99,6 +99,9 @@ GO
 :r sql/02_ddl/facts/03_fact_descontos.sql
 
 -- 4) Views auxiliares
+:r sql/04_views/04_master_views.sql
+
+-- (opcional) Execucao individual
 :r sql/04_views/01_vw_calendario_completo.sql
 :r sql/04_views/02_vw_produtos_ativos.sql
 :r sql/04_views/03_vw_hierarquia_geografica.sql
@@ -160,8 +163,8 @@ Em evolucao:
 
 ## Proximos passos recomendados
 
-1. Consolidar script master de views para executar todas as 11 views.
-2. Adicionar suite de validacao SQL automatizada (smoke tests).
+1. Adicionar suite de validacao SQL automatizada (smoke tests + regressao de views).
+2. Padronizar e revisar documentacao operacional de execucao.
 3. Implementar pipeline ETL incremental (staging -> dim/fact).
 4. Publicar dashboards e consultas analiticas prontas.
 
