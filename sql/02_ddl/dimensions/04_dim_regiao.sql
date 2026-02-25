@@ -410,47 +410,8 @@ PRINT '';
 -- 7. VIEW AUXILIAR
 -- ========================================
 
-PRINT 'Criando view auxiliar...';
-
--- View para hierarquia geográfica completa
-IF OBJECT_ID('dim.VW_HIERARQUIA_GEOGRAFICA', 'V') IS NOT NULL
-    DROP VIEW dim.VW_HIERARQUIA_GEOGRAFICA;
-GO
-
-CREATE VIEW dim.VW_HIERARQUIA_GEOGRAFICA
-AS
-SELECT 
-    regiao_id,
-    -- Hierarquia completa
-    pais,
-    regiao_pais,
-    estado,
-    nome_estado,
-    cidade,
-    -- Códigos
-    codigo_ibge,
-    ddd,
-    -- Classificação
-    tipo_municipio,
-    porte_municipio,
-    -- Métricas
-    populacao_estimada,
-    pib_per_capita,
-    idh,
-    -- Drill-down helper (para queries)
-    CONCAT(pais, ' > ', regiao_pais, ' > ', estado, ' > ', cidade) AS hierarquia_completa,
-    -- Classificação por porte populacional
-    CASE 
-        WHEN populacao_estimada > 1000000 THEN 'Metrópole (>1M)'
-        WHEN populacao_estimada > 500000 THEN 'Grande (500k-1M)'
-        WHEN populacao_estimada > 100000 THEN 'Médio (100k-500k)'
-        ELSE 'Pequeno (<100k)'
-    END AS classificacao_populacional
-FROM dim.DIM_REGIAO
-WHERE eh_ativo = 1;
-GO
-
-PRINT '✅ View dim.VW_HIERARQUIA_GEOGRAFICA criada!';
+PRINT 'View dim.VW_HIERARQUIA_GEOGRAFICA centralizada em sql/04_views/03_vw_hierarquia_geografica.sql';
+PRINT 'Definicao removida deste script para evitar duplicidade e drift.';
 PRINT '';
 
 PRINT '✅ DIM_REGIAO criada e validada com sucesso!';

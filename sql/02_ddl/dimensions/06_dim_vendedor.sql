@@ -752,171 +752,74 @@ ORDER BY total_vendedores DESC;
 PRINT '';
 
 -- ========================================
--- 8. CRIAR VIEWS AUXILIARES
+-- 8. VIEWS AUXILIARES (CENTRALIZADAS)
 -- ========================================
 
 PRINT '========================================';
-PRINT 'CRIANDO VIEWS AUXILIARES';
+PRINT 'VIEWS AUXILIARES CENTRALIZADAS';
 PRINT '========================================';
 PRINT '';
-
--- View 1: Vendedores Ativos
-IF OBJECT_ID('dim.VW_VENDEDORES_ATIVOS', 'V') IS NOT NULL
-    DROP VIEW dim.VW_VENDEDORES_ATIVOS;
-GO
-
-CREATE VIEW dim.VW_VENDEDORES_ATIVOS
-AS
-SELECT 
-    v.vendedor_id,
-    v.vendedor_original_id,
-    v.nome_vendedor,
-    v.nome_exibicao,
-    v.email,
-    v.cargo,
-    v.nivel_senioridade,
-    -- Equipe
-    v.equipe_id,
-    v.nome_equipe,
-    e.regional,
-    e.tipo_equipe,
-    -- Hierarquia
-    v.gerente_id,
-    v.nome_gerente,
-    v.eh_lider,
-    -- Localização
-    v.estado_atuacao,
-    v.cidade_atuacao,
-    v.tipo_vendedor,
-    -- Metas
-    v.meta_mensal_base,
-    v.percentual_comissao_padrao,
-    -- Temporal
-    v.data_contratacao,
-    DATEDIFF(MONTH, v.data_contratacao, GETDATE()) AS meses_na_empresa,
-    -- Classificação
-    CASE 
-        WHEN DATEDIFF(MONTH, v.data_contratacao, GETDATE()) < 6 THEN 'Novato (<6m)'
-        WHEN DATEDIFF(MONTH, v.data_contratacao, GETDATE()) < 12 THEN 'Júnior (6-12m)'
-        WHEN DATEDIFF(MONTH, v.data_contratacao, GETDATE()) < 24 THEN 'Intermediário (1-2a)'
-        ELSE 'Veterano (2a+)'
-    END AS tempo_casa_categoria
-FROM dim.DIM_VENDEDOR v
-LEFT JOIN dim.DIM_EQUIPE e ON v.equipe_id = e.equipe_id
-WHERE v.eh_ativo = 1 AND v.situacao = 'Ativo';
-GO
-
-PRINT '✅ View dim.VW_VENDEDORES_ATIVOS criada!';
-
--- View 2: Hierarquia Completa
-IF OBJECT_ID('dim.VW_HIERARQUIA_VENDEDORES', 'V') IS NOT NULL
-    DROP VIEW dim.VW_HIERARQUIA_VENDEDORES;
-GO
-
-CREATE VIEW dim.VW_HIERARQUIA_VENDEDORES
-AS
-SELECT 
-    v.vendedor_id,
-    v.nome_vendedor,
-    v.cargo,
-    v.nivel_senioridade,
-    v.equipe_id,
-    v.nome_equipe,
-    -- Gerente Direto
-    v.gerente_id AS gerente_direto_id,
-    g1.nome_vendedor AS gerente_direto_nome,
-    g1.cargo AS gerente_direto_cargo,
-    -- Gerente do Gerente (2º nível)
-    g1.gerente_id AS gerente_nivel2_id,
-    g2.nome_vendedor AS gerente_nivel2_nome,
-    -- Nível hierárquico
-    CASE 
-        WHEN v.gerente_id IS NULL THEN 1
-        WHEN g1.gerente_id IS NULL THEN 2
-        WHEN g2.gerente_id IS NULL THEN 3
-        ELSE 4
-    END AS nivel_hierarquico,
-    v.eh_lider,
-    v.eh_ativo
-FROM dim.DIM_VENDEDOR v
-LEFT JOIN dim.DIM_VENDEDOR g1 ON v.gerente_id = g1.vendedor_id
-LEFT JOIN dim.DIM_VENDEDOR g2 ON g1.gerente_id = g2.vendedor_id;
-GO
-
-PRINT '✅ View dim.VW_HIERARQUIA_VENDEDORES criada!';
-
--- View 3: Análise por Equipe
-IF OBJECT_ID('dim.VW_ANALISE_EQUIPE_VENDEDORES', 'V') IS NOT NULL
-    DROP VIEW dim.VW_ANALISE_EQUIPE_VENDEDORES;
-GO
-
-CREATE VIEW dim.VW_ANALISE_EQUIPE_VENDEDORES
-AS
-SELECT 
-    e.equipe_id,
-    e.nome_equipe,
-    e.tipo_equipe,
-    e.regional,
-    -- Contagens
-    COUNT(v.vendedor_id) AS total_vendedores,
-    SUM(CASE WHEN v.eh_lider = 1 THEN 1 ELSE 0 END) AS total_lideres,
-    -- Metas
-    SUM(v.meta_mensal_base) AS soma_metas_individuais,
-    AVG(v.meta_mensal_base) AS media_meta_por_vendedor,
-    e.meta_mensal_equipe AS meta_oficial_equipe,
-    -- Comparação
-    e.meta_mensal_equipe - SUM(v.meta_mensal_base) AS diferenca_metas,
-    -- Senioridade
-    SUM(CASE WHEN v.nivel_senioridade = 'Júnior' THEN 1 ELSE 0 END) AS juniors,
-    SUM(CASE WHEN v.nivel_senioridade = 'Pleno' THEN 1 ELSE 0 END) AS plenos,
-    SUM(CASE WHEN v.nivel_senioridade IN ('Sênior', 'Especialista', 'Gerente') THEN 1 ELSE 0 END) AS seniors
-FROM dim.DIM_EQUIPE e
-LEFT JOIN dim.DIM_VENDEDOR v ON e.equipe_id = v.equipe_id AND v.eh_ativo = 1
-WHERE e.eh_ativa = 1
-GROUP BY e.equipe_id, e.nome_equipe, e.tipo_equipe, e.regional, e.meta_mensal_equipe;
-GO
-
-PRINT '✅ View dim.VW_ANALISE_EQUIPE_VENDEDORES criada!';
+PRINT 'As views dim.VW_VENDEDORES_ATIVOS, dim.VW_HIERARQUIA_VENDEDORES e';
+PRINT 'dim.VW_ANALISE_EQUIPE_VENDEDORES sao criadas em sql/04_views';
+PRINT '(script master: 04_master_views.sql).';
 PRINT '';
 
 -- ========================================
--- 9. TESTE DAS VIEWS
+-- 9. TESTES BASE (SEM DEPENDER DE VIEWS)
 -- ========================================
 
 PRINT '========================================';
-PRINT 'TESTANDO VIEWS CRIADAS';
+PRINT 'TESTANDO CONSULTAS BASE DA DIM_VENDEDOR';
 PRINT '========================================';
 PRINT '';
 
 PRINT '1. Vendedores Ativos (sample):';
 SELECT TOP 5
-    nome_vendedor,
-    cargo,
-    nome_equipe,
-    tempo_casa_categoria
-FROM dim.VW_VENDEDORES_ATIVOS
-ORDER BY meta_mensal_base DESC;
+    v.nome_vendedor,
+    v.cargo,
+    v.nome_equipe,
+    CASE
+        WHEN DATEDIFF(MONTH, v.data_contratacao, GETDATE()) < 6 THEN 'Novato (<6m)'
+        WHEN DATEDIFF(MONTH, v.data_contratacao, GETDATE()) < 12 THEN 'Junior (6-12m)'
+        WHEN DATEDIFF(MONTH, v.data_contratacao, GETDATE()) < 24 THEN 'Intermediario (1-2a)'
+        ELSE 'Veterano (2a+)'
+    END AS tempo_casa_categoria
+FROM dim.DIM_VENDEDOR v
+WHERE v.eh_ativo = 1 AND v.situacao = 'Ativo'
+ORDER BY v.meta_mensal_base DESC;
 PRINT '';
 
-PRINT '2. Hierarquia (líderes):';
-SELECT 
-    nome_vendedor,
-    cargo,
-    nome_equipe,
-    nivel_hierarquico
-FROM dim.VW_HIERARQUIA_VENDEDORES
-WHERE eh_lider = 1 AND eh_ativo = 1;
+PRINT '2. Hierarquia (lideres):';
+SELECT
+    v.nome_vendedor,
+    v.cargo,
+    v.nome_equipe,
+    CASE
+        WHEN v.gerente_id IS NULL THEN 1
+        WHEN g1.gerente_id IS NULL THEN 2
+        WHEN g2.gerente_id IS NULL THEN 3
+        ELSE 4
+    END AS nivel_hierarquico
+FROM dim.DIM_VENDEDOR v
+LEFT JOIN dim.DIM_VENDEDOR g1 ON v.gerente_id = g1.vendedor_id
+LEFT JOIN dim.DIM_VENDEDOR g2 ON g1.gerente_id = g2.vendedor_id
+WHERE v.eh_lider = 1 AND v.eh_ativo = 1;
 PRINT '';
 
-PRINT '3. Análise por Equipe:';
-SELECT 
-    nome_equipe,
-    total_vendedores,
-    juniors,
-    plenos,
-    seniors,
-    CAST(media_meta_por_vendedor AS DECIMAL(15,2)) AS meta_media
-FROM dim.VW_ANALISE_EQUIPE_VENDEDORES
+PRINT '3. Analise por Equipe:';
+SELECT
+    e.nome_equipe,
+    COUNT(v.vendedor_id) AS total_vendedores,
+    SUM(CASE WHEN v.nivel_senioridade COLLATE Latin1_General_CI_AI = 'Junior' THEN 1 ELSE 0 END) AS juniors,
+    SUM(CASE WHEN v.nivel_senioridade = 'Pleno' THEN 1 ELSE 0 END) AS plenos,
+    SUM(CASE WHEN v.nivel_senioridade COLLATE Latin1_General_CI_AI IN ('Senior', 'Especialista', 'Gerente') THEN 1 ELSE 0 END) AS seniors,
+    CAST(AVG(v.meta_mensal_base) AS DECIMAL(15,2)) AS meta_media
+FROM dim.DIM_EQUIPE e
+LEFT JOIN dim.DIM_VENDEDOR v
+    ON e.equipe_id = v.equipe_id
+   AND v.eh_ativo = 1
+WHERE e.eh_ativa = 1
+GROUP BY e.nome_equipe
 ORDER BY total_vendedores DESC;
 PRINT '';
 
@@ -968,4 +871,3 @@ PRINT '========================================';
 PRINT 'PRÓXIMO SCRIPT: 07_fact_vendas_update.sql';
 PRINT '========================================';
 GO
-

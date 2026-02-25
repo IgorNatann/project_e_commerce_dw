@@ -661,186 +661,71 @@ ORDER BY equipe_id;
 PRINT '';
 
 -- ========================================
--- 7. CRIAR VIEWS AUXILIARES
+-- 7. VIEWS AUXILIARES (CENTRALIZADAS)
 -- ========================================
 
 PRINT '========================================';
-PRINT 'CRIANDO VIEWS AUXILIARES';
+PRINT 'VIEWS AUXILIARES CENTRALIZADAS';
 PRINT '========================================';
 PRINT '';
-
--- View 1: Equipes Ativas com Métricas
-IF OBJECT_ID('dim.VW_EQUIPES_ATIVAS', 'V') IS NOT NULL
-    DROP VIEW dim.VW_EQUIPES_ATIVAS;
-GO
-
-CREATE VIEW dim.VW_EQUIPES_ATIVAS
-AS
-/*
-╔════════════════════════════════════════════════════════════════════════╗
-║  View: VW_EQUIPES_ATIVAS                                               ║
-║  Propósito: Facilitar queries mostrando apenas equipes operacionais   ║
-║  Uso: SELECT * FROM dim.VW_EQUIPES_ATIVAS WHERE regional = 'Sul'      ║
-╚════════════════════════════════════════════════════════════════════════╝
-*/
-SELECT 
-    equipe_id,
-    equipe_original_id,
-    nome_equipe,
-    codigo_equipe,
-    tipo_equipe,
-    categoria_equipe,
-    regional,
-    estado_sede,
-    cidade_sede,
-    -- Metas
-    meta_mensal_equipe,
-    meta_trimestral_equipe,
-    meta_anual_equipe,
-    qtd_meta_vendas_mes,
-    -- Composição
-    qtd_membros_atual,
-    qtd_membros_ideal,
-    qtd_membros_ideal - qtd_membros_atual AS vagas_em_aberto,
-    -- Meta per capita
-    CASE 
-        WHEN qtd_membros_atual > 0 
-        THEN meta_mensal_equipe / qtd_membros_atual
-        ELSE NULL 
-    END AS meta_mensal_per_capita,
-    -- Classificação de porte
-    CASE 
-        WHEN qtd_membros_atual >= 10 THEN 'Grande (10+)'
-        WHEN qtd_membros_atual >= 5 THEN 'Média (5-9)'
-        WHEN qtd_membros_atual >= 1 THEN 'Pequena (1-4)'
-        ELSE 'Vazia (0)'
-    END AS porte_equipe,
-    -- Liderança
-    lider_equipe_id,
-    nome_lider,
-    email_lider,
-    -- Datas
-    data_criacao,
-    DATEDIFF(MONTH, data_criacao, GETDATE()) AS meses_ativa
-FROM dim.DIM_EQUIPE
-WHERE eh_ativa = 1 AND situacao = 'Ativa';
-GO
-
-PRINT '✅ View dim.VW_EQUIPES_ATIVAS criada!';
-
--- View 2: Ranking de Equipes por Meta
-IF OBJECT_ID('dim.VW_RANKING_EQUIPES_META', 'V') IS NOT NULL
-    DROP VIEW dim.VW_RANKING_EQUIPES_META;
-GO
-
-CREATE VIEW dim.VW_RANKING_EQUIPES_META
-AS
-/*
-╔════════════════════════════════════════════════════════════════════════╗
-║  View: VW_RANKING_EQUIPES_META                                         ║
-║  Propósito: Mostrar ranking das equipes por meta mensal               ║
-╚════════════════════════════════════════════════════════════════════════╝
-*/
-SELECT 
-    ROW_NUMBER() OVER (ORDER BY meta_mensal_equipe DESC) AS ranking_geral,
-    ROW_NUMBER() OVER (PARTITION BY regional ORDER BY meta_mensal_equipe DESC) AS ranking_regional,
-    equipe_id,
-    nome_equipe,
-    tipo_equipe,
-    regional,
-    meta_mensal_equipe,
-    qtd_membros_atual,
-    CASE 
-        WHEN qtd_membros_atual > 0 
-        THEN meta_mensal_equipe / qtd_membros_atual
-        ELSE NULL 
-    END AS meta_per_capita,
-    -- Classificação
-    CASE 
-        WHEN meta_mensal_equipe >= 500000 THEN 'Top (500k+)'
-        WHEN meta_mensal_equipe >= 300000 THEN 'Alto (300k-500k)'
-        WHEN meta_mensal_equipe >= 150000 THEN 'Médio (150k-300k)'
-        ELSE 'Baixo (<150k)'
-    END AS faixa_meta
-FROM dim.DIM_EQUIPE
-WHERE eh_ativa = 1 AND situacao = 'Ativa';
-GO
-
-PRINT '✅ View dim.VW_RANKING_EQUIPES_META criada!';
-
--- View 3: Análise Regional
-IF OBJECT_ID('dim.VW_ANALISE_REGIONAL_EQUIPES', 'V') IS NOT NULL
-    DROP VIEW dim.VW_ANALISE_REGIONAL_EQUIPES;
-GO
-
-CREATE VIEW dim.VW_ANALISE_REGIONAL_EQUIPES
-AS
-/*
-╔════════════════════════════════════════════════════════════════════════╗
-║  View: VW_ANALISE_REGIONAL_EQUIPES                                     ║
-║  Propósito: Agregação por regional para dashboards executivos         ║
-╚════════════════════════════════════════════════════════════════════════╝
-*/
-SELECT 
-    regional,
-    COUNT(*) AS total_equipes,
-    SUM(qtd_membros_atual) AS total_vendedores,
-    SUM(meta_mensal_equipe) AS meta_mensal_regional,
-    AVG(meta_mensal_equipe) AS meta_media_por_equipe,
-    MIN(meta_mensal_equipe) AS menor_meta,
-    MAX(meta_mensal_equipe) AS maior_meta,
-    -- Meta per capita regional
-    SUM(meta_mensal_equipe) / NULLIF(SUM(qtd_membros_atual), 0) AS meta_per_capita_regional,
-    -- Distribuição por tipo
-    SUM(CASE WHEN tipo_equipe = 'Vendas Diretas' THEN 1 ELSE 0 END) AS equipes_diretas,
-    SUM(CASE WHEN tipo_equipe = 'Inside Sales' THEN 1 ELSE 0 END) AS equipes_inside,
-    SUM(CASE WHEN tipo_equipe = 'Key Accounts' THEN 1 ELSE 0 END) AS equipes_key_accounts,
-    SUM(CASE WHEN tipo_equipe = 'E-commerce' THEN 1 ELSE 0 END) AS equipes_ecommerce
-FROM dim.DIM_EQUIPE
-WHERE eh_ativa = 1 AND situacao = 'Ativa'
-GROUP BY regional;
-GO
-
-PRINT '✅ View dim.VW_ANALISE_REGIONAL_EQUIPES criada!';
+PRINT 'As views dim.VW_EQUIPES_ATIVAS, dim.VW_RANKING_EQUIPES_META e dim.VW_ANALISE_REGIONAL_EQUIPES';
+PRINT 'sao criadas em sql/04_views (script master: 04_master_views.sql).';
 PRINT '';
 
 -- ========================================
--- 8. TESTE DAS VIEWS
+-- 8. TESTES BASE (SEM DEPENDER DE VIEWS)
 -- ========================================
 
 PRINT '========================================';
-PRINT 'TESTANDO VIEWS CRIADAS';
+PRINT 'TESTANDO CONSULTAS BASE DA DIM_EQUIPE';
 PRINT '========================================';
 PRINT '';
 
 PRINT '1. Equipes Ativas (sample):';
-SELECT TOP 3 
-    nome_equipe, 
-    regional, 
-    porte_equipe,
-    CAST(meta_mensal_per_capita AS DECIMAL(15,2)) AS meta_per_capita
-FROM dim.VW_EQUIPES_ATIVAS
+SELECT TOP 3
+    nome_equipe,
+    regional,
+    CASE
+        WHEN qtd_membros_atual >= 10 THEN 'Grande (10+)'
+        WHEN qtd_membros_atual >= 5 THEN 'Media (5-9)'
+        WHEN qtd_membros_atual >= 1 THEN 'Pequena (1-4)'
+        ELSE 'Vazia (0)'
+    END AS porte_equipe,
+    CAST(CASE
+        WHEN qtd_membros_atual > 0 THEN meta_mensal_equipe / qtd_membros_atual
+        ELSE NULL
+    END AS DECIMAL(15,2)) AS meta_per_capita
+FROM dim.DIM_EQUIPE
+WHERE eh_ativa = 1 AND situacao = 'Ativa'
 ORDER BY meta_mensal_equipe DESC;
 PRINT '';
 
 PRINT '2. Ranking Geral (Top 5):';
 SELECT TOP 5
-    ranking_geral,
+    ROW_NUMBER() OVER (ORDER BY meta_mensal_equipe DESC) AS ranking_geral,
     nome_equipe,
     regional,
-    faixa_meta,
+    CASE
+        WHEN meta_mensal_equipe >= 500000 THEN 'Top (500k+)'
+        WHEN meta_mensal_equipe >= 300000 THEN 'Alto (300k-500k)'
+        WHEN meta_mensal_equipe >= 150000 THEN 'Medio (150k-300k)'
+        ELSE 'Baixo (<150k)'
+    END AS faixa_meta,
     CAST(meta_mensal_equipe AS DECIMAL(15,2)) AS meta
-FROM dim.VW_RANKING_EQUIPES_META;
+FROM dim.DIM_EQUIPE
+WHERE eh_ativa = 1 AND situacao = 'Ativa';
 PRINT '';
 
-PRINT '3. Análise Regional:';
-SELECT 
+PRINT '3. Analise Regional:';
+SELECT
     regional,
-    total_equipes,
-    total_vendedores,
-    CAST(meta_mensal_regional AS DECIMAL(15,2)) AS meta_total
-FROM dim.VW_ANALISE_REGIONAL_EQUIPES
-ORDER BY meta_mensal_regional DESC;
+    COUNT(*) AS total_equipes,
+    SUM(qtd_membros_atual) AS total_vendedores,
+    CAST(SUM(meta_mensal_equipe) AS DECIMAL(15,2)) AS meta_total
+FROM dim.DIM_EQUIPE
+WHERE eh_ativa = 1 AND situacao = 'Ativa'
+GROUP BY regional
+ORDER BY SUM(meta_mensal_equipe) DESC;
 PRINT '';
 
 -- ========================================
