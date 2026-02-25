@@ -428,144 +428,177 @@ PRINT '';
 -- ========================================
 
 PRINT '========================================';
-PRINT 'INSERINDO VENDAS DE EXEMPLO';
+PRINT 'INSERINDO VENDAS DE EXEMPLO (SET-BASED)';
 PRINT '========================================';
 PRINT '';
 
-/*
-Vamos criar 50 vendas realistas distribuídas em:
-• Últimos 6 meses
-• Diferentes clientes, produtos, regiões, vendedores
-• Com e sem descontos
-• Algumas com devoluções
-*/
+DECLARE @qtd_vendas INT = 50;
+DECLARE @vendas_inseridas INT = 0;
 
--- Declarar variáveis para geração de dados
-DECLARE @i INT = 1;
-DECLARE @data_id INT;
-DECLARE @cliente_id INT;
-DECLARE @produto_id INT;
-DECLARE @regiao_id INT;
-DECLARE @vendedor_id INT;
-DECLARE @quantidade INT;
-DECLARE @preco DECIMAL(10,2);
-DECLARE @custo DECIMAL(10,2);
-DECLARE @valor_total_bruto DECIMAL(15,2);
-DECLARE @valor_total_descontos DECIMAL(15,2);
-DECLARE @valor_total_liquido DECIMAL(15,2);
-DECLARE @custo_total DECIMAL(15,2);
-DECLARE @desconto_pct DECIMAL(5,2);
-DECLARE @numero_ped VARCHAR(20);
-
-PRINT 'Gerando 50 vendas...';
-
-WHILE @i <= 50
+IF NOT EXISTS (
+    SELECT 1
+    FROM dim.DIM_DATA
+    WHERE data_completa >= DATEADD(MONTH, -6, CAST(GETDATE() AS DATE))
+      AND data_completa <= CAST(GETDATE() AS DATE)
+)
 BEGIN
-    -- Selecionar data aleatória dos últimos 6 meses
-    SELECT TOP 1 @data_id = data_id 
-    FROM dim.DIM_DATA 
-    WHERE data_completa >= DATEADD(MONTH, -6, GETDATE())
-      AND data_completa <= GETDATE()
-    ORDER BY NEWID();
-    
-    -- Selecionar cliente aleatório
-    SELECT TOP 1 @cliente_id = cliente_id 
-    FROM dim.DIM_CLIENTE 
+    THROW 52001, 'DIM_DATA sem datas suficientes para os ultimos 6 meses.', 1;
+END;
+
+IF NOT EXISTS (SELECT 1 FROM dim.DIM_CLIENTE WHERE eh_ativo = 1)
+BEGIN
+    THROW 52002, 'DIM_CLIENTE sem clientes ativos para gerar FACT_VENDAS.', 1;
+END;
+
+IF NOT EXISTS (SELECT 1 FROM dim.DIM_PRODUTO WHERE situacao = 'Ativo')
+BEGIN
+    THROW 52003, 'DIM_PRODUTO sem produtos ativos para gerar FACT_VENDAS.', 1;
+END;
+
+IF NOT EXISTS (SELECT 1 FROM dim.DIM_REGIAO)
+BEGIN
+    THROW 52004, 'DIM_REGIAO sem registros para gerar FACT_VENDAS.', 1;
+END;
+
+PRINT 'Gerando 50 vendas (set-based, sem loops/cursor)...';
+
+;WITH seq AS (
+    SELECT TOP (@qtd_vendas)
+        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+    FROM sys.all_objects a
+    CROSS JOIN sys.all_objects b
+),
+pool_data AS (
+    SELECT ROW_NUMBER() OVER (ORDER BY data_id) AS rn, data_id
+    FROM dim.DIM_DATA
+    WHERE data_completa >= DATEADD(MONTH, -6, CAST(GETDATE() AS DATE))
+      AND data_completa <= CAST(GETDATE() AS DATE)
+),
+pool_cliente AS (
+    SELECT ROW_NUMBER() OVER (ORDER BY cliente_id) AS rn, cliente_id
+    FROM dim.DIM_CLIENTE
     WHERE eh_ativo = 1
-    ORDER BY NEWID();
-    
-    -- Selecionar produto aleatório
-    SELECT TOP 1 
-        @produto_id = produto_id,
-        @preco = preco_sugerido,
-        @custo = preco_custo
-    FROM dim.DIM_PRODUTO 
+),
+pool_produto AS (
+    SELECT ROW_NUMBER() OVER (ORDER BY produto_id) AS rn,
+           produto_id,
+           preco_sugerido,
+           preco_custo
+    FROM dim.DIM_PRODUTO
     WHERE situacao = 'Ativo'
-    ORDER BY NEWID();
-    
-    -- Selecionar região aleatória
-    SELECT TOP 1 @regiao_id = regiao_id 
-    FROM dim.DIM_REGIAO 
-    ORDER BY NEWID();
-    
-    -- Selecionar vendedor aleatório (70% das vendas tem vendedor)
-    IF RAND() < 0.7
-    BEGIN
-        SELECT TOP 1 @vendedor_id = vendedor_id 
-        FROM dim.DIM_VENDEDOR 
-        WHERE eh_ativo = 1
-        ORDER BY NEWID();
-    END
-    ELSE
-    BEGIN
-        SET @vendedor_id = NULL; -- Venda direta (e-commerce)
-    END
-    
-    -- Quantidade aleatória (1-5)
-    SET @quantidade = CAST(RAND() * 4 + 1 AS INT);
-    
-    -- Desconto aleatório (30% das vendas tem desconto de 5-20%)
-    IF RAND() < 0.3
-        SET @desconto_pct = CAST(RAND() * 15 + 5 AS DECIMAL(5,2));
-    ELSE
-        SET @desconto_pct = 0;
-    
-    -- Número do pedido
-    SET @numero_ped = 'PED-2024-' + RIGHT('000000' + CAST(@i AS VARCHAR), 6);
-    
-    -- Calcular valores já arredondados para evitar conflito com CHECK
-    SET @valor_total_bruto = ROUND(@quantidade * @preco, 2);
-    SET @valor_total_descontos = ROUND(@valor_total_bruto * (@desconto_pct / 100.0), 2);
-    SET @valor_total_liquido = @valor_total_bruto - @valor_total_descontos;
-    SET @custo_total = ROUND(@quantidade * @custo, 2);
+),
+pool_regiao AS (
+    SELECT ROW_NUMBER() OVER (ORDER BY regiao_id) AS rn, regiao_id
+    FROM dim.DIM_REGIAO
+),
+pool_vendedor AS (
+    SELECT ROW_NUMBER() OVER (ORDER BY vendedor_id) AS rn, vendedor_id
+    FROM dim.DIM_VENDEDOR
+    WHERE eh_ativo = 1
+),
+cnt AS (
+    SELECT
+        (SELECT COUNT(*) FROM pool_data) AS c_data,
+        (SELECT COUNT(*) FROM pool_cliente) AS c_cliente,
+        (SELECT COUNT(*) FROM pool_produto) AS c_produto,
+        (SELECT COUNT(*) FROM pool_regiao) AS c_regiao,
+        (SELECT COUNT(*) FROM pool_vendedor) AS c_vendedor
+),
+base AS (
+    SELECT
+        s.n,
+        ((s.n * 17) % c.c_data) + 1 AS data_rn,
+        ((s.n * 23) % c.c_cliente) + 1 AS cliente_rn,
+        ((s.n * 31) % c.c_produto) + 1 AS produto_rn,
+        ((s.n * 47) % c.c_regiao) + 1 AS regiao_rn,
+        CASE WHEN c.c_vendedor > 0 THEN ((s.n * 61) % c.c_vendedor) + 1 ELSE NULL END AS vendedor_rn,
+        CASE WHEN c.c_vendedor > 0 AND s.n % 10 < 7 THEN 1 ELSE 0 END AS tem_vendedor,
+        CAST(((s.n * 7) % 5) + 1 AS INT) AS quantidade,
+        CASE
+            WHEN s.n % 10 < 3 THEN CAST(5 + ((s.n * 11) % 16) AS DECIMAL(5,2))
+            ELSE CAST(0 AS DECIMAL(5,2))
+        END AS desconto_pct
+    FROM seq s
+    CROSS JOIN cnt c
+),
+linhas AS (
+    SELECT
+        b.n,
+        d.data_id,
+        c.cliente_id,
+        p.produto_id,
+        p.preco_sugerido,
+        p.preco_custo,
+        r.regiao_id,
+        CASE WHEN b.tem_vendedor = 1 THEN v.vendedor_id ELSE NULL END AS vendedor_id,
+        b.quantidade,
+        b.desconto_pct
+    FROM base b
+    JOIN pool_data d ON d.rn = b.data_rn
+    JOIN pool_cliente c ON c.rn = b.cliente_rn
+    JOIN pool_produto p ON p.rn = b.produto_rn
+    JOIN pool_regiao r ON r.rn = b.regiao_rn
+    LEFT JOIN pool_vendedor v ON v.rn = b.vendedor_rn
+)
+INSERT INTO fact.FACT_VENDAS (
+    data_id, cliente_id, produto_id, regiao_id, vendedor_id,
+    quantidade_vendida,
+    preco_unitario_tabela,
+    valor_total_bruto,
+    valor_total_descontos,
+    valor_total_liquido,
+    custo_total,
+    quantidade_devolvida,
+    valor_devolvido,
+    percentual_comissao,
+    valor_comissao,
+    numero_pedido,
+    teve_desconto
+)
+SELECT
+    x.data_id, x.cliente_id, x.produto_id, x.regiao_id, x.vendedor_id,
+    x.quantidade,
+    x.preco_sugerido,
+    x.valor_total_bruto,
+    x.valor_total_descontos,
+    x.valor_total_liquido,
+    x.custo_total,
+    0,
+    0,
+    CASE WHEN x.vendedor_id IS NOT NULL THEN CAST(3.5 AS DECIMAL(5,2)) ELSE NULL END,
+    CASE WHEN x.vendedor_id IS NOT NULL THEN ROUND(x.valor_total_liquido * 0.035, 2) ELSE NULL END,
+    CONCAT('PED-', YEAR(GETDATE()), '-', RIGHT('000000' + CAST(x.n AS VARCHAR(6)), 6)),
+    CASE WHEN x.desconto_pct > 0 THEN 1 ELSE 0 END
+FROM (
+    SELECT
+        l.*,
+        ROUND(l.quantidade * l.preco_sugerido, 2) AS valor_total_bruto,
+        ROUND(ROUND(l.quantidade * l.preco_sugerido, 2) * (l.desconto_pct / 100.0), 2) AS valor_total_descontos,
+        ROUND(l.quantidade * l.preco_custo, 2) AS custo_total,
+        ROUND(l.quantidade * l.preco_sugerido, 2) -
+            ROUND(ROUND(l.quantidade * l.preco_sugerido, 2) * (l.desconto_pct / 100.0), 2) AS valor_total_liquido
+    FROM linhas l
+) x
+ORDER BY x.n;
 
-    -- Inserir venda
-    INSERT INTO fact.FACT_VENDAS (
-        data_id, cliente_id, produto_id, regiao_id, vendedor_id,
-        quantidade_vendida,
-        preco_unitario_tabela,
-        valor_total_bruto,
-        valor_total_descontos,
-        valor_total_liquido,
-        custo_total,
-        quantidade_devolvida,
-        valor_devolvido,
-        percentual_comissao,
-        valor_comissao,
-        numero_pedido,
-        teve_desconto
-    )
-    VALUES (
-        @data_id, @cliente_id, @produto_id, @regiao_id, @vendedor_id,
-        @quantidade,
-        @preco,
-        @valor_total_bruto, -- valor bruto (2 casas)
-        @valor_total_descontos, -- descontos (2 casas)
-        @valor_total_liquido, -- liquido coerente
-        @custo_total, -- custo (2 casas)
-        0, -- sem devolução inicial
-        0,
-        CASE WHEN @vendedor_id IS NOT NULL THEN 3.5 ELSE NULL END, -- 3.5% comissão
-        CASE WHEN @vendedor_id IS NOT NULL 
-            THEN @valor_total_liquido * 0.035
-            ELSE NULL 
-        END,
-        @numero_ped,
-        CASE WHEN @desconto_pct > 0 THEN 1 ELSE 0 END
-    );
-    
-    SET @i = @i + 1;
-END
+SET @vendas_inseridas = @@ROWCOUNT;
 
-PRINT '✅ ' + CAST(@@ROWCOUNT AS VARCHAR) + ' vendas inseridas!';
+PRINT '✅ ' + CAST(@vendas_inseridas AS VARCHAR) + ' vendas inseridas (set-based)!';
 PRINT '';
 
--- Adicionar algumas devoluções (10% das vendas)
-UPDATE TOP (5) fact.FACT_VENDAS
-SET 
+-- Adicionar algumas devoluções (10% das vendas de exemplo)
+;WITH alvo AS (
+    SELECT TOP (5) venda_id
+    FROM fact.FACT_VENDAS
+    WHERE quantidade_vendida > 1
+    ORDER BY venda_id DESC
+)
+UPDATE fv
+SET
     quantidade_devolvida = 1,
-    valor_devolvido = valor_total_liquido / quantidade_vendida
-WHERE quantidade_vendida > 1;
+    valor_devolvido = ROUND(fv.valor_total_liquido / fv.quantidade_vendida, 2)
+FROM fact.FACT_VENDAS fv
+JOIN alvo a ON a.venda_id = fv.venda_id;
 
 PRINT '✅ Devoluções adicionadas!';
 PRINT '';

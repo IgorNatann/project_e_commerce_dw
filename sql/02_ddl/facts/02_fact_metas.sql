@@ -353,105 +353,119 @@ PRINT '';
 -- ========================================
 
 PRINT '========================================';
-PRINT 'INSERINDO METAS DE EXEMPLO';
+PRINT 'INSERINDO METAS DE EXEMPLO (SET-BASED)';
 PRINT '========================================';
 PRINT '';
 
-/*
-Vamos criar metas para os últimos 6 meses:
-• Todos os vendedores ativos
-• Metas realistas baseadas em DIM_VENDEDOR.meta_mensal_base
-• Valores realizados aleatórios (80%-120% da meta)
-*/
-
-PRINT 'Gerando metas dos últimos 6 meses...';
+PRINT 'Gerando metas dos últimos 6 meses (set-based)...';
 
 DECLARE @mes_inicio_atual DATE = DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1); -- primeiro dia do mês corrente
-DECLARE @mes_atual DATE = DATEADD(MONTH, -5, @mes_inicio_atual); -- 6 meses atrás (sempre no 1º dia do mês)
-DECLARE @mes_fim DATE = @mes_inicio_atual;
-DECLARE @mes_loop DATE;
-DECLARE @vendedor_loop INT;
-DECLARE @meta_base DECIMAL(15,2);
-DECLARE @realizado DECIMAL(15,2);
-DECLARE @qtd_meta INT;
-DECLARE @qtd_realizada INT;
-DECLARE @data_id_meta INT;
+DECLARE @metas_inseridas INT = 0;
 
--- Loop pelos últimos 6 meses
-SET @mes_loop = @mes_atual;
-
-WHILE @mes_loop <= @mes_fim
-BEGIN
-    PRINT 'Processando mês: ' + CONVERT(VARCHAR, @mes_loop, 23);
-    
-    -- Buscar data_id do 1º dia do mês
-    SELECT @data_id_meta = data_id 
-    FROM dim.DIM_DATA 
-    WHERE data_completa = @mes_loop;
-    
-    -- Para cada vendedor ativo
-    DECLARE vendedor_cursor CURSOR FOR
-    SELECT vendedor_id, meta_mensal_base
+IF NOT EXISTS (
+    SELECT 1
     FROM dim.DIM_VENDEDOR
-    WHERE eh_ativo = 1 AND meta_mensal_base IS NOT NULL;
-    
-    OPEN vendedor_cursor;
-    FETCH NEXT FROM vendedor_cursor INTO @vendedor_loop, @meta_base;
-    
-    WHILE @@FETCH_STATUS = 0
-    BEGIN
-        -- Meta de quantidade (estimativa: 1 venda a cada R$2.500)
-        SET @qtd_meta = CAST(@meta_base / 2500 AS INT);
-        
-        -- Valor realizado: entre 70% e 130% da meta (aleatório)
-        SET @realizado = @meta_base * (0.7 + (RAND() * 0.6));
-        
-        -- Quantidade realizada proporcional
-        SET @qtd_realizada = CAST((@realizado / @meta_base) * @qtd_meta AS INT);
-        
-        -- Inserir meta
-        INSERT INTO fact.FACT_METAS (
-            vendedor_id,
-            data_id,
-            valor_meta,
-            quantidade_meta,
-            valor_realizado,
-            quantidade_realizada,
-            percentual_atingido,
-            gap_meta,
-            ticket_medio_realizado,
-            meta_batida,
-            meta_superada,
-            eh_periodo_fechado,
-            tipo_periodo
-        )
-        VALUES (
-            @vendedor_loop,
-            @data_id_meta,
-            @meta_base,
-            @qtd_meta,
-            @realizado,
-            @qtd_realizada,
-            (@realizado / @meta_base) * 100, -- percentual
-            @realizado - @meta_base, -- gap
-            CASE WHEN @qtd_realizada > 0 THEN @realizado / @qtd_realizada ELSE NULL END, -- ticket médio
-            CASE WHEN @realizado >= @meta_base THEN 1 ELSE 0 END, -- bateu meta
-            CASE WHEN @realizado > @meta_base THEN 1 ELSE 0 END, -- superou meta
-            CASE WHEN @mes_loop < @mes_inicio_atual THEN 1 ELSE 0 END, -- período fechado
-            'Mensal'
-        );
-        
-        FETCH NEXT FROM vendedor_cursor INTO @vendedor_loop, @meta_base;
-    END
-    
-    CLOSE vendedor_cursor;
-    DEALLOCATE vendedor_cursor;
-    
-    -- Próximo mês
-    SET @mes_loop = DATEADD(MONTH, 1, @mes_loop);
-END
+    WHERE eh_ativo = 1
+      AND meta_mensal_base IS NOT NULL
+)
+BEGIN
+    THROW 52101, 'DIM_VENDEDOR sem vendedores ativos com meta base para gerar FACT_METAS.', 1;
+END;
 
-PRINT '✅ Metas inseridas!';
+;WITH meses AS (
+    SELECT DATEADD(MONTH, v.n, DATEADD(MONTH, -5, @mes_inicio_atual)) AS mes_ref
+    FROM (VALUES (0), (1), (2), (3), (4), (5)) v(n)
+)
+IF EXISTS (
+    SELECT 1
+    FROM meses m
+    LEFT JOIN dim.DIM_DATA d ON d.data_completa = m.mes_ref
+    WHERE d.data_id IS NULL
+)
+BEGIN
+    THROW 52102, 'DIM_DATA sem o primeiro dia de todos os últimos 6 meses para gerar FACT_METAS.', 1;
+END;
+
+;WITH meses AS (
+    SELECT DATEADD(MONTH, v.n, DATEADD(MONTH, -5, @mes_inicio_atual)) AS mes_ref
+    FROM (VALUES (0), (1), (2), (3), (4), (5)) v(n)
+),
+base AS (
+    SELECT
+        v.vendedor_id,
+        v.meta_mensal_base,
+        m.mes_ref,
+        d.data_id
+    FROM dim.DIM_VENDEDOR v
+    CROSS JOIN meses m
+    JOIN dim.DIM_DATA d ON d.data_completa = m.mes_ref
+    WHERE v.eh_ativo = 1
+      AND v.meta_mensal_base IS NOT NULL
+),
+calc AS (
+    SELECT
+        b.vendedor_id,
+        b.data_id,
+        b.meta_mensal_base AS valor_meta,
+        b.mes_ref,
+        CAST(CASE
+            WHEN FLOOR(b.meta_mensal_base / 2500.0) < 1 THEN 1
+            ELSE FLOOR(b.meta_mensal_base / 2500.0)
+        END AS INT) AS quantidade_meta,
+        CAST(ROUND(
+            b.meta_mensal_base * (0.70 + ((ABS(CHECKSUM(CONCAT(b.vendedor_id, '-', b.data_id))) % 61) / 100.0)),
+            2
+        ) AS DECIMAL(15,2)) AS valor_realizado
+    FROM base b
+),
+final AS (
+    SELECT
+        c.*,
+        CAST(CASE
+            WHEN c.quantidade_meta > 0
+                THEN FLOOR((c.valor_realizado / NULLIF(c.valor_meta, 0)) * c.quantidade_meta)
+            ELSE 0
+        END AS INT) AS quantidade_realizada
+    FROM calc c
+)
+INSERT INTO fact.FACT_METAS (
+    vendedor_id,
+    data_id,
+    valor_meta,
+    quantidade_meta,
+    valor_realizado,
+    quantidade_realizada,
+    percentual_atingido,
+    gap_meta,
+    ticket_medio_realizado,
+    meta_batida,
+    meta_superada,
+    eh_periodo_fechado,
+    tipo_periodo
+)
+SELECT
+    f.vendedor_id,
+    f.data_id,
+    f.valor_meta,
+    f.quantidade_meta,
+    f.valor_realizado,
+    f.quantidade_realizada,
+    CAST(ROUND((f.valor_realizado / NULLIF(f.valor_meta, 0)) * 100.0, 2) AS DECIMAL(5,2)) AS percentual_atingido,
+    f.valor_realizado - f.valor_meta AS gap_meta,
+    CASE WHEN f.quantidade_realizada > 0
+        THEN CAST(ROUND(f.valor_realizado / f.quantidade_realizada, 2) AS DECIMAL(10,2))
+        ELSE NULL
+    END AS ticket_medio_realizado,
+    CASE WHEN f.valor_realizado >= f.valor_meta THEN 1 ELSE 0 END AS meta_batida,
+    CASE WHEN f.valor_realizado > f.valor_meta THEN 1 ELSE 0 END AS meta_superada,
+    CASE WHEN f.mes_ref < @mes_inicio_atual THEN 1 ELSE 0 END AS eh_periodo_fechado,
+    'Mensal' AS tipo_periodo
+FROM final f
+ORDER BY f.data_id, f.vendedor_id;
+
+SET @metas_inseridas = @@ROWCOUNT;
+
+PRINT '✅ ' + CAST(@metas_inseridas AS VARCHAR) + ' metas inseridas (set-based)!';
 PRINT '';
 
 -- Calcular rankings para cada período
@@ -461,7 +475,7 @@ UPDATE fm
 SET ranking_periodo = ranking
 FROM fact.FACT_METAS fm
 INNER JOIN (
-    SELECT 
+    SELECT
         meta_id,
         ROW_NUMBER() OVER (PARTITION BY data_id ORDER BY valor_realizado DESC) AS ranking
     FROM fact.FACT_METAS
@@ -477,9 +491,9 @@ UPDATE fm
 SET quartil_performance = quartil
 FROM fact.FACT_METAS fm
 INNER JOIN (
-    SELECT 
+    SELECT
         meta_id,
-        CASE 
+        CASE
             WHEN NTILE(4) OVER (PARTITION BY data_id ORDER BY percentual_atingido DESC) = 1 THEN 'Q1'
             WHEN NTILE(4) OVER (PARTITION BY data_id ORDER BY percentual_atingido DESC) = 2 THEN 'Q2'
             WHEN NTILE(4) OVER (PARTITION BY data_id ORDER BY percentual_atingido DESC) = 3 THEN 'Q3'
@@ -490,7 +504,6 @@ INNER JOIN (
 
 PRINT '✅ Quartis calculados!';
 PRINT '';
-
 -- ========================================
 -- 6. ADICIONAR DOCUMENTAÇÃO
 -- ========================================
