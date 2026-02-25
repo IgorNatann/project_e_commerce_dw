@@ -21,7 +21,7 @@ Este diretório contém **todos os scripts SQL** necessários para criar e popul
 ### 📊 Estatísticas
 
 - **8 scripts de setup/DDL principais**
-- **11+ views auxiliares**
+- **10 views auxiliares + 1 script master**
 - **~3.000 linhas de código SQL**
 - **Tempo estimado de execução:** 5-10 minutos
 
@@ -49,8 +49,8 @@ Este diretório contém **todos os scripts SQL** necessários para criar e popul
 ┌─────────────────────────────────────────────────────────────────┐
 │ FASE 2: DIMENSÕES (DDL)                                         │
 ├─────────────────────────────────────────────────────────────────┤
-│ 4. 02_dim_data.sql               ← Dimensão Tempo              │
-│ 5. 03_dim_cliente.sql            ← Dimensão Cliente            │
+│ 4. 01_dim_data.sql               ← Dimensão Tempo              │
+│ 5. 02_dim_cliente.sql            ← Dimensão Cliente            │
 │ 6. 03_dim_produto.sql            ← Dimensão Produto            │
 │ 7. 04_dim_regiao.sql             ← Dimensão Região             │
 │ 8. 05_dim_equipe.sql             ← Dimensão Equipe             │
@@ -62,9 +62,9 @@ Este diretório contém **todos os scripts SQL** necessários para criar e popul
 ┌─────────────────────────────────────────────────────────────────┐
 │ FASE 3: TABELAS FATO (DDL)                                      │
 ├─────────────────────────────────────────────────────────────────┤
-│ 11. 07_fact_vendas.sql           ← Fact Vendas (principal)     │
-│ 12. 08_fact_metas.sql            ← Fact Metas (periódica)      │
-│ 13. 09_fact_descontos.sql        ← Fact Descontos (eventos)    │
+│ 11. 01_fact_vendas.sql           ← Fact Vendas (principal)     │
+│ 12. 02_fact_metas.sql            ← Fact Metas (periódica)      │
+│ 13. 03_fact_descontos.sql        ← Fact Descontos (eventos)    │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
@@ -124,8 +124,8 @@ sql/
 │
 ├── 📂 02_ddl/                      # Data Definition Language
 │   ├── 📂 dimensions/              # ⚠️ EXECUTAR ANTES DAS FACTS
-│   │   ├── 02_dim_data.sql
-│   │   ├── 03_dim_cliente.sql
+│   │   ├── 01_dim_data.sql
+│   │   ├── 02_dim_cliente.sql
 │   │   ├── 03_dim_produto.sql
 │   │   ├── 04_dim_regiao.sql
 │   │   ├── 05_dim_equipe.sql      # ⚠️ ANTES do dim_vendedor
@@ -133,9 +133,9 @@ sql/
 │   │   └── 07_dim_desconto.sql
 │   │
 │   ├── 📂 facts/                   # ⚠️ DEPOIS DAS DIMENSÕES
-│   │   ├── 07_fact_vendas.sql
-│   │   ├── 08_fact_metas.sql
-│   │   └── 09_fact_descontos.sql
+│   │   ├── 01_fact_vendas.sql
+│   │   ├── 02_fact_metas.sql
+│   │   └── 03_fact_descontos.sql
 │   │
 │   └── 📂 indexes/                 # Índices adicionais (opcional)
 │
@@ -192,8 +192,8 @@ USE DW_ECOMMERCE;
 GO
 
 -- 2.1 Dimensões independentes (podem ser paralelas)
-:r C:\path\to\sql\02_ddl\dimensions\02_dim_data.sql
-:r C:\path\to\sql\02_ddl\dimensions\03_dim_cliente.sql
+:r C:\path\to\sql\02_ddl\dimensions\01_dim_data.sql
+:r C:\path\to\sql\02_ddl\dimensions\02_dim_cliente.sql
 :r C:\path\to\sql\02_ddl\dimensions\03_dim_produto.sql
 :r C:\path\to\sql\02_ddl\dimensions\04_dim_regiao.sql
 :r C:\path\to\sql\02_ddl\dimensions\07_dim_desconto.sql
@@ -212,11 +212,11 @@ USE DW_ECOMMERCE;
 GO
 
 -- 3.1 Fact principal
-:r C:\path\to\sql\02_ddl\facts\07_fact_vendas.sql
+:r C:\path\to\sql\02_ddl\facts\01_fact_vendas.sql
 
 -- 3.2 Facts secundárias
-:r C:\path\to\sql\02_ddl\facts\08_fact_metas.sql
-:r C:\path\to\sql\02_ddl\facts\09_fact_descontos.sql
+:r C:\path\to\sql\02_ddl\facts\02_fact_metas.sql
+:r C:\path\to\sql\02_ddl\facts\03_fact_descontos.sql
 ```
 
 #### **Passo 4: Criar Views**
@@ -226,6 +226,9 @@ USE DW_ECOMMERCE;
 GO
 
 -- Executar views na ordem (ou rodar script master)
+:r C:\path\to\sql\04_views\04_master_views.sql
+
+-- Alternativa: executar individualmente
 :r C:\path\to\sql\04_views\01_vw_calendario_completo.sql
 :r C:\path\to\sql\04_views\02_vw_produtos_ativos.sql
 -- ... demais views
@@ -258,8 +261,8 @@ GO
 
 -- FASE 2: DIMENSÕES
 PRINT '📐 FASE 2: Criando Dimensões';
-:r .\02_ddl\dimensions\02_dim_data.sql
-:r .\02_ddl\dimensions\03_dim_cliente.sql
+:r .\02_ddl\dimensions\01_dim_data.sql
+:r .\02_ddl\dimensions\02_dim_cliente.sql
 :r .\02_ddl\dimensions\03_dim_produto.sql
 :r .\02_ddl\dimensions\04_dim_regiao.sql
 :r .\02_ddl\dimensions\05_dim_equipe.sql
@@ -268,16 +271,13 @@ PRINT '📐 FASE 2: Criando Dimensões';
 
 -- FASE 3: FACTS
 PRINT '📊 FASE 3: Criando Tabelas Fato';
-:r .\02_ddl\facts\07_fact_vendas.sql
-:r .\02_ddl\facts\08_fact_metas.sql
-:r .\02_ddl\facts\09_fact_descontos.sql
+:r .\02_ddl\facts\01_fact_vendas.sql
+:r .\02_ddl\facts\02_fact_metas.sql
+:r .\02_ddl\facts\03_fact_descontos.sql
 
 -- FASE 4: VIEWS
 PRINT '👁️ FASE 4: Criando Views Auxiliares';
-:r .\04_views\01_vw_calendario_completo.sql
-:r .\04_views\02_vw_produtos_ativos.sql
-:r .\04_views\03_vw_hierarquia_geografica.sql
--- ... demais views
+:r .\04_views\04_master_views.sql
 
 PRINT '';
 PRINT '✅ Data Warehouse criado com sucesso!';
