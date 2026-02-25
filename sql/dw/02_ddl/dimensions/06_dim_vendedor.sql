@@ -760,7 +760,7 @@ PRINT 'VIEWS AUXILIARES CENTRALIZADAS';
 PRINT '========================================';
 PRINT '';
 PRINT 'As views dim.VW_VENDEDORES_ATIVOS, dim.VW_HIERARQUIA_VENDEDORES e';
-PRINT 'dim.VW_ANALISE_EQUIPE_VENDEDORES sao criadas em sql/04_views';
+PRINT 'dim.VW_ANALISE_EQUIPE_VENDEDORES sao criadas em sql/dw/04_views';
 PRINT '(script master: 04_master_views.sql).';
 PRINT '';
 

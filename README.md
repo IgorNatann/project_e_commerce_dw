@@ -12,7 +12,7 @@ Este repositorio implementa um Data Warehouse com abordagem Kimball:
 
 - 7 dimensoes (`dim`)
 - 3 tabelas fato (`fact`)
-- 10 views auxiliares + 1 script master em `sql/04_views`
+- 10 views auxiliares + 1 script master em `sql/dw/04_views`
 - dados de exemplo incluidos nos scripts DDL
 - documentacao detalhada em `docs/`
 
@@ -49,11 +49,17 @@ project_e-commerce_dw/
 |   `-- queries/
 |
 |-- sql/
-|   |-- 01_setup/
-|   |-- 02_ddl/
-|   |   |-- dimensions/
-|   |   `-- facts/
-|   `-- 04_views/
+|   |-- README.md
+|   `-- dw/
+|       |-- 01_setup/
+|       |-- 02_ddl/
+|       |   |-- dimensions/
+|       |   `-- facts/
+|       |-- 03_dml/
+|       |-- 04_views/
+|       |-- 05_procedures/
+|       |-- 06_queries/
+|       `-- 99_maintenance/
 |
 |-- data/
 |   |-- raw/
@@ -78,40 +84,40 @@ project_e-commerce_dw/
 -- 1) Setup
 USE master;
 GO
-:r sql/01_setup/01_create_database.sql
-:r sql/01_setup/02_create_schemas.sql
-:r sql/01_setup/03_configure_database.sql
+:r sql/dw/01_setup/01_create_database.sql
+:r sql/dw/01_setup/02_create_schemas.sql
+:r sql/dw/01_setup/03_configure_database.sql
 
 -- 2) Dimensoes
 USE DW_ECOMMERCE;
 GO
-:r sql/02_ddl/dimensions/01_dim_data.sql
-:r sql/02_ddl/dimensions/02_dim_cliente.sql
-:r sql/02_ddl/dimensions/03_dim_produto.sql
-:r sql/02_ddl/dimensions/04_dim_regiao.sql
-:r sql/02_ddl/dimensions/05_dim_equipe.sql
-:r sql/02_ddl/dimensions/06_dim_vendedor.sql
-:r sql/02_ddl/dimensions/07_dim_desconto.sql
+:r sql/dw/02_ddl/dimensions/01_dim_data.sql
+:r sql/dw/02_ddl/dimensions/02_dim_cliente.sql
+:r sql/dw/02_ddl/dimensions/03_dim_produto.sql
+:r sql/dw/02_ddl/dimensions/04_dim_regiao.sql
+:r sql/dw/02_ddl/dimensions/05_dim_equipe.sql
+:r sql/dw/02_ddl/dimensions/06_dim_vendedor.sql
+:r sql/dw/02_ddl/dimensions/07_dim_desconto.sql
 
 -- 3) Fatos
-:r sql/02_ddl/facts/01_fact_vendas.sql
-:r sql/02_ddl/facts/02_fact_metas.sql
-:r sql/02_ddl/facts/03_fact_descontos.sql
+:r sql/dw/02_ddl/facts/01_fact_vendas.sql
+:r sql/dw/02_ddl/facts/02_fact_metas.sql
+:r sql/dw/02_ddl/facts/03_fact_descontos.sql
 
 -- 4) Views auxiliares
-:r sql/04_views/04_master_views.sql
+:r sql/dw/04_views/04_master_views.sql
 
 -- (opcional) Execucao individual
-:r sql/04_views/01_vw_calendario_completo.sql
-:r sql/04_views/02_vw_produtos_ativos.sql
-:r sql/04_views/03_vw_hierarquia_geografica.sql
-:r sql/04_views/05_vw_descontos_ativos.sql
-:r sql/04_views/06_vw_vendedores_ativos.sql
-:r sql/04_views/07_vw_hierarquia_vendedores.sql
-:r sql/04_views/08_dw_analise_equipe_vendedores.sql
-:r sql/04_views/09_vw_equipes_ativas.sql
-:r sql/04_views/10_vw_ranking_equipes_meta.sql
-:r sql/04_views/11_vw_analise_regional_equipes.sql
+:r sql/dw/04_views/01_vw_calendario_completo.sql
+:r sql/dw/04_views/02_vw_produtos_ativos.sql
+:r sql/dw/04_views/03_vw_hierarquia_geografica.sql
+:r sql/dw/04_views/05_vw_descontos_ativos.sql
+:r sql/dw/04_views/06_vw_vendedores_ativos.sql
+:r sql/dw/04_views/07_vw_hierarquia_vendedores.sql
+:r sql/dw/04_views/08_dw_analise_equipe_vendedores.sql
+:r sql/dw/04_views/09_vw_equipes_ativas.sql
+:r sql/dw/04_views/10_vw_ranking_equipes_meta.sql
+:r sql/dw/04_views/11_vw_analise_regional_equipes.sql
 ```
 
 ### Validacao minima
@@ -135,6 +141,8 @@ SELECT 'fact.FACT_DESCONTOS', COUNT(*) FROM fact.FACT_DESCONTOS;
 
 ## Documentacao
 
+- [PRD do produto](docs/produto/PRD.md)
+- [Plano de execucao R1](docs/produto/PLANO_EXECUCAO_R1.md)
 - [Visao geral da modelagem](docs/modelagem/01_visao_geral.md)
 - [Dimensoes](docs/modelagem/02_dimensoes.md)
 - [Fatos](docs/modelagem/03_fatos.md)
@@ -143,7 +151,8 @@ SELECT 'fact.FACT_DESCONTOS', COUNT(*) FROM fact.FACT_DESCONTOS;
 - [Decisoes de modelagem](docs/decisoes/01_decisoes_modelagem.md)
 - [Queries de exemplo](docs/queries/README.md)
 - [Guia SQL de execucao](sql/README.md)
-- [Catalogo de views](sql/04_views/README.md)
+- [Catalogo de views](sql/dw/04_views/README.md)
+- [Contratos de dados (fase 0)](docs/contracts/README.md)
 
 ## Maturidade atual
 
