@@ -1,57 +1,58 @@
-# Global Data Contract (Phase 0)
+# Contrato Global de Dados (Fase 0)
 
-Version: `0.1.0`  
-Status: `draft`  
-Scope: `OLTP source contracts for DW_ECOMMERCE loads`
+Versao: `0.1.0`  
+Estado: `rascunho`  
+Escopo: `contratos de origem OLTP para cargas no DW_ECOMMERCE`
 
-## 1. Time Standard
+## 1. Padrao Temporal
 
-- All timestamps must be stored in UTC.
-- Source contract fields:
-  - `created_at` (required)
-  - `updated_at` (required)
-  - `deleted_at` (nullable, soft delete)
+- Todos os timestamps devem ser armazenados em UTC.
+- Campos obrigatorios de controle nas tabelas de origem:
+  - `created_at` (obrigatorio)
+  - `updated_at` (obrigatorio)
+  - `deleted_at` (anulavel, exclusao logica)
 
-## 2. Incremental Extraction Standard
+## 2. Padrao de Extracao Incremental
 
-- Baseline watermark: `(updated_at, id)`.
-- Sort order: `ORDER BY updated_at, id`.
-- Pagination strategy: keyset pagination (no `OFFSET`).
-- Safety cutoff: process rows where `updated_at <= now_utc - 5 minutes`.
+- Watermark baseline: `(updated_at, id)`.
+- Ordenacao: `ORDER BY updated_at, id`.
+- Estrategia de paginacao: keyset pagination (sem `OFFSET`).
+- Cutoff de seguranca: processar linhas com `updated_at <= now_utc - 5 minutes`.
 
-## 3. Delete Policy
+## 3. Politica de Exclusao
 
-- OLTP uses soft delete (`deleted_at IS NOT NULL`).
-- DW ingestion must treat soft-deleted rows as inactive (or equivalent business status).
+- OLTP usa exclusao logica (`deleted_at IS NOT NULL`).
+- A carga no DW deve tratar linhas soft-deletadas como inativas (ou status equivalente de negocio).
 
-## 4. Data Type Conventions
+## 4. Convencoes de Tipos
 
-- Monetary fields: `DECIMAL(15,2)`.
-- Quantity fields: integer types.
-- Flags: `BIT` (0 or 1).
-- Business status: constrained `VARCHAR`.
+- Campos monetarios: `DECIMAL(15,2)`.
+- Campos de quantidade: tipos inteiros.
+- Flags: `BIT` (0 ou 1).
+- Situacao de negocio: `VARCHAR` com dominio controlado.
 
-## 5. Quality Baseline
+## 5. Baseline de Qualidade
 
-Minimum expectations for each source entity:
+Expectativas minimas por entidade de origem:
 
-- Primary key uniqueness.
-- Business key uniqueness (when applicable).
-- Mandatory fields not null.
-- Referential integrity with parent entities.
+- unicidade de chave primaria;
+- unicidade de chave de negocio (quando aplicavel);
+- campos obrigatorios nao nulos;
+- integridade referencial com entidades pai;
 - `updated_at >= created_at`.
 
-## 6. Breaking Change Policy
+## 6. Politica de Quebra de Contrato
 
-Breaking changes include:
+Mudancas que configuram quebra de contrato:
 
-- rename/remove source columns used by ETL;
-- semantic change in existing fields;
-- PK or business key changes.
+- renomear/remover coluna de origem usada pelo ETL;
+- alterar semantica de campo existente;
+- alterar chave primaria ou chave de negocio.
 
-Required action for breaking changes:
+Acoes obrigatorias quando houver quebra:
 
-1. update contract file;
-2. update mapping file;
-3. provide migration note in PR description;
-4. update ETL tests/checks.
+1. atualizar arquivo de contrato;
+2. atualizar arquivo de mapeamento;
+3. registrar nota de migracao no PR;
+4. atualizar testes e checks do ETL.
+

@@ -1,17 +1,17 @@
-# Data Quality Rules (Phase 0)
+# Regras de Qualidade de Dados (Fase 0)
 
-## Core Rule Set
+## Conjunto Base de Regras
 
-1. PK uniqueness in every source table.
-2. Business key uniqueness when defined.
-3. Mandatory columns cannot be null.
-4. Child rows cannot reference missing parent rows.
-5. `updated_at` cannot be earlier than `created_at`.
-6. Soft-deleted rows must keep business keys immutable.
+1. Unicidade de PK em todas as tabelas de origem.
+2. Unicidade de chave de negocio quando definida.
+3. Colunas obrigatorias nao podem ser nulas.
+4. Linhas filhas nao podem referenciar pais inexistentes.
+5. `updated_at` nao pode ser menor que `created_at`.
+6. Linhas com exclusao logica devem manter chave de negocio imutavel.
 
-## Financial Integrity Rules
+## Regras de Integridade Financeira
 
-For order item rows:
+Para linhas de item de pedido:
 
 - `gross_amount >= 0`
 - `discount_amount >= 0`
@@ -19,18 +19,18 @@ For order item rows:
 - `quantity > 0`
 - `unit_price >= 0`
 
-## Operational Freshness Rules
+## Regras de Atualidade Operacional
 
-- Incremental run should not process rows newer than cutoff (`now_utc - 5 minutes`).
-- Every incremental batch must report:
-  - extracted rows
-  - loaded rows
-  - rejected rows
+- A execucao incremental nao deve processar linhas mais novas que o cutoff (`now_utc - 5 minutes`).
+- Cada lote incremental deve reportar:
+  - linhas extraidas
+  - linhas carregadas
+  - linhas rejeitadas
 
-## Reconciliation Rules (OLTP vs DW)
+## Regras de Reconciliacao (OLTP vs DW)
 
-- row count by period
-- sum(gross), sum(discount), sum(net) by period
-- distinct order count by period
+- contagem de linhas por periodo
+- soma(gross), soma(discount), soma(net) por periodo
+- quantidade distinta de pedidos por periodo
 
-Tolerance for aggregates in Phase 0: exact match (0 difference).
+Tolerancia para agregados na Fase 0: correspondencia exata (diferenca 0).

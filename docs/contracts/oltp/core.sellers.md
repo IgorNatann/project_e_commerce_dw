@@ -1,49 +1,50 @@
-# Contract - core.sellers
+# Contrato - core.sellers
 
-## Metadata
+## Metadados
 
-- Layer: OLTP
-- Status: draft
-- Main DW targets: `dim.DIM_VENDEDOR`, `dim.DIM_EQUIPE`
+- Camada: OLTP
+- Estado: rascunho
+- Principais destinos no DW: `dim.DIM_VENDEDOR`, `dim.DIM_EQUIPE`
 
-## Grain
+## Grao
 
-One row = one seller.
+Uma linha = um vendedor.
 
-## Keys
+## Chaves
 
-- Primary key: `seller_id`
-- Business key: `seller_code` (unique)
+- Chave primaria: `seller_id`
+- Chave de negocio: `seller_code` (unica)
 
 ## Incremental
 
 - Watermark: `updated_at`
-- Tie-breaker: `seller_id`
+- Desempate: `seller_id`
 
-## Required Columns
+## Colunas Obrigatorias
 
-| Column | Type | Null | Rule |
+| Coluna | Tipo | Nulo | Regra |
 |---|---|---|---|
-| seller_id | BIGINT | no | PK unique |
-| seller_code | VARCHAR(50) | no | business key unique |
-| seller_name | VARCHAR(200) | no | non-empty |
-| team_id | BIGINT | yes | FK to team |
-| team_name | VARCHAR(150) | yes | helper attribute |
-| manager_seller_id | BIGINT | yes | self-reference allowed |
-| monthly_goal_amount | DECIMAL(15,2) | yes | `>= 0` |
-| seller_status | VARCHAR(20) | no | `Ativo/Inativo` |
-| created_at | DATETIME2 | no | UTC |
-| updated_at | DATETIME2 | no | UTC, `>= created_at` |
-| deleted_at | DATETIME2 | yes | soft delete |
+| seller_id | BIGINT | nao | PK unica |
+| seller_code | VARCHAR(50) | nao | chave de negocio unica |
+| seller_name | VARCHAR(200) | nao | nao vazio |
+| team_id | BIGINT | sim | FK para equipe |
+| team_name | VARCHAR(150) | sim | atributo auxiliar |
+| manager_seller_id | BIGINT | sim | autorreferencia permitida |
+| monthly_goal_amount | DECIMAL(15,2) | sim | `>= 0` |
+| seller_status | VARCHAR(20) | nao | `Ativo/Inativo` |
+| created_at | DATETIME2 | nao | UTC |
+| updated_at | DATETIME2 | nao | UTC, `>= created_at` |
+| deleted_at | DATETIME2 | sim | exclusao logica |
 
-## Data Quality Checks
+## Checks de Qualidade de Dados
 
-- no duplicate `seller_code`
-- allowed values for `seller_status`
-- if `manager_seller_id` present, must exist in same table
+- sem duplicidade de `seller_code`
+- valores permitidos para `seller_status`
+- se `manager_seller_id` existir, deve existir na propria tabela
 
-## DW Mapping Notes
+## Observacoes de Mapeamento DW
 
-- seller attributes feed `DIM_VENDEDOR`
-- team attributes feed/relate to `DIM_EQUIPE`
-- `monthly_goal_amount` supports fact metas derivation
+- atributos de vendedor alimentam `DIM_VENDEDOR`
+- atributos de equipe alimentam/relacionam `DIM_EQUIPE`
+- `monthly_goal_amount` apoia derivacao da fact de metas
+

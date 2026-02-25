@@ -1,48 +1,48 @@
-# Entity Contract Template
+# Modelo de Contrato por Entidade
 
-## Metadata
+## Metadados
 
-- Entity:
-- Layer:
-- Owner:
-- Status: draft | active | deprecated
+- Entidade:
+- Camada:
+- Responsavel:
+- Estado: rascunho | ativo | descontinuado
 
-## Grain
+## Grao
 
-One row represents:
+Uma linha representa:
 
-## Keys
+## Chaves
 
-- Primary key:
-- Business key:
+- Chave primaria:
+- Chave de negocio:
 
 ## Incremental
 
-- Watermark column: `updated_at`
-- Tie-breaker: `<pk_column>`
-- Extraction order: `updated_at, <pk_column>`
+- Coluna watermark: `updated_at`
+- Desempate: `<coluna_pk>`
+- Ordenacao de extracao: `updated_at, <coluna_pk>`
 
-## Required Columns
+## Colunas Obrigatorias
 
-| Column | Type | Null | Rule |
+| Coluna | Tipo | Nulo | Regra |
 |---|---|---|---|
-| id | BIGINT | no | PK unique |
-| created_at | DATETIME2 | no | UTC |
-| updated_at | DATETIME2 | no | UTC, `>= created_at` |
-| deleted_at | DATETIME2 | yes | soft delete |
+| id | BIGINT | nao | PK unica |
+| created_at | DATETIME2 | nao | UTC |
+| updated_at | DATETIME2 | nao | UTC, `>= created_at` |
+| deleted_at | DATETIME2 | sim | exclusao logica |
 
-## Data Quality Checks
+## Checks de Qualidade de Dados
 
-- PK uniqueness
-- mandatory columns not null
-- timestamp consistency
-- FK integrity (if applicable)
+- unicidade de PK
+- colunas obrigatorias nao nulas
+- consistencia temporal
+- integridade de FK (quando aplicavel)
 
-## DW Targets
+## Destinos no DW
 
-- Target tables:
-- Transformation notes:
+- Tabelas de destino:
+- Observacoes de transformacao:
 
-## Change Log
+## Historico de Mudancas
 
-- YYYY-MM-DD - change description
+- AAAA-MM-DD - descricao da mudanca

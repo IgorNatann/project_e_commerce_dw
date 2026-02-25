@@ -1,50 +1,50 @@
-# Contract - core.products
+# Contrato - core.products
 
-## Metadata
+## Metadados
 
-- Layer: OLTP
-- Status: draft
-- Main DW target: `dim.DIM_PRODUTO`
+- Camada: OLTP
+- Estado: rascunho
+- Principal destino no DW: `dim.DIM_PRODUTO`
 
-## Grain
+## Grao
 
-One row = one product SKU.
+Uma linha = um SKU de produto.
 
-## Keys
+## Chaves
 
-- Primary key: `product_id`
-- Business key: `sku` (unique)
+- Chave primaria: `product_id`
+- Chave de negocio: `sku` (unica)
 
 ## Incremental
 
 - Watermark: `updated_at`
-- Tie-breaker: `product_id`
+- Desempate: `product_id`
 
-## Required Columns
+## Colunas Obrigatorias
 
-| Column | Type | Null | Rule |
+| Coluna | Tipo | Nulo | Regra |
 |---|---|---|---|
-| product_id | BIGINT | no | PK unique |
-| sku | VARCHAR(50) | no | business key unique |
-| product_name | VARCHAR(200) | no | non-empty |
-| category_name | VARCHAR(100) | no | non-empty |
-| subcategory_name | VARCHAR(100) | yes | - |
-| supplier_id | BIGINT | no | FK to supplier |
-| supplier_name | VARCHAR(150) | no | denormalized helper allowed |
-| cost_price | DECIMAL(15,2) | no | `>= 0` |
-| list_price | DECIMAL(15,2) | no | `>= 0` |
-| product_status | VARCHAR(20) | no | `Ativo/Inativo/Descontinuado` |
-| created_at | DATETIME2 | no | UTC |
-| updated_at | DATETIME2 | no | UTC, `>= created_at` |
-| deleted_at | DATETIME2 | yes | soft delete |
+| product_id | BIGINT | nao | PK unica |
+| sku | VARCHAR(50) | nao | chave de negocio unica |
+| product_name | VARCHAR(200) | nao | nao vazio |
+| category_name | VARCHAR(100) | nao | nao vazio |
+| subcategory_name | VARCHAR(100) | sim | - |
+| supplier_id | BIGINT | nao | FK para fornecedor |
+| supplier_name | VARCHAR(150) | nao | atributo auxiliar denormalizado permitido |
+| cost_price | DECIMAL(15,2) | nao | `>= 0` |
+| list_price | DECIMAL(15,2) | nao | `>= 0` |
+| product_status | VARCHAR(20) | nao | `Ativo/Inativo/Descontinuado` |
+| created_at | DATETIME2 | nao | UTC |
+| updated_at | DATETIME2 | nao | UTC, `>= created_at` |
+| deleted_at | DATETIME2 | sim | exclusao logica |
 
-## Data Quality Checks
+## Checks de Qualidade de Dados
 
-- no duplicate `sku`
-- `cost_price` and `list_price` non-negative
-- allowed values for `product_status`
+- sem duplicidade de `sku`
+- `cost_price` e `list_price` nao negativos
+- valores permitidos para `product_status`
 
-## DW Mapping Notes
+## Observacoes de Mapeamento DW
 
 - `product_id` -> `produto_original_id`
 - `sku` -> `codigo_sku`
@@ -52,3 +52,4 @@ One row = one product SKU.
 - `cost_price` -> `preco_custo`
 - `list_price` -> `preco_sugerido`
 - `product_status` -> `situacao`
+
