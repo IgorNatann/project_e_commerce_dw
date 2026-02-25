@@ -648,7 +648,7 @@ JOIN dim.DIM_PRODUTO p ON fv.produto_id = p.produto_id;
 
 ## 📚 Referências
 
-- **Views Auxiliares:** Ver `sql/04_views/README.md`
+- **Views Auxiliares:** Ver `sql/dw/04_views/README.md`
 - **Modelo Dimensional:** Ver `docs/modelagem/01_visao_geral.md`
 - **Relacionamentos:** Ver `docs/modelagem/04_relacionamentos.md`
 

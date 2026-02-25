@@ -41,7 +41,7 @@ SELECT
     trimestre,
     mes,
     nome_mes,
-    dia_semana,
+    dia_da_semana AS dia_semana,
     nome_dia_semana,
     
     -- Flags de classificação

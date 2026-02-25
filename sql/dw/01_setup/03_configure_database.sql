@@ -150,7 +150,7 @@ PRINT 'DATABASE PRONTO PARA USO!';
 PRINT '========================================';
 PRINT '';
 PRINT 'PRÓXIMOS PASSOS:';
-PRINT '1. Execute scripts em: sql/02_ddl/dimensions/';
-PRINT '2. Execute scripts em: sql/02_ddl/facts/';
+PRINT '1. Execute scripts em: sql/dw/02_ddl/dimensions/';
+PRINT '2. Execute scripts em: sql/dw/02_ddl/facts/';
 PRINT '========================================';
 GO
