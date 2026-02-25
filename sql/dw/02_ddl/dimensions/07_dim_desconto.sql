@@ -659,7 +659,7 @@ PRINT '========================================';
 PRINT 'VIEW AUXILIAR CENTRALIZADA';
 PRINT '========================================';
 PRINT '';
-PRINT 'A view dim.VW_DESCONTOS_ATIVOS e criada em sql/04_views/05_vw_descontos_ativos.sql';
+PRINT 'A view dim.VW_DESCONTOS_ATIVOS e criada em sql/dw/04_views/05_vw_descontos_ativos.sql';
 PRINT '(script master: 04_master_views.sql).';
 PRINT '';
 

@@ -669,7 +669,7 @@ PRINT 'VIEWS AUXILIARES CENTRALIZADAS';
 PRINT '========================================';
 PRINT '';
 PRINT 'As views dim.VW_EQUIPES_ATIVAS, dim.VW_RANKING_EQUIPES_META e dim.VW_ANALISE_REGIONAL_EQUIPES';
-PRINT 'sao criadas em sql/04_views (script master: 04_master_views.sql).';
+PRINT 'sao criadas em sql/dw/04_views (script master: 04_master_views.sql).';
 PRINT '';
 
 -- ========================================
