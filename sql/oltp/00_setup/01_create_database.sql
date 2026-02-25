@@ -1,16 +1,18 @@
 -- ========================================
 -- SCRIPT: 01_create_database.sql
--- PURPOSE: Create OLTP source database
+-- OBJETIVO: criar database OLTP da origem
 -- ========================================
 
 USE master;
 GO
 
-IF DB_ID(''ECOMMERCE_OLTP'') IS NULL
+IF DB_ID('ECOMMERCE_OLTP') IS NULL
 BEGIN
     CREATE DATABASE ECOMMERCE_OLTP;
+    PRINT 'Database ECOMMERCE_OLTP criada.';
+END
+ELSE
+BEGIN
+    PRINT 'Database ECOMMERCE_OLTP ja existe.';
 END;
-GO
-
-PRINT ''ECOMMERCE_OLTP ready.'';
 GO

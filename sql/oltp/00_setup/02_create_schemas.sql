@@ -1,14 +1,18 @@
 -- ========================================
 -- SCRIPT: 02_create_schemas.sql
--- PURPOSE: Create OLTP schemas
+-- OBJETIVO: criar schemas OLTP
 -- ========================================
 
 USE ECOMMERCE_OLTP;
 GO
 
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = ''core'')
-    EXEC(''CREATE SCHEMA core'');
-GO
-
-PRINT ''Schemas ready (core).'';
+IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'core')
+BEGIN
+    EXEC('CREATE SCHEMA core');
+    PRINT 'Schema core criado.';
+END
+ELSE
+BEGIN
+    PRINT 'Schema core ja existe.';
+END;
 GO

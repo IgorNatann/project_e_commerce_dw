@@ -1,23 +1,22 @@
-# OLTP SQL Scripts
+# Scripts SQL - OLTP (Fonte do ETL)
 
-This folder contains the source (OLTP) scripts used to simulate a real extract process to DW_ECOMMERCE.
+Este diretorio contem os scripts da base operacional `ECOMMERCE_OLTP`.
+O objetivo e simular uma origem real para cargas incrementais no `DW_ECOMMERCE`.
 
-## Execution Order
+## Ordem de Execucao
 
 1. `00_setup/01_create_database.sql`
 2. `00_setup/02_create_schemas.sql`
 3. `01_ddl/01_create_tables_core.sql`
-4. `02_seed/01_seed_base.sql`
-5. `02_seed/02_seed_incremental.sql`
-6. `99_validation/01_checks.sql`
+4. `99_validation/01_schema_checks.sql`
 
-## Scope
+## Escopo da Fase 1
 
-- Source database: `ECOMMERCE_OLTP`
-- Purpose: feed incremental ETL into `DW_ECOMMERCE`
-- Pattern: staging extract with watermark (`updated_at`, `id`)
+- modelagem fisica OLTP para entidades core
+- padrao tecnico com `created_at`, `updated_at`, `deleted_at`
+- indices para extracao incremental por `(updated_at, id)`
 
-## Notes
+## Observacoes
 
-- Keep OLTP schema operational and normalized enough for realistic extraction.
-- Do not add DW-style denormalized dimensions/facts in this layer.
+- nesta fase nao ha carga massiva de dados
+- sementes de dados (3 anos) entram na proxima fase
