@@ -1,5 +1,5 @@
 -- ========================================
--- SCRIPT: 08_fact_metas.sql
+-- SCRIPT: 02_fact_metas.sql
 -- DESCRIÇÃO: Criação da FACT_METAS
 -- AUTOR: Data Warehouse E-commerce Project
 -- DATA: 2024-12-08
@@ -750,8 +750,8 @@ PRINT 'PRÓXIMOS PASSOS - EXERCÍCIO 2';
 PRINT '========================================';
 PRINT '';
 PRINT '📌 Agora vamos criar:';
-PRINT '   1. DIM_DESCONTO - Dimensão de cupons/campanhas';
-PRINT '   2. FACT_DESCONTOS - Múltiplos descontos por venda';
+PRINT '   FACT_DESCONTOS - Múltiplos descontos por venda';
+PRINT '   (pré-requisito: DIM_DESCONTO já criada no passo de dimensões)';
 PRINT '';
 PRINT '🔗 QUERIES ÚTEIS:';
 PRINT '   • SELECT * FROM fact.VW_METAS_COMPLETA';
@@ -759,6 +759,6 @@ PRINT '   • SELECT * FROM fact.VW_VENDAS_COMPLETA';
 PRINT '   • SELECT * FROM dim.VW_VENDEDORES_ATIVOS';
 PRINT '';
 PRINT '========================================';
-PRINT 'PRÓXIMO SCRIPT: 09_dim_desconto.sql';
+PRINT 'PRÓXIMO SCRIPT: 03_fact_descontos.sql';
 PRINT '========================================';
 GO

@@ -921,7 +921,7 @@ PRINT '   • SELECT * FROM dim.VW_VENDEDORES_ATIVOS';
 PRINT '   • SELECT * FROM dim.VW_EQUIPES_ATIVAS';
 PRINT '';
 PRINT '========================================';
-PRINT 'PRÓXIMO SCRIPT: 08_fact_metas.sql';
+PRINT 'PRÓXIMO SCRIPT: 02_fact_metas.sql';
 PRINT '========================================';
 GO
 

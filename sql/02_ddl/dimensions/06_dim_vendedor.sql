@@ -868,6 +868,6 @@ PRINT '   • FACT_VENDAS.vendedor_id → DIM_VENDEDOR.vendedor_id';
 PRINT '   • FACT_METAS.vendedor_id → DIM_VENDEDOR.vendedor_id';
 PRINT '';
 PRINT '========================================';
-PRINT 'PRÓXIMO SCRIPT: 07_fact_vendas_update.sql';
+PRINT 'PRÓXIMO SCRIPT: 07_dim_desconto.sql';
 PRINT '========================================';
 GO

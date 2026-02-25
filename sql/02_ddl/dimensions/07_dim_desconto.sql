@@ -752,6 +752,6 @@ PRINT '   • Quais produtos têm mais desconto?';
 PRINT '   • Análise temporal de uso de cupons';
 PRINT '';
 PRINT '========================================';
-PRINT 'PRÓXIMO SCRIPT: 10_fact_descontos.sql';
+PRINT 'PRÓXIMO SCRIPT: 01_fact_vendas.sql';
 PRINT '========================================';
 GO
