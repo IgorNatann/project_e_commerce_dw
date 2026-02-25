@@ -32,7 +32,7 @@ Este diretório contém **todos os scripts SQL** necessários para criar e popul
 ### Resumo Rápido
 
 ```
-01_setup → 02_ddl (dimensions) → 02_ddl (facts) → 04_views
+dw/01_setup -> dw/02_ddl (dimensions) -> dw/02_ddl (facts) -> dw/04_views
 ```
 
 ### Detalhado
@@ -116,45 +116,20 @@ GO
 
 ```
 sql/
-│
-├── 📂 01_setup/                    # Scripts de configuração inicial
-│   ├── 01_create_database.sql     # ⚠️ EXECUTAR PRIMEIRO
-│   ├── 02_create_schemas.sql      # Cria schemas dim e fact
-│   └── 03_configure_database.sql  # Recovery model, filegroups, etc
-│
-├── 📂 02_ddl/                      # Data Definition Language
-│   ├── 📂 dimensions/              # ⚠️ EXECUTAR ANTES DAS FACTS
-│   │   ├── 01_dim_data.sql
-│   │   ├── 02_dim_cliente.sql
-│   │   ├── 03_dim_produto.sql
-│   │   ├── 04_dim_regiao.sql
-│   │   ├── 05_dim_equipe.sql      # ⚠️ ANTES do dim_vendedor
-│   │   ├── 06_dim_vendedor.sql
-│   │   └── 07_dim_desconto.sql
-│   │
-│   ├── 📂 facts/                   # ⚠️ DEPOIS DAS DIMENSÕES
-│   │   ├── 01_fact_vendas.sql
-│   │   ├── 02_fact_metas.sql
-│   │   └── 03_fact_descontos.sql
-│   │
-│   └── 📂 indexes/                 # Índices adicionais (opcional)
-│
-├── 📂 04_views/                    # ⚠️ DEPOIS DAS FACTS
-│   ├── 01_vw_calendario_completo.sql
-│   ├── 02_vw_produtos_ativos.sql
-│   ├── 03_vw_hierarquia_geografica.sql
-│   ├── 04_master_views.sql
-│   ├── 05_vw_descontos_ativos.sql
-│   ├── 06_vw_vendedores_ativos.sql
-│   ├── 07_vw_hierarquia_vendedores.sql
-│   ├── 08_dw_analise_equipe_vendedores.sql
-│   ├── 09_vw_equipes_ativas.sql
-│   ├── 10_vw_ranking_equipes_meta.sql
-│   └── 11_vw_analise_regional_equipes.sql
-│
-├── 📂 05_procedures/               # Stored Procedures (futuro)
-├── 📂 06_queries/                  # Queries analíticas
-└── 📂 99_maintenance/              # Backup, reindex, etc
+|
+|-- README.md
+|-- dw/                           # Scripts do Data Warehouse (estado atual)
+|   |-- 01_setup/
+|   |-- 02_ddl/
+|   |   |-- dimensions/
+|   |   `-- facts/
+|   |-- 03_dml/
+|   |-- 04_views/
+|   |-- 05_procedures/
+|   |-- 06_queries/
+|   `-- 99_maintenance/
+|
+`-- oltp/                         # Em construcao (proxima camada)
 ```
 
 ---
@@ -170,17 +145,17 @@ sql/
 -- Database: master
 
 -- 1.1 Criar database
-:r C:\path\to\sql\01_setup\01_create_database.sql
+:r C:\path\to\sql\dw\01_setup\01_create_database.sql
 GO
 
 -- 1.2 Mudar contexto e criar schemas
 USE DW_ECOMMERCE;
 GO
-:r C:\path\to\sql\01_setup\02_create_schemas.sql
+:r C:\path\to\sql\dw\01_setup\02_create_schemas.sql
 GO
 
 -- 1.3 Configurar database
-:r C:\path\to\sql\01_setup\03_configure_database.sql
+:r C:\path\to\sql\dw\01_setup\03_configure_database.sql
 GO
 ```
 
@@ -192,15 +167,15 @@ USE DW_ECOMMERCE;
 GO
 
 -- 2.1 Dimensões independentes (podem ser paralelas)
-:r C:\path\to\sql\02_ddl\dimensions\01_dim_data.sql
-:r C:\path\to\sql\02_ddl\dimensions\02_dim_cliente.sql
-:r C:\path\to\sql\02_ddl\dimensions\03_dim_produto.sql
-:r C:\path\to\sql\02_ddl\dimensions\04_dim_regiao.sql
-:r C:\path\to\sql\02_ddl\dimensions\07_dim_desconto.sql
+:r C:\path\to\sql\dw\02_ddl\dimensions\01_dim_data.sql
+:r C:\path\to\sql\dw\02_ddl\dimensions\02_dim_cliente.sql
+:r C:\path\to\sql\dw\02_ddl\dimensions\03_dim_produto.sql
+:r C:\path\to\sql\dw\02_ddl\dimensions\04_dim_regiao.sql
+:r C:\path\to\sql\dw\02_ddl\dimensions\07_dim_desconto.sql
 
 -- 2.2 Dimensões com dependências (ORDEM OBRIGATÓRIA)
-:r C:\path\to\sql\02_ddl\dimensions\05_dim_equipe.sql    -- ANTES
-:r C:\path\to\sql\02_ddl\dimensions\06_dim_vendedor.sql  -- DEPOIS
+:r C:\path\to\sql\dw\02_ddl\dimensions\05_dim_equipe.sql    -- ANTES
+:r C:\path\to\sql\dw\02_ddl\dimensions\06_dim_vendedor.sql  -- DEPOIS
 ```
 
 > **💡 Dica:** Cada script imprime mensagens de progresso. Acompanhe!
@@ -212,11 +187,11 @@ USE DW_ECOMMERCE;
 GO
 
 -- 3.1 Fact principal
-:r C:\path\to\sql\02_ddl\facts\01_fact_vendas.sql
+:r C:\path\to\sql\dw\02_ddl\facts\01_fact_vendas.sql
 
 -- 3.2 Facts secundárias
-:r C:\path\to\sql\02_ddl\facts\02_fact_metas.sql
-:r C:\path\to\sql\02_ddl\facts\03_fact_descontos.sql
+:r C:\path\to\sql\dw\02_ddl\facts\02_fact_metas.sql
+:r C:\path\to\sql\dw\02_ddl\facts\03_fact_descontos.sql
 ```
 
 #### **Passo 4: Criar Views**
@@ -226,11 +201,11 @@ USE DW_ECOMMERCE;
 GO
 
 -- Executar views na ordem (ou rodar script master)
-:r C:\path\to\sql\04_views\04_master_views.sql
+:r C:\path\to\sql\dw\04_views\04_master_views.sql
 
 -- Alternativa: executar individualmente
-:r C:\path\to\sql\04_views\01_vw_calendario_completo.sql
-:r C:\path\to\sql\04_views\02_vw_produtos_ativos.sql
+:r C:\path\to\sql\dw\04_views\01_vw_calendario_completo.sql
+:r C:\path\to\sql\dw\04_views\02_vw_produtos_ativos.sql
 -- ... demais views
 ```
 
@@ -252,32 +227,32 @@ PRINT '';
 
 -- FASE 1: SETUP
 PRINT '📦 FASE 1: Setup Inicial';
-:r .\01_setup\01_create_database.sql
-:r .\01_setup\02_create_schemas.sql
-:r .\01_setup\03_configure_database.sql
+:r .\dw\01_setup\01_create_database.sql
+:r .\dw\01_setup\02_create_schemas.sql
+:r .\dw\01_setup\03_configure_database.sql
 
 USE DW_ECOMMERCE;
 GO
 
 -- FASE 2: DIMENSÕES
 PRINT '📐 FASE 2: Criando Dimensões';
-:r .\02_ddl\dimensions\01_dim_data.sql
-:r .\02_ddl\dimensions\02_dim_cliente.sql
-:r .\02_ddl\dimensions\03_dim_produto.sql
-:r .\02_ddl\dimensions\04_dim_regiao.sql
-:r .\02_ddl\dimensions\05_dim_equipe.sql
-:r .\02_ddl\dimensions\06_dim_vendedor.sql
-:r .\02_ddl\dimensions\07_dim_desconto.sql
+:r .\dw\02_ddl\dimensions\01_dim_data.sql
+:r .\dw\02_ddl\dimensions\02_dim_cliente.sql
+:r .\dw\02_ddl\dimensions\03_dim_produto.sql
+:r .\dw\02_ddl\dimensions\04_dim_regiao.sql
+:r .\dw\02_ddl\dimensions\05_dim_equipe.sql
+:r .\dw\02_ddl\dimensions\06_dim_vendedor.sql
+:r .\dw\02_ddl\dimensions\07_dim_desconto.sql
 
 -- FASE 3: FACTS
 PRINT '📊 FASE 3: Criando Tabelas Fato';
-:r .\02_ddl\facts\01_fact_vendas.sql
-:r .\02_ddl\facts\02_fact_metas.sql
-:r .\02_ddl\facts\03_fact_descontos.sql
+:r .\dw\02_ddl\facts\01_fact_vendas.sql
+:r .\dw\02_ddl\facts\02_fact_metas.sql
+:r .\dw\02_ddl\facts\03_fact_descontos.sql
 
 -- FASE 4: VIEWS
 PRINT '👁️ FASE 4: Criando Views Auxiliares';
-:r .\04_views\04_master_views.sql
+:r .\dw\04_views\04_master_views.sql
 
 PRINT '';
 PRINT '✅ Data Warehouse criado com sucesso!';

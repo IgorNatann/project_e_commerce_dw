@@ -624,7 +624,7 @@ CHECK (valor_com_desconto = valor_sem_desconto - valor_desconto_aplicado)
 | **VW_VENDAS_COMPLETA** | Vendas + todas dimensões | FACT_VENDAS + JOINs |
 | **VW_METAS_COMPLETA** | Metas + contexto completo | FACT_METAS + JOINs |
 
-**Documentação completa:** Ver `sql/04_views/README.md`
+**Documentação completa:** Ver `sql/dw/04_views/README.md`
 
 ---
 
