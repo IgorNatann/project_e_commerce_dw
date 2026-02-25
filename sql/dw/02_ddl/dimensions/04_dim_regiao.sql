@@ -410,7 +410,7 @@ PRINT '';
 -- 7. VIEW AUXILIAR
 -- ========================================
 
-PRINT 'View dim.VW_HIERARQUIA_GEOGRAFICA centralizada em sql/04_views/03_vw_hierarquia_geografica.sql';
+PRINT 'View dim.VW_HIERARQUIA_GEOGRAFICA centralizada em sql/dw/04_views/03_vw_hierarquia_geografica.sql';
 PRINT 'Definicao removida deste script para evitar duplicidade e drift.';
 PRINT '';
 
