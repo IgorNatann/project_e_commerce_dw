@@ -1,16 +1,16 @@
-# Data Contracts - Phase 0
+# Contratos de Dados - Fase 0
 
-This folder stores the minimum data contract for OLTP -> DW integration.
-The goal is to keep the process simple, explicit, and versioned in git.
+Esta pasta armazena o contrato minimo de dados para integracao OLTP -> DW.
+O objetivo e manter o processo simples, explicito e versionado em git.
 
-## Scope (Phase 0)
+## Escopo (Fase 0)
 
-- Define global contract rules.
-- Define source contracts for core OLTP entities.
-- Define OLTP -> DW mapping baseline.
-- Define minimum data quality rules.
+- Definir regras globais do contrato.
+- Definir contratos de origem para entidades OLTP principais.
+- Definir baseline de mapeamento OLTP -> DW.
+- Definir regras minimas de qualidade de dados.
 
-## Folder Structure
+## Estrutura de Pastas
 
 ```text
 docs/contracts/
@@ -30,17 +30,17 @@ docs/contracts/
     `-- entity_contract_template.md
 ```
 
-## Update Workflow
+## Fluxo de Atualizacao
 
-1. Change source schema (`sql/oltp/...`) or ETL logic.
-2. Update the impacted entity contract in `docs/contracts/oltp/`.
-3. Update `mapping/oltp_to_dw_mapping.csv` if target mapping changed.
-4. Add/adjust rule in `quality/dq_rules.md` if needed.
-5. Include the change in the same PR.
+1. Alterar schema de origem (`sql/oltp/...`) ou logica de ETL.
+2. Atualizar o contrato da entidade impactada em `docs/contracts/oltp/`.
+3. Atualizar `mapping/oltp_to_dw_mapping.csv` se o mapeamento de destino mudar.
+4. Adicionar ou ajustar regra em `quality/dq_rules.md`, quando necessario.
+5. Incluir a atualizacao no mesmo PR da mudanca tecnica.
 
-## Rules
+## Regras Gerais
 
-- Do not remove columns from contracts without migration note.
-- Use `updated_at + id` as incremental extraction baseline.
-- Keep timezone in UTC.
-- Prefer additive evolution (new nullable columns) over breaking changes.
+- Nao remover colunas dos contratos sem nota de migracao.
+- Usar `updated_at + id` como baseline de extracao incremental.
+- Manter timezone em UTC.
+- Preferir evolucao aditiva (novas colunas anulaveis) em vez de quebra de contrato.

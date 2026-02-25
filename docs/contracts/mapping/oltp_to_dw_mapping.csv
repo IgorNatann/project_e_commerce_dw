@@ -1,33 +1,34 @@
-source_table,source_column,target_table,target_column,transform_rule,is_required,notes
-core.customers,customer_id,dim.DIM_CLIENTE,cliente_original_id,direct,true,source natural id
-core.customers,full_name,dim.DIM_CLIENTE,nome_cliente,direct,true,
-core.customers,email,dim.DIM_CLIENTE,email,direct,false,
-core.customers,city,dim.DIM_CLIENTE,cidade,direct,false,
-core.customers,state,dim.DIM_CLIENTE,estado,direct,false,
-core.products,product_id,dim.DIM_PRODUTO,produto_original_id,direct,true,source natural id
-core.products,sku,dim.DIM_PRODUTO,codigo_sku,direct,true,
-core.products,product_name,dim.DIM_PRODUTO,nome_produto,direct,true,
-core.products,category_name,dim.DIM_PRODUTO,categoria,direct,true,
-core.products,subcategory_name,dim.DIM_PRODUTO,subcategoria,direct,false,
-core.products,supplier_id,dim.DIM_PRODUTO,fornecedor_id,direct,true,
-core.products,supplier_name,dim.DIM_PRODUTO,nome_fornecedor,direct,true,
-core.products,cost_price,dim.DIM_PRODUTO,preco_custo,direct,true,
-core.products,list_price,dim.DIM_PRODUTO,preco_sugerido,direct,true,
-core.products,product_status,dim.DIM_PRODUTO,situacao,normalize_status,true,
-core.sellers,seller_id,dim.DIM_VENDEDOR,vendedor_original_id,direct,true,
-core.sellers,seller_name,dim.DIM_VENDEDOR,nome_vendedor,direct,true,
-core.sellers,monthly_goal_amount,dim.DIM_VENDEDOR,meta_mensal_base,direct,false,
-core.sellers,team_id,dim.DIM_EQUIPE,equipe_original_id,direct,false,
-core.sellers,team_name,dim.DIM_EQUIPE,nome_equipe,direct,false,
-core.order_items,order_item_id,fact.FACT_VENDAS,venda_original_id,direct,true,or use generated surrogate policy
-core.orders,order_number,fact.FACT_VENDAS,numero_pedido,direct,true,
-core.orders,order_date,fact.FACT_VENDAS,data_id,lookup_dim_data,true,join by date
-core.orders,customer_id,fact.FACT_VENDAS,cliente_id,lookup_dim_cliente,true,join by cliente_original_id
-core.order_items,product_id,fact.FACT_VENDAS,produto_id,lookup_dim_produto,true,join by produto_original_id
-core.orders,seller_id,fact.FACT_VENDAS,vendedor_id,lookup_dim_vendedor,false,left join
-core.order_items,quantity,fact.FACT_VENDAS,quantidade_vendida,direct,true,
-core.order_items,unit_price,fact.FACT_VENDAS,preco_unitario_tabela,direct,true,
-core.order_items,gross_amount,fact.FACT_VENDAS,valor_total_bruto,direct,true,
-core.order_items,discount_amount,fact.FACT_VENDAS,valor_total_descontos,direct,true,
-core.order_items,net_amount,fact.FACT_VENDAS,valor_total_liquido,direct,true,
-core.order_items,return_quantity,fact.FACT_VENDAS,quantidade_devolvida,direct,false,default 0 when null
+tabela_origem,coluna_origem,tabela_destino,coluna_destino,regra_transformacao,obrigatorio,observacoes
+core.customers,customer_id,dim.DIM_CLIENTE,cliente_original_id,direto,true,id natural da origem
+core.customers,full_name,dim.DIM_CLIENTE,nome_cliente,direto,true,
+core.customers,email,dim.DIM_CLIENTE,email,direto,false,
+core.customers,city,dim.DIM_CLIENTE,cidade,direto,false,
+core.customers,state,dim.DIM_CLIENTE,estado,direto,false,
+core.products,product_id,dim.DIM_PRODUTO,produto_original_id,direto,true,id natural da origem
+core.products,sku,dim.DIM_PRODUTO,codigo_sku,direto,true,
+core.products,product_name,dim.DIM_PRODUTO,nome_produto,direto,true,
+core.products,category_name,dim.DIM_PRODUTO,categoria,direto,true,
+core.products,subcategory_name,dim.DIM_PRODUTO,subcategoria,direto,false,
+core.products,supplier_id,dim.DIM_PRODUTO,fornecedor_id,direto,true,
+core.products,supplier_name,dim.DIM_PRODUTO,nome_fornecedor,direto,true,
+core.products,cost_price,dim.DIM_PRODUTO,preco_custo,direto,true,
+core.products,list_price,dim.DIM_PRODUTO,preco_sugerido,direto,true,
+core.products,product_status,dim.DIM_PRODUTO,situacao,normalizar_status,true,
+core.sellers,seller_id,dim.DIM_VENDEDOR,vendedor_original_id,direto,true,
+core.sellers,seller_name,dim.DIM_VENDEDOR,nome_vendedor,direto,true,
+core.sellers,monthly_goal_amount,dim.DIM_VENDEDOR,meta_mensal_base,direto,false,
+core.sellers,team_id,dim.DIM_EQUIPE,equipe_original_id,direto,false,
+core.sellers,team_name,dim.DIM_EQUIPE,nome_equipe,direto,false,
+core.order_items,order_item_id,fact.FACT_VENDAS,venda_original_id,direto,true,ou usar politica de surrogate gerada
+core.orders,order_number,fact.FACT_VENDAS,numero_pedido,direto,true,
+core.orders,order_date,fact.FACT_VENDAS,data_id,buscar_dim_data,true,join por data
+core.orders,customer_id,fact.FACT_VENDAS,cliente_id,buscar_dim_cliente,true,join por cliente_original_id
+core.order_items,product_id,fact.FACT_VENDAS,produto_id,buscar_dim_produto,true,join por produto_original_id
+core.orders,seller_id,fact.FACT_VENDAS,vendedor_id,buscar_dim_vendedor,false,join a esquerda
+core.order_items,quantity,fact.FACT_VENDAS,quantidade_vendida,direto,true,
+core.order_items,unit_price,fact.FACT_VENDAS,preco_unitario_tabela,direto,true,
+core.order_items,gross_amount,fact.FACT_VENDAS,valor_total_bruto,direto,true,
+core.order_items,discount_amount,fact.FACT_VENDAS,valor_total_descontos,direto,true,
+core.order_items,net_amount,fact.FACT_VENDAS,valor_total_liquido,direto,true,
+core.order_items,return_quantity,fact.FACT_VENDAS,quantidade_devolvida,direto,false,padrao 0 quando nulo
+

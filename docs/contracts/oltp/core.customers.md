@@ -1,50 +1,51 @@
-# Contract - core.customers
+# Contrato - core.customers
 
-## Metadata
+## Metadados
 
-- Layer: OLTP
-- Status: draft
-- Main DW target: `dim.DIM_CLIENTE`
+- Camada: OLTP
+- Estado: rascunho
+- Principal destino no DW: `dim.DIM_CLIENTE`
 
-## Grain
+## Grao
 
-One row = one customer profile.
+Uma linha = um perfil de cliente.
 
-## Keys
+## Chaves
 
-- Primary key: `customer_id`
-- Business key: `customer_code` (unique)
+- Chave primaria: `customer_id`
+- Chave de negocio: `customer_code` (unica)
 
 ## Incremental
 
 - Watermark: `updated_at`
-- Tie-breaker: `customer_id`
+- Desempate: `customer_id`
 
-## Required Columns
+## Colunas Obrigatorias
 
-| Column | Type | Null | Rule |
+| Coluna | Tipo | Nulo | Regra |
 |---|---|---|---|
-| customer_id | BIGINT | no | PK unique |
-| customer_code | VARCHAR(50) | no | business key unique |
-| full_name | VARCHAR(200) | no | non-empty |
-| email | VARCHAR(200) | yes | valid format when present |
-| phone | VARCHAR(30) | yes | normalized format |
-| birth_date | DATE | yes | `<= current_date` |
-| city | VARCHAR(100) | yes | - |
-| state | VARCHAR(2) | yes | BR UF pattern |
-| created_at | DATETIME2 | no | UTC |
-| updated_at | DATETIME2 | no | UTC, `>= created_at` |
-| deleted_at | DATETIME2 | yes | soft delete |
+| customer_id | BIGINT | nao | PK unica |
+| customer_code | VARCHAR(50) | nao | chave de negocio unica |
+| full_name | VARCHAR(200) | nao | nao vazio |
+| email | VARCHAR(200) | sim | formato valido quando preenchido |
+| phone | VARCHAR(30) | sim | formato normalizado |
+| birth_date | DATE | sim | `<= current_date` |
+| city | VARCHAR(100) | sim | - |
+| state | VARCHAR(2) | sim | padrao UF BR |
+| created_at | DATETIME2 | nao | UTC |
+| updated_at | DATETIME2 | nao | UTC, `>= created_at` |
+| deleted_at | DATETIME2 | sim | exclusao logica |
 
-## Data Quality Checks
+## Checks de Qualidade de Dados
 
-- no duplicate `customer_code`
-- no null in `customer_id`, `customer_code`, `full_name`
+- sem duplicidade de `customer_code`
+- sem nulos em `customer_id`, `customer_code`, `full_name`
 - `updated_at >= created_at`
 
-## DW Mapping Notes
+## Observacoes de Mapeamento DW
 
 - `customer_id` -> `cliente_original_id`
 - `full_name` -> `nome_cliente`
-- `email`, `phone`, city/state fields -> corresponding customer attributes
-- `deleted_at IS NOT NULL` should map to inactive flag in DW
+- `email`, `phone`, `city`, `state` -> atributos correspondentes de cliente
+- `deleted_at IS NOT NULL` deve ser mapeado para flag de inativo no DW
+
