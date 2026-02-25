@@ -141,6 +141,8 @@ SELECT 'fact.FACT_DESCONTOS', COUNT(*) FROM fact.FACT_DESCONTOS;
 
 ## Documentacao
 
+- [PRD do produto](docs/produto/PRD.md)
+- [Plano de execucao R1](docs/produto/PLANO_EXECUCAO_R1.md)
 - [Visao geral da modelagem](docs/modelagem/01_visao_geral.md)
 - [Dimensoes](docs/modelagem/02_dimensoes.md)
 - [Fatos](docs/modelagem/03_fatos.md)
