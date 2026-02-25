@@ -51,25 +51,29 @@ SELECT
     
     -- Atributos físicos
     peso_kg,
-    dimensoes,
+    CASE
+        WHEN altura_cm IS NOT NULL AND largura_cm IS NOT NULL AND profundidade_cm IS NOT NULL
+            THEN CONCAT(CAST(altura_cm AS VARCHAR(10)), 'x', CAST(largura_cm AS VARCHAR(10)), 'x', CAST(profundidade_cm AS VARCHAR(10)), ' cm')
+        ELSE NULL
+    END AS dimensoes,
     
     -- Atributos financeiros
     preco_sugerido,
-    custo_medio,
+    preco_custo AS custo_medio,
     
     -- ============ CAMPOS CALCULADOS ============
     
     -- Margem de lucro sugerida (percentual)
     CASE 
         WHEN preco_sugerido > 0 THEN 
-            CAST(((preco_sugerido - custo_medio) / preco_sugerido * 100) AS DECIMAL(5,2))
+            CAST(((preco_sugerido - preco_custo) / preco_sugerido * 100) AS DECIMAL(5,2))
         ELSE 0
     END AS margem_sugerida,
     
     -- Markup (quanto % acima do custo)
     CASE 
-        WHEN custo_medio > 0 THEN 
-            CAST(((preco_sugerido - custo_medio) / custo_medio * 100) AS DECIMAL(5,2))
+        WHEN preco_custo > 0 THEN 
+            CAST(((preco_sugerido - preco_custo) / preco_custo * 100) AS DECIMAL(5,2))
         ELSE 0
     END AS markup_percentual,
     
@@ -89,7 +93,7 @@ SELECT
     data_ultima_atualizacao
 
 FROM dim.DIM_PRODUTO
-WHERE eh_ativo = 1;  -- APENAS PRODUTOS ATIVOS
+WHERE situacao = 'Ativo';  -- APENAS PRODUTOS ATIVOS
 GO
 
 PRINT '✅ View dim.VW_PRODUTOS_ATIVOS criada!';
