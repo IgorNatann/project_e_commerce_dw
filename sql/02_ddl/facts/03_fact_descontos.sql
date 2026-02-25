@@ -693,4 +693,52 @@ SELECT TOP 5
     CAST(percentual_desconto_efetivo AS DECIMAL(5,2)) AS perc,
     status_margem
 FROM fact.VW_DESCONTOS_COMPLETA
-ORDER BY desconto
+ORDER BY desconto DESC;
+PRINT '';
+
+PRINT '2. Top 5 campanhas por ROI médio:';
+SELECT TOP 5
+    nome_campanha,
+    COUNT(*) AS total_aplicacoes,
+    CAST(SUM(valor_desconto_aplicado) AS DECIMAL(15,2)) AS desconto_total,
+    CAST(SUM(valor_com_desconto) AS DECIMAL(15,2)) AS receita_total,
+    CAST(AVG(roi_desconto) AS DECIMAL(10,2)) AS roi_medio
+FROM fact.VW_DESCONTOS_COMPLETA
+GROUP BY nome_campanha
+ORDER BY roi_medio DESC;
+PRINT '';
+
+-- ========================================
+-- 11. ESTATÍSTICAS FINAIS
+-- ========================================
+
+PRINT '========================================';
+PRINT 'ESTATÍSTICAS FINAIS';
+PRINT '========================================';
+PRINT '';
+
+SELECT 
+    'RESUMO DA FACT_DESCONTOS' AS titulo,
+    (SELECT COUNT(*) FROM fact.FACT_DESCONTOS) AS total_descontos_aplicados,
+    (SELECT COUNT(DISTINCT desconto_id) FROM fact.FACT_DESCONTOS) AS cupons_utilizados,
+    (SELECT COUNT(DISTINCT venda_id) FROM fact.FACT_DESCONTOS) AS vendas_com_desconto,
+    (SELECT SUM(valor_desconto_aplicado) FROM fact.FACT_DESCONTOS) AS desconto_total_concedido,
+    (SELECT SUM(valor_com_desconto) FROM fact.FACT_DESCONTOS) AS receita_com_desconto,
+    (SELECT AVG(percentual_desconto_efetivo) FROM fact.FACT_DESCONTOS) AS desconto_medio_percentual;
+
+PRINT '';
+PRINT '✅✅✅ FACT_DESCONTOS CRIADA E VALIDADA COM SUCESSO! ✅✅✅';
+PRINT '';
+PRINT '========================================';
+PRINT 'MODELO DW E-COMMERCE COMPLETO!';
+PRINT '========================================';
+PRINT '';
+PRINT '🎯 QUERIES ÚTEIS:';
+PRINT '   • SELECT * FROM fact.VW_DESCONTOS_COMPLETA';
+PRINT '   • SELECT * FROM dim.VW_DESCONTOS_ATIVOS';
+PRINT '   • SELECT * FROM fact.VW_VENDAS_COMPLETA';
+PRINT '';
+PRINT '========================================';
+PRINT 'FIM DO SCRIPT 10_fact_descontos.sql';
+PRINT '========================================';
+GO
