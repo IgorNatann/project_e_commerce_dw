@@ -105,128 +105,108 @@ PRINT '  ✅ IX_DIM_DATA_ano_trimestre';
 PRINT '';
 
 -- ========================================
--- 4. POPULAR DIM_DATA (2020-2025)
+-- 4. POPULAR DIM_DATA (INTERVALO DINAMICO)
 -- ========================================
 
-PRINT 'Populando DIM_DATA com datas de 2020 a 2025...';
+PRINT 'Populando DIM_DATA com intervalo dinamico...';
 PRINT '';
 
--- Variáveis de controle
 DECLARE @data_inicio DATE = '2020-01-01';
-DECLARE @data_fim DATE = '2025-12-31';
-DECLARE @data_atual DATE = @data_inicio;
-DECLARE @contador INT = 0;
+DECLARE @anos_futuros INT = 5;
+DECLARE @data_fim DATE = DATEFROMPARTS(YEAR(GETDATE()) + @anos_futuros, 12, 31);
+DECLARE @total_dias INT = DATEDIFF(DAY, @data_inicio, @data_fim) + 1;
 
--- Tabela temporária de feriados nacionais (Brasil)
-DECLARE @feriados TABLE (data DATE, nome VARCHAR(50));
+PRINT 'Periodo: ' + CONVERT(VARCHAR(10), @data_inicio, 23) + ' ate ' + CONVERT(VARCHAR(10), @data_fim, 23);
+PRINT 'Total de dias previstos: ' + CAST(@total_dias AS VARCHAR);
+PRINT '';
 
-INSERT INTO @feriados (data, nome) VALUES
-    -- 2020
-    ('2020-01-01', 'Ano Novo'), ('2020-04-21', 'Tiradentes'), ('2020-05-01', 'Dia do Trabalho'),
-    ('2020-09-07', 'Independência'), ('2020-10-12', 'N. Sra. Aparecida'), ('2020-11-02', 'Finados'),
-    ('2020-11-15', 'Proclamação República'), ('2020-12-25', 'Natal'),
-    -- 2021
-    ('2021-01-01', 'Ano Novo'), ('2021-04-21', 'Tiradentes'), ('2021-05-01', 'Dia do Trabalho'),
-    ('2021-09-07', 'Independência'), ('2021-10-12', 'N. Sra. Aparecida'), ('2021-11-02', 'Finados'),
-    ('2021-11-15', 'Proclamação República'), ('2021-12-25', 'Natal'),
-    -- 2022
-    ('2022-01-01', 'Ano Novo'), ('2022-04-21', 'Tiradentes'), ('2022-05-01', 'Dia do Trabalho'),
-    ('2022-09-07', 'Independência'), ('2022-10-12', 'N. Sra. Aparecida'), ('2022-11-02', 'Finados'),
-    ('2022-11-15', 'Proclamação República'), ('2022-12-25', 'Natal'),
-    -- 2023
-    ('2023-01-01', 'Ano Novo'), ('2023-04-21', 'Tiradentes'), ('2023-05-01', 'Dia do Trabalho'),
-    ('2023-09-07', 'Independência'), ('2023-10-12', 'N. Sra. Aparecida'), ('2023-11-02', 'Finados'),
-    ('2023-11-15', 'Proclamação República'), ('2023-12-25', 'Natal'),
-    -- 2024
-    ('2024-01-01', 'Ano Novo'), ('2024-04-21', 'Tiradentes'), ('2024-05-01', 'Dia do Trabalho'),
-    ('2024-09-07', 'Independência'), ('2024-10-12', 'N. Sra. Aparecida'), ('2024-11-02', 'Finados'),
-    ('2024-11-15', 'Proclamação República'), ('2024-12-25', 'Natal'),
-    -- 2025
-    ('2025-01-01', 'Ano Novo'), ('2025-04-21', 'Tiradentes'), ('2025-05-01', 'Dia do Trabalho'),
-    ('2025-09-07', 'Independência'), ('2025-10-12', 'N. Sra. Aparecida'), ('2025-11-02', 'Finados'),
-    ('2025-11-15', 'Proclamação República'), ('2025-12-25', 'Natal');
+-- Garantir mapeamento 1=Domingo ... 7=Sabado
+SET DATEFIRST 7;
 
--- Loop para inserir todas as datas
-WHILE @data_atual <= @data_fim
-BEGIN
-    -- Variáveis auxiliares
-    DECLARE @ano INT = YEAR(@data_atual);
-    DECLARE @mes INT = MONTH(@data_atual);
-    DECLARE @dia INT = DAY(@data_atual);
-    DECLARE @dia_semana INT = DATEPART(WEEKDAY, @data_atual);
-    DECLARE @eh_feriado BIT = 0;
-    DECLARE @nome_feriado VARCHAR(50) = NULL;
-    
-    -- Verificar se é feriado
-    SELECT 
-        @eh_feriado = 1, 
-        @nome_feriado = nome 
-    FROM @feriados 
-    WHERE data = @data_atual;
-    
-    -- Inserir registro
-    INSERT INTO dim.DIM_DATA (
-        data_completa, ano, trimestre, mes, dia,
-        semana_do_ano, dia_da_semana,
-        nome_mes, nome_mes_abrev,
-        nome_dia_semana, nome_dia_semana_abrev,
-        eh_fim_de_semana, eh_feriado, nome_feriado,
-        dia_do_ano, eh_ano_bissexto,
-        periodo_mes, periodo_trimestre
-    )
-    VALUES (
-        @data_atual,
-        @ano,
-        DATEPART(QUARTER, @data_atual),
-        @mes,
-        @dia,
-        DATEPART(WEEK, @data_atual),
-        @dia_semana,
-        -- Nome do mês
-        CASE @mes
-            WHEN 1 THEN 'Janeiro' WHEN 2 THEN 'Fevereiro' WHEN 3 THEN 'Março'
-            WHEN 4 THEN 'Abril' WHEN 5 THEN 'Maio' WHEN 6 THEN 'Junho'
-            WHEN 7 THEN 'Julho' WHEN 8 THEN 'Agosto' WHEN 9 THEN 'Setembro'
-            WHEN 10 THEN 'Outubro' WHEN 11 THEN 'Novembro' WHEN 12 THEN 'Dezembro'
-        END,
-        -- Nome do mês abreviado
-        CASE @mes
-            WHEN 1 THEN 'Jan' WHEN 2 THEN 'Fev' WHEN 3 THEN 'Mar'
-            WHEN 4 THEN 'Abr' WHEN 5 THEN 'Mai' WHEN 6 THEN 'Jun'
-            WHEN 7 THEN 'Jul' WHEN 8 THEN 'Ago' WHEN 9 THEN 'Set'
-            WHEN 10 THEN 'Out' WHEN 11 THEN 'Nov' WHEN 12 THEN 'Dez'
-        END,
-        -- Nome do dia da semana
-        CASE @dia_semana
-            WHEN 1 THEN 'Domingo' WHEN 2 THEN 'Segunda-feira' WHEN 3 THEN 'Terça-feira'
-            WHEN 4 THEN 'Quarta-feira' WHEN 5 THEN 'Quinta-feira' WHEN 6 THEN 'Sexta-feira'
-            WHEN 7 THEN 'Sábado'
-        END,
-        -- Nome do dia da semana abreviado
-        CASE @dia_semana
-            WHEN 1 THEN 'Dom' WHEN 2 THEN 'Seg' WHEN 3 THEN 'Ter'
-            WHEN 4 THEN 'Qua' WHEN 5 THEN 'Qui' WHEN 6 THEN 'Sex'
-            WHEN 7 THEN 'Sáb'
-        END,
-        -- Flags
-        CASE WHEN @dia_semana IN (1, 7) THEN 1 ELSE 0 END,  -- Fim de semana
-        ISNULL(@eh_feriado, 0),
-        @nome_feriado,
-        DATEPART(DAYOFYEAR, @data_atual),
-        CASE WHEN (@ano % 4 = 0 AND @ano % 100 != 0) OR (@ano % 400 = 0) THEN 1 ELSE 0 END,
-        -- Períodos formatados
-        FORMAT(@data_atual, 'yyyy-MM'),
-        CONCAT(@ano, '-Q', DATEPART(QUARTER, @data_atual))
-    );
-    
-    -- Contador de progresso
-    SET @contador = @contador + 1;
-    IF @contador % 365 = 0
-        PRINT '  ✅ ' + CAST(@contador AS VARCHAR) + ' registros inseridos...';
-    
-    -- Próximo dia
-    SET @data_atual = DATEADD(DAY, 1, @data_atual);
-END;
+;WITH n AS (
+    SELECT TOP (@total_dias)
+        ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) - 1 AS num
+    FROM sys.all_objects a
+    CROSS JOIN sys.all_objects b
+),
+datas AS (
+    SELECT DATEADD(DAY, n.num, @data_inicio) AS data_completa
+    FROM n
+),
+anos AS (
+    SELECT DISTINCT YEAR(data_completa) AS ano
+    FROM datas
+),
+feriados AS (
+    SELECT
+        DATEFROMPARTS(a.ano, f.mes, f.dia) AS data,
+        f.nome
+    FROM anos a
+    CROSS JOIN (VALUES
+        (1, 1, 'Ano Novo'),
+        (4, 21, 'Tiradentes'),
+        (5, 1, 'Dia do Trabalho'),
+        (9, 7, 'Independência'),
+        (10, 12, 'N. Sra. Aparecida'),
+        (11, 2, 'Finados'),
+        (11, 15, 'Proclamação República'),
+        (12, 25, 'Natal')
+    ) f(mes, dia, nome)
+)
+INSERT INTO dim.DIM_DATA (
+    data_completa, ano, trimestre, mes, dia,
+    semana_do_ano, dia_da_semana,
+    nome_mes, nome_mes_abrev,
+    nome_dia_semana, nome_dia_semana_abrev,
+    eh_fim_de_semana, eh_feriado, nome_feriado,
+    dia_do_ano, eh_ano_bissexto,
+    periodo_mes, periodo_trimestre
+)
+SELECT
+    d.data_completa,
+    YEAR(d.data_completa) AS ano,
+    DATEPART(QUARTER, d.data_completa) AS trimestre,
+    MONTH(d.data_completa) AS mes,
+    DAY(d.data_completa) AS dia,
+    DATEPART(WEEK, d.data_completa) AS semana_do_ano,
+    DATEPART(WEEKDAY, d.data_completa) AS dia_da_semana,
+    CASE MONTH(d.data_completa)
+        WHEN 1 THEN 'Janeiro' WHEN 2 THEN 'Fevereiro' WHEN 3 THEN 'Março'
+        WHEN 4 THEN 'Abril' WHEN 5 THEN 'Maio' WHEN 6 THEN 'Junho'
+        WHEN 7 THEN 'Julho' WHEN 8 THEN 'Agosto' WHEN 9 THEN 'Setembro'
+        WHEN 10 THEN 'Outubro' WHEN 11 THEN 'Novembro' WHEN 12 THEN 'Dezembro'
+    END AS nome_mes,
+    CASE MONTH(d.data_completa)
+        WHEN 1 THEN 'Jan' WHEN 2 THEN 'Fev' WHEN 3 THEN 'Mar'
+        WHEN 4 THEN 'Abr' WHEN 5 THEN 'Mai' WHEN 6 THEN 'Jun'
+        WHEN 7 THEN 'Jul' WHEN 8 THEN 'Ago' WHEN 9 THEN 'Set'
+        WHEN 10 THEN 'Out' WHEN 11 THEN 'Nov' WHEN 12 THEN 'Dez'
+    END AS nome_mes_abrev,
+    CASE DATEPART(WEEKDAY, d.data_completa)
+        WHEN 1 THEN 'Domingo' WHEN 2 THEN 'Segunda-feira' WHEN 3 THEN 'Terça-feira'
+        WHEN 4 THEN 'Quarta-feira' WHEN 5 THEN 'Quinta-feira' WHEN 6 THEN 'Sexta-feira'
+        WHEN 7 THEN 'Sábado'
+    END AS nome_dia_semana,
+    CASE DATEPART(WEEKDAY, d.data_completa)
+        WHEN 1 THEN 'Dom' WHEN 2 THEN 'Seg' WHEN 3 THEN 'Ter'
+        WHEN 4 THEN 'Qua' WHEN 5 THEN 'Qui' WHEN 6 THEN 'Sex'
+        WHEN 7 THEN 'Sáb'
+    END AS nome_dia_semana_abrev,
+    CASE WHEN DATEPART(WEEKDAY, d.data_completa) IN (1, 7) THEN 1 ELSE 0 END AS eh_fim_de_semana,
+    CASE WHEN f.data IS NULL THEN 0 ELSE 1 END AS eh_feriado,
+    f.nome AS nome_feriado,
+    DATEPART(DAYOFYEAR, d.data_completa) AS dia_do_ano,
+    CASE
+        WHEN (YEAR(d.data_completa) % 4 = 0 AND YEAR(d.data_completa) % 100 <> 0)
+          OR (YEAR(d.data_completa) % 400 = 0)
+        THEN 1 ELSE 0
+    END AS eh_ano_bissexto,
+    CONCAT(YEAR(d.data_completa), '-', RIGHT('0' + CAST(MONTH(d.data_completa) AS VARCHAR(2)), 2)) AS periodo_mes,
+    CONCAT(YEAR(d.data_completa), '-Q', DATEPART(QUARTER, d.data_completa)) AS periodo_trimestre
+FROM datas d
+LEFT JOIN feriados f
+    ON f.data = d.data_completa
+ORDER BY d.data_completa;
 
 PRINT '';
 PRINT '✅ DIM_DATA populada com ' + CAST(@@ROWCOUNT AS VARCHAR) + ' registros!';
@@ -240,7 +220,7 @@ PRINT 'Adicionando documentação...';
 
 EXEC sys.sp_addextendedproperty 
     @name = N'Description',
-    @value = N'Dimensão Temporal - Hierarquia de datas de 2020 a 2025 com feriados nacionais do Brasil.',
+    @value = N'Dimensão Temporal - Hierarquia de datas de 2020 até ano atual + 5 com feriados fixos nacionais do Brasil.',
     @level0type = N'SCHEMA', @level0name = 'dim',
     @level1type = N'TABLE', @level1name = 'DIM_DATA';
 
