@@ -143,7 +143,8 @@ SELECT 'fact.FACT_DESCONTOS', COUNT(*) FROM fact.FACT_DESCONTOS;
 - [Decisoes de modelagem](docs/decisoes/01_decisoes_modelagem.md)
 - [Queries de exemplo](docs/queries/README.md)
 - [Guia SQL de execucao](sql/README.md)
-- [Catalogo de views](sql/04_views/README.md)
+- [Catalogo de views](sql/dw/04_views/README.md)
+- [Data contracts (fase 0)](docs/contracts/README.md)
 
 ## Maturidade atual
 
