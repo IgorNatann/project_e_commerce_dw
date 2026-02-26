@@ -22,19 +22,21 @@ Voce pode usar conexao completa ou montar por partes.
 ### Opcao A: string completa (mais simples)
 
 ```powershell
-$env:ETL_OLTP_CONN_STR = "Driver={ODBC Driver 18 for SQL Server};Server=localhost,1433;Database=ECOMMERCE_OLTP;Trusted_Connection=yes;TrustServerCertificate=yes;"
-$env:ETL_DW_CONN_STR   = "Driver={ODBC Driver 18 for SQL Server};Server=localhost,1433;Database=DW_ECOMMERCE;Trusted_Connection=yes;TrustServerCertificate=yes;"
+$env:ETL_OLTP_CONN_STR = "Driver={ODBC Driver 17 for SQL Server};Server=localhost,1433;Database=ECOMMERCE_OLTP;Trusted_Connection=yes;TrustServerCertificate=yes;"
+$env:ETL_DW_CONN_STR   = "Driver={ODBC Driver 17 for SQL Server};Server=localhost,1433;Database=DW_ECOMMERCE;Trusted_Connection=yes;TrustServerCertificate=yes;"
 ```
 
 ### Opcao B: montar por partes
 
 ```powershell
-$env:ETL_SQL_DRIVER = "ODBC Driver 18 for SQL Server"
+$env:ETL_SQL_DRIVER = "ODBC Driver 17 for SQL Server"
 $env:ETL_SQL_SERVER = "localhost"
 $env:ETL_SQL_PORT = "1433"
 $env:ETL_OLTP_DB = "ECOMMERCE_OLTP"
 $env:ETL_DW_DB = "DW_ECOMMERCE"
 ```
+
+Observacao: se nao definir `ETL_SQL_DRIVER`, o projeto tenta detectar automaticamente entre drivers 18/17.
 
 ## 3) Executar
 
@@ -67,5 +69,5 @@ SELECT entity_name, watermark_updated_at, watermark_id FROM ctl.etl_control WHER
 ## 5) Monitoramento visual (opcional)
 
 ```powershell
-streamlit run python/etl/monitoring/app.py
+python -m streamlit run python/etl/monitoring/app.py
 ```

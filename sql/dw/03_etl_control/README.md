@@ -13,6 +13,7 @@ Esta pasta cria a base operacional para execucao incremental:
 3. `03_create_audit_etl_tables.sql`
 4. `04_seed_etl_control.sql`
 5. `99_validation/01_checks.sql` (validacao)
+6. `99_validation/02_preflight_readiness.sql` (pronto para 1o run)
 
 ## Resultado esperado
 

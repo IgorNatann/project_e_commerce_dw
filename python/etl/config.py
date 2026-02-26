@@ -38,9 +38,10 @@ class ETLConfig:
 
 
 def _build_conn_str(database_env: str, fallback_database: str) -> str:
-    driver = os.getenv("ETL_SQL_DRIVER", "ODBC Driver 18 for SQL Server")
+    driver = _resolve_sql_driver()
     server = os.getenv("ETL_SQL_SERVER", "localhost")
-    port = os.getenv("ETL_SQL_PORT", "1433")
+    port = os.getenv("ETL_SQL_PORT", "").strip()
+    server_part = f"{server},{port}" if port else server
     database = os.getenv(database_env, fallback_database)
     trust_server_certificate = os.getenv("ETL_SQL_TRUST_SERVER_CERTIFICATE", "yes")
     encrypt = os.getenv("ETL_SQL_ENCRYPT", "yes")
@@ -51,7 +52,7 @@ def _build_conn_str(database_env: str, fallback_database: str) -> str:
     if user and password:
         return (
             f"Driver={{{driver}}};"
-            f"Server={server},{port};"
+            f"Server={server_part};"
             f"Database={database};"
             f"UID={user};"
             f"PWD={password};"
@@ -61,7 +62,7 @@ def _build_conn_str(database_env: str, fallback_database: str) -> str:
 
     return (
         f"Driver={{{driver}}};"
-        f"Server={server},{port};"
+        f"Server={server_part};"
         f"Database={database};"
         "Trusted_Connection=yes;"
         f"Encrypt={encrypt};"
@@ -76,3 +77,30 @@ def _safe_int(raw_value: str | None, default: int) -> int:
         return int(raw_value)
     except ValueError:
         return default
+
+
+def _resolve_sql_driver() -> str:
+    explicit_driver = os.getenv("ETL_SQL_DRIVER")
+    if explicit_driver:
+        return explicit_driver
+
+    installed = _get_installed_odbc_drivers()
+    preferred = [
+        "ODBC Driver 18 for SQL Server",
+        "ODBC Driver 17 for SQL Server",
+        "SQL Server",
+    ]
+    for driver in preferred:
+        if driver in installed:
+            return driver
+
+    return "ODBC Driver 18 for SQL Server"
+
+
+def _get_installed_odbc_drivers() -> list[str]:
+    try:
+        import pyodbc  # type: ignore
+
+        return list(pyodbc.drivers())
+    except Exception:  # noqa: BLE001
+        return []

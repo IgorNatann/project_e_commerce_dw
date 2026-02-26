@@ -67,5 +67,5 @@ Depois que `dim_cliente` estiver estavel, replicar o mesmo padrao para:
 Dashboard Streamlit (estado do ETL):
 
 ```powershell
-streamlit run python/etl/monitoring/app.py
+python -m streamlit run python/etl/monitoring/app.py
 ```
