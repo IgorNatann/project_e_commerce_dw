@@ -32,7 +32,7 @@ Este diretório contém **todos os scripts SQL** necessários para criar e popul
 ### Resumo Rápido
 
 ```
-dw/01_setup -> dw/02_ddl (dimensions) -> dw/02_ddl (facts) -> dw/04_views
+dw/01_setup -> dw/02_ddl (dimensions) -> dw/03_etl_control -> dw/02_ddl (facts) -> dw/04_views
 ```
 
 ### Detalhado
@@ -123,6 +123,8 @@ sql/
 |   |-- 02_ddl/
 |   |   |-- dimensions/
 |   |   `-- facts/
+|   |-- 03_etl_control/
+|   |   `-- 99_validation/
 |   |-- 03_dml/
 |   |-- 04_views/
 |   |-- 05_procedures/
@@ -180,7 +182,19 @@ GO
 
 > **💡 Dica:** Cada script imprime mensagens de progresso. Acompanhe!
 
-#### **Passo 3: Criar Facts**
+#### **Passo 3: Criar Controle ETL**
+
+```sql
+USE DW_ECOMMERCE;
+GO
+:r C:\path\to\sql\dw\03_etl_control\01_create_schema_ctl.sql
+:r C:\path\to\sql\dw\03_etl_control\02_create_etl_control.sql
+:r C:\path\to\sql\dw\03_etl_control\03_create_audit_etl_tables.sql
+:r C:\path\to\sql\dw\03_etl_control\04_seed_etl_control.sql
+:r C:\path\to\sql\dw\03_etl_control\99_validation\01_checks.sql
+```
+
+#### **Passo 4: Criar Facts**
 
 ```sql
 USE DW_ECOMMERCE;
@@ -194,7 +208,7 @@ GO
 :r C:\path\to\sql\dw\02_ddl\facts\03_fact_descontos.sql
 ```
 
-#### **Passo 4: Criar Views**
+#### **Passo 5: Criar Views**
 
 ```sql
 USE DW_ECOMMERCE;
@@ -244,14 +258,22 @@ PRINT '📐 FASE 2: Criando Dimensões';
 :r .\dw\02_ddl\dimensions\06_dim_vendedor.sql
 :r .\dw\02_ddl\dimensions\07_dim_desconto.sql
 
--- FASE 3: FACTS
-PRINT '📊 FASE 3: Criando Tabelas Fato';
+-- FASE 3: CONTROLE ETL
+PRINT 'FASE 3: Criando tabelas de controle/auditoria do ETL';
+:r .\dw\03_etl_control\01_create_schema_ctl.sql
+:r .\dw\03_etl_control\02_create_etl_control.sql
+:r .\dw\03_etl_control\03_create_audit_etl_tables.sql
+:r .\dw\03_etl_control\04_seed_etl_control.sql
+:r .\dw\03_etl_control\99_validation\01_checks.sql
+
+-- FASE 4: FACTS
+PRINT 'FASE 4: Criando Tabelas Fato';
 :r .\dw\02_ddl\facts\01_fact_vendas.sql
 :r .\dw\02_ddl\facts\02_fact_metas.sql
 :r .\dw\02_ddl\facts\03_fact_descontos.sql
 
--- FASE 4: VIEWS
-PRINT '👁️ FASE 4: Criando Views Auxiliares';
+-- FASE 5: VIEWS
+PRINT 'FASE 5: Criando Views Auxiliares';
 :r .\dw\04_views\04_master_views.sql
 
 PRINT '';
@@ -299,7 +321,7 @@ PRINT '';
 PRINT '2. Schemas:';
 SELECT name AS schema_name
 FROM sys.schemas
-WHERE name IN ('dim', 'fact')
+WHERE name IN ('dim', 'fact', 'stg', 'audit', 'ctl')
 ORDER BY name;
 PRINT '';
 
