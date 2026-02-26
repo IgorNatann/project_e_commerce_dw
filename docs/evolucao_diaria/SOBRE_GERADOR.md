@@ -80,11 +80,6 @@ Apenas marcos:
 
 `python scripts/evolution/generate_milestones.py`
 
-## Wrappers De Compatibilidade
+## Estrutura Atual
 
-Wrappers mantidos em `scripts/` para comandos antigos e atalhos:
-
-- `scripts/generate_daily_evolution_reports.py`
-- `scripts/generate_monthly_evolution_reports.py`
-- `scripts/generate_milestones_reports.py`
-- `scripts/run_evolution_reports.py`
+Os comandos oficiais ficam apenas em `scripts/evolution/`.
