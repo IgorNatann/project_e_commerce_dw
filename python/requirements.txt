@@ -1,0 +1,42 @@
+# ========================================
+# Python Requirements - DW E-commerce
+# ========================================
+
+# Database connectivity
+pyodbc==5.0.1
+sqlalchemy==2.0.23
+pymssql==2.2.11
+
+# Data manipulation
+pandas==2.1.4
+numpy==1.26.2
+
+# Data generation
+Faker==21.0.0
+
+# Environment management
+python-dotenv==1.0.0
+
+# Utilities
+tqdm==4.66.1  # Progress bars
+colorama==0.4.6  # Colored terminal output
+streamlit==1.41.1  # ETL monitoring dashboard
+
+# Data validation
+cerberus==1.3.5
+
+# Logging
+loguru==0.7.2
+
+# Testing
+pytest==7.4.3
+pytest-cov==4.1.0
+
+# Jupyter (opcional, para notebooks)
+jupyter==1.0.0
+ipykernel==6.27.1
+
+# Code quality (opcional)
+black==23.12.1
+flake8==6.1.0
+pylint==3.0.3

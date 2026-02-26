@@ -29,7 +29,8 @@ python/etl/
     |-- 01_fluxo_geral.md
     |-- 02_como_executar.md
     |-- 03_troubleshooting.md
-    `-- 04_fluxo_visual.md
+    |-- 04_fluxo_visual.md
+    `-- 05_monitoramento_streamlit.md
 ```
 
 ## Primeira execucao (resumo)
@@ -59,3 +60,12 @@ Depois que `dim_cliente` estiver estavel, replicar o mesmo padrao para:
 2. `docs/04_fluxo_visual.md`
 3. `docs/02_como_executar.md`
 4. `docs/03_troubleshooting.md`
+5. `docs/05_monitoramento_streamlit.md`
+
+## Monitoramento visual
+
+Dashboard Streamlit (estado do ETL):
+
+```powershell
+streamlit run python/etl/monitoring/app.py
+```
