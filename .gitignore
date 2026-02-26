@@ -94,6 +94,7 @@ logs/
 *.log
 log/
 *.txt
+!python/requirements.txt
 
 # ============ IDE / EDITORS ============
 # VS Code

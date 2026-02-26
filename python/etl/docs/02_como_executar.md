@@ -64,3 +64,8 @@ SELECT TOP 20 * FROM audit.etl_run_entity ORDER BY entity_started_at DESC;
 SELECT entity_name, watermark_updated_at, watermark_id FROM ctl.etl_control WHERE entity_name = 'dim_cliente';
 ```
 
+## 5) Monitoramento visual (opcional)
+
+```powershell
+streamlit run python/etl/monitoring/app.py
+```
