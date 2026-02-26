@@ -1,14 +1,16 @@
-# Contratos de Dados - Fase 0
+# Contratos de Dados - Fases 0 a 2
 
-Esta pasta armazena o contrato minimo de dados para integracao OLTP -> DW.
+Esta pasta armazena o contrato de dados para integracao OLTP -> DW.
 O objetivo e manter o processo simples, explicito e versionado em git.
 
-## Escopo (Fase 0)
+## Escopo (Fases 0 a 2)
 
 - Definir regras globais do contrato.
 - Definir contratos de origem para entidades OLTP principais.
 - Definir baseline de mapeamento OLTP -> DW.
 - Definir regras minimas de qualidade de dados.
+- Definir regras de transformacao para carga no DW.
+- Definir tratamento de chave desconhecida no DW.
 
 ## Estrutura de Pastas
 
@@ -23,7 +25,9 @@ docs/contracts/
 |   |-- core.order_items.md
 |   `-- core.sellers.md
 |-- mapping/
-|   `-- oltp_to_dw_mapping.csv
+|   |-- oltp_to_dw_mapping.csv
+|   |-- transformation_rules.md
+|   `-- fase2_checklist.md
 |-- quality/
 |   `-- dq_rules.md
 `-- templates/
