@@ -1,5 +1,7 @@
 # Fluxo Geral do ETL (Fase 3)
 
+Para versao visual (diagramas), veja `04_fluxo_visual.md`.
+
 ## Visao rapida
 
 1. Abrir `run_id` em `audit.etl_run`.
@@ -25,4 +27,3 @@
 - `success`: finalizou sem erro
 - `failed`: erro bloqueante
 - `partial`: parte executou, parte falhou
-
