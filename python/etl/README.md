@@ -28,7 +28,8 @@ python/etl/
 `-- docs/
     |-- 01_fluxo_geral.md
     |-- 02_como_executar.md
-    `-- 03_troubleshooting.md
+    |-- 03_troubleshooting.md
+    `-- 04_fluxo_visual.md
 ```
 
 ## Primeira execucao (resumo)
@@ -52,3 +53,9 @@ Depois que `dim_cliente` estiver estavel, replicar o mesmo padrao para:
 - `dim_desconto`
 - `dim_vendedor`
 
+## Documentacao recomendada de leitura
+
+1. `docs/01_fluxo_geral.md`
+2. `docs/04_fluxo_visual.md`
+3. `docs/02_como_executar.md`
+4. `docs/03_troubleshooting.md`
