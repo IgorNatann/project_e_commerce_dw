@@ -1,6 +1,6 @@
 # Contrato Global de Dados (Fase 0)
 
-Versao: `0.1.0`  
+Versao: `0.2.0`  
 Estado: `rascunho`  
 Escopo: `contratos de origem OLTP para cargas no DW_ECOMMERCE`
 
@@ -55,4 +55,20 @@ Acoes obrigatorias quando houver quebra:
 2. atualizar arquivo de mapeamento;
 3. registrar nota de migracao no PR;
 4. atualizar testes e checks do ETL.
+
+## 7. Politica de Chave Desconhecida no DW
+
+- O DW deve manter uma linha sentinela de chave substituta `-1` nas dimensoes consumidas pelas fatos:
+  - `dim.DIM_CLIENTE`
+  - `dim.DIM_PRODUTO`
+  - `dim.DIM_REGIAO`
+  - `dim.DIM_EQUIPE`
+  - `dim.DIM_VENDEDOR`
+  - `dim.DIM_DESCONTO`
+  - `dim.DIM_DATA`
+- Descricao padrao da sentinela: `Nao Informado` ou equivalente de negocio.
+- Durante lookup de dimensao no ETL:
+  - se a chave de negocio nao for encontrada, usar `-1`;
+  - registrar contagem e amostra no log de qualidade da execucao.
+- Fatos nao podem receber `NULL` em FKs obrigatorias quando existir politica de sentinela.
 
