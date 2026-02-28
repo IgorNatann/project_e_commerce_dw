@@ -17,6 +17,10 @@ except ImportError:  # pragma: no cover
 
 DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 DEFAULT_TZ = "America/Sao_Paulo"
+SCRIPT_PATH = Path(__file__).resolve()
+REPO_ROOT = SCRIPT_PATH.parents[2]
+REPORT_DIR = REPO_ROOT / "docs" / "status_reports"
+GENERATOR_CMD = "python scripts/status_reports/generate_status_report.py"
 
 
 def validate_date(value: str) -> str:
@@ -88,15 +92,15 @@ def rebuild_index_readme(report_dir: Path) -> None:
         "",
         "Relatorio do dia atual:",
         "",
-        "python docs/status_reports/generate_status_report.py",
+        GENERATOR_CMD,
         "",
         "Relatorio para uma data especifica:",
         "",
-        "python docs/status_reports/generate_status_report.py --date 2026-02-28",
+        f"{GENERATOR_CMD} --date 2026-02-28",
         "",
         "Sobrescrever um relatorio existente:",
         "",
-        "python docs/status_reports/generate_status_report.py --date 2026-02-28 --force",
+        f"{GENERATOR_CMD} --date 2026-02-28 --force",
         "",
         "## Indice",
         "",
@@ -133,7 +137,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
-    report_dir = Path(__file__).resolve().parent
+    report_dir = REPORT_DIR
     report_dir.mkdir(parents=True, exist_ok=True)
 
     report_date = args.date or today_str(args.tz)

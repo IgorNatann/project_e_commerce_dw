@@ -3,11 +3,14 @@
 Script para gerar automaticamente toda a estrutura de documentação interativa
 do projeto DW E-commerce.
 
-Uso: python generate_docs.py
+Uso: python scripts/docs/generate_interactive_docs.py
 """
 
 import os
 from pathlib import Path
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
 
 # Template base para páginas React
 REACT_PAGE_TEMPLATE = '''<!DOCTYPE html>
@@ -486,6 +489,7 @@ Thumbs.db
 
 def main():
     """Função principal"""
+    os.chdir(REPO_ROOT)
     print("🚀 Gerando estrutura de documentação interativa...")
     print()
     
