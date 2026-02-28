@@ -9,7 +9,7 @@ Projeto de laboratorio para simular um cenario real de dados `OLTP -> DW` em SQL
 
 - Infra Docker one-shot pronta (`SQL Server + init + Streamlit monitor + Streamlit vendas + backup`).
 - Auditoria de conexoes ativa (tabela `audit.connection_login_events` + arquivo `.sqlaudit`).
-- Escopo validado ponta a ponta focado em `dim_cliente`.
+- Escopo validado ponta a ponta para `dim_cliente` e `dim_produto`.
 - OLTP (`ECOMMERCE_OLTP`) e DW (`DW_ECOMMERCE`) inicializados automaticamente pelo bootstrap.
 
 Este repositorio combina modelagem dimensional com operacao de dados:
@@ -32,14 +32,17 @@ Este repositorio combina modelagem dimensional com operacao de dados:
 
 - Infra Docker one-shot: `SQL Server + sql-init + Streamlit + backup`.
 - Auditoria de conexao ativa: `audit.connection_login_events` e SQL Server Audit (`.sqlaudit`).
-- Entidades ativas por padrao no controle ETL: `dim_cliente` e `dim_produto`.
+- Readiness operacional no bootstrap da stack para `dim_cliente` e `dim_produto`.
+- ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto` e `fact_vendas`.
+- Dashboards publicados: monitoramento ETL (`:8501`) e vendas R1 (`:8502`).
 - Fluxo validado ponta a ponta: extracao OLTP, upsert DW, watermark, trilha em `audit.*` e monitoramento visual.
 
 ## Status de evolucao
 
-1. Fase validada: `dim_cliente` e `dim_produto`.
-2. Em andamento: onboarding progressivo das demais `dim_*` e `fact_*`.
-3. Meta: operacao completa com monitoramento e auditoria para todo o DW.
+1. Base operacional concluida: OLTP funcional, DW base, ETL incremental inicial e monitoramento tecnico.
+2. Em andamento: ampliacao da cobertura operacional para `fact_metas` e `fact_descontos`.
+3. Em andamento: publicacao dos dashboards de metas/atingimento e descontos/ROI.
+4. Meta: suite automatizada de testes, alertas de falha/SLA e runbook operacional formal.
 
 ## Arquitetura resumida
 
@@ -79,6 +82,11 @@ powershell -ExecutionPolicy Bypass -File docker/down_stack.ps1
 ```powershell
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_regiao
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_vendedor
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_equipe
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_vendas
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity all
 ```
 
@@ -86,15 +94,21 @@ docker exec dw_etl_monitor python python/etl/run_etl.py --entity all
 
 ```text
 project_e-commerce_dw/
+|-- dashboards/
 |-- docker/
 |-- docs/
+|-- notebooks/
 |-- python/
+|   |-- dashboards/
 |   |-- data_generation/
-|   `-- etl/
+|   |-- etl/
+|   |-- tests/
+|   `-- utils/
 |-- scripts/
 |-- sql/
 |   |-- dw/
 |   `-- oltp/
+|-- tests/
 `-- data/
 ```
 
@@ -105,15 +119,18 @@ project_e-commerce_dw/
 - [ETL Python](python/etl/README.md)
 - [Controle ETL e auditoria](sql/dw/03_etl_control/README.md)
 - [Monitoramento Streamlit](python/etl/docs/05_monitoramento_streamlit.md)
+- [Dashboard de vendas R1](python/dashboards/vendas/README.md)
 - [OLTP (fonte)](sql/oltp/README.md)
 - [Views auxiliares DW](sql/dw/04_views/README.md)
+- [Seguranca de consumo BI](sql/dw/05_security/README.md)
 - [Contratos de dados](docs/contracts/README.md)
 - [Queries analiticas](docs/queries/README.md)
 
 ## Apontamentos das atualizacoes recentes
 
 - Infra Docker consolidada para operacao one-shot.
-- Escopo operacional padrao evoluido de `dim_cliente` para `dim_cliente + dim_produto`.
+- Escopo operacional de bootstrap consolidado em `dim_cliente + dim_produto`.
+- ETL incremental implementado para dimensoes adicionais e `fact_vendas` (onboarding progressivo por controle ETL).
 - Streamlit evoluido para matriz geral de pipelines, timeline de execucao, qualidade/reconciliacao e painel de SLA/alertas.
 - Auditoria tecnica consolidada no dashboard: conexoes, taxonomia de erros e correlacao temporal com falhas ETL.
 - Direcionamento oficial de projeto atualizado para auditoria de todas as dimensoes e fatos.
