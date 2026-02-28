@@ -57,6 +57,31 @@ def _to_int(value: Any, default: int = 0) -> int:
         return default
 
 
+def _parse_table_name(table_name: str) -> tuple[str, str] | None:
+    if not table_name:
+        return None
+    parts = [part.strip().strip("[]") for part in str(table_name).split(".")]
+    if len(parts) != 2:
+        return None
+    if not parts[0] or not parts[1]:
+        return None
+    return parts[0], parts[1]
+
+
+def _is_safe_identifier(value: str) -> bool:
+    return bool(re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", value))
+
+
+def _safe_qualified_name(table_name: str) -> str:
+    parsed = _parse_table_name(table_name)
+    if parsed is None:
+        raise ValueError(f"Nome de tabela invalido: {table_name}")
+    schema_name, object_name = parsed
+    if not _is_safe_identifier(schema_name) or not _is_safe_identifier(object_name):
+        raise ValueError(f"Nome de tabela nao seguro: {table_name}")
+    return f"[{schema_name}].[{object_name}]"
+
+
 def _suggest_connection_fix(error_text: str) -> list[str]:
     suggestions: list[str] = []
     upper_error = error_text.upper()
@@ -559,6 +584,313 @@ def get_running_entities() -> pd.DataFrame:
     ORDER BY re.entity_started_at DESC;
     """
     return _fetch_df(query)
+
+
+def _get_table_columns(connection: Any, table_name: str) -> list[dict[str, Any]]:
+    parsed = _parse_table_name(table_name)
+    if parsed is None:
+        return []
+    schema_name, object_name = parsed
+    rows = query_all(
+        connection,
+        """
+        SELECT
+            COLUMN_NAME,
+            DATA_TYPE,
+            ORDINAL_POSITION
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = ?
+          AND TABLE_NAME = ?
+        ORDER BY ORDINAL_POSITION;
+        """,
+        (schema_name, object_name),
+    )
+    return rows
+
+
+@st.cache_data(ttl=5)
+def get_pipeline_health(entity_name: str) -> dict[str, Any]:
+    config = ETLConfig.from_env()
+    snapshot: dict[str, Any] = {
+        "entity_name": entity_name,
+        "is_active": False,
+        "source_table": None,
+        "target_table": None,
+        "source_pk_column": None,
+        "source_total": 0,
+        "source_soft_deleted": 0,
+        "source_pending_since_watermark": 0,
+        "source_max_updated_at": None,
+        "target_total": 0,
+        "target_max_updated_at": None,
+        "watermark_updated_at": None,
+        "watermark_id": 0,
+        "last_run_id": None,
+        "last_status": None,
+        "last_success_at": None,
+        "last_entity_status": None,
+        "last_entity_started_at": None,
+        "last_entity_finished_at": None,
+        "last_entity_extracted": 0,
+        "last_entity_upserted": 0,
+        "last_entity_soft_deleted": 0,
+        "last_entity_error": None,
+        "coverage_percent": None,
+        "freshness_minutes": None,
+        "last_duration_seconds": None,
+        "last_throughput_rows_per_sec": None,
+        "error": None,
+    }
+
+    dw_connection = None
+    oltp_connection = None
+    try:
+        dw_connection = connect_sqlserver(
+            config.dw_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+        control_row = query_one(
+            dw_connection,
+            """
+            SELECT TOP (1)
+                entity_name,
+                is_active,
+                source_table,
+                target_table,
+                source_pk_column,
+                watermark_updated_at,
+                watermark_id,
+                last_run_id,
+                last_status,
+                last_success_at
+            FROM ctl.etl_control
+            WHERE entity_name = ?;
+            """,
+            (entity_name,),
+        )
+        if control_row is None:
+            raise ValueError(f"Entidade nao encontrada em ctl.etl_control: {entity_name}")
+
+        snapshot["is_active"] = _to_bool(control_row.get("is_active"))
+        snapshot["source_table"] = control_row.get("source_table")
+        snapshot["target_table"] = control_row.get("target_table")
+        snapshot["source_pk_column"] = control_row.get("source_pk_column")
+        snapshot["watermark_updated_at"] = control_row.get("watermark_updated_at")
+        snapshot["watermark_id"] = _to_int(control_row.get("watermark_id"), 0)
+        snapshot["last_run_id"] = control_row.get("last_run_id")
+        snapshot["last_status"] = control_row.get("last_status")
+        snapshot["last_success_at"] = control_row.get("last_success_at")
+
+        entity_row = query_one(
+            dw_connection,
+            """
+            SELECT TOP (1)
+                status AS last_entity_status,
+                entity_started_at AS last_entity_started_at,
+                entity_finished_at AS last_entity_finished_at,
+                extracted_count AS last_entity_extracted,
+                upserted_count AS last_entity_upserted,
+                soft_deleted_count AS last_entity_soft_deleted,
+                error_message AS last_entity_error
+            FROM audit.etl_run_entity
+            WHERE entity_name = ?
+            ORDER BY run_entity_id DESC;
+            """,
+            (entity_name,),
+        )
+        if entity_row:
+            snapshot["last_entity_status"] = entity_row.get("last_entity_status")
+            snapshot["last_entity_started_at"] = entity_row.get("last_entity_started_at")
+            snapshot["last_entity_finished_at"] = entity_row.get("last_entity_finished_at")
+            snapshot["last_entity_extracted"] = _to_int(entity_row.get("last_entity_extracted"), 0)
+            snapshot["last_entity_upserted"] = _to_int(entity_row.get("last_entity_upserted"), 0)
+            snapshot["last_entity_soft_deleted"] = _to_int(entity_row.get("last_entity_soft_deleted"), 0)
+            snapshot["last_entity_error"] = entity_row.get("last_entity_error")
+
+        source_table = str(snapshot.get("source_table") or "")
+        target_table = str(snapshot.get("target_table") or "")
+        source_pk_column = str(snapshot.get("source_pk_column") or "").strip()
+
+        oltp_connection = connect_sqlserver(
+            config.oltp_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+
+        safe_source = _safe_qualified_name(source_table)
+        safe_target = _safe_qualified_name(target_table)
+
+        source_count_row = query_one(oltp_connection, f"SELECT COUNT(*) AS total FROM {safe_source};")
+        if source_count_row:
+            snapshot["source_total"] = _to_int(source_count_row.get("total"), 0)
+
+        target_count_row = query_one(dw_connection, f"SELECT COUNT(*) AS total FROM {safe_target};")
+        if target_count_row:
+            snapshot["target_total"] = _to_int(target_count_row.get("total"), 0)
+
+        source_columns = {str(col["COLUMN_NAME"]).lower() for col in _get_table_columns(oltp_connection, source_table)}
+        target_columns = {str(col["COLUMN_NAME"]).lower() for col in _get_table_columns(dw_connection, target_table)}
+
+        if "deleted_at" in source_columns:
+            soft_row = query_one(
+                oltp_connection,
+                f"SELECT COUNT(*) AS total FROM {safe_source} WHERE deleted_at IS NOT NULL;",
+            )
+            if soft_row:
+                snapshot["source_soft_deleted"] = _to_int(soft_row.get("total"), 0)
+
+        if "updated_at" in source_columns:
+            source_max_row = query_one(
+                oltp_connection,
+                f"SELECT MAX(updated_at) AS max_updated_at FROM {safe_source};",
+            )
+            if source_max_row:
+                snapshot["source_max_updated_at"] = source_max_row.get("max_updated_at")
+
+            safe_pk = f"[{source_pk_column}]" if _is_safe_identifier(source_pk_column) else None
+            if safe_pk and source_pk_column.lower() in source_columns:
+                pending_row = query_one(
+                    oltp_connection,
+                    f"""
+                    SELECT
+                        COUNT(*) AS pending_since_watermark
+                    FROM {safe_source}
+                    WHERE updated_at > ?
+                       OR (updated_at = ? AND {safe_pk} > ?);
+                    """,
+                    (
+                        snapshot["watermark_updated_at"],
+                        snapshot["watermark_updated_at"],
+                        snapshot["watermark_id"],
+                    ),
+                )
+                if pending_row:
+                    snapshot["source_pending_since_watermark"] = _to_int(
+                        pending_row.get("pending_since_watermark"),
+                        0,
+                    )
+
+        target_updated_col = None
+        if "data_ultima_atualizacao" in target_columns:
+            target_updated_col = "data_ultima_atualizacao"
+        elif "updated_at" in target_columns:
+            target_updated_col = "updated_at"
+
+        if target_updated_col is not None:
+            target_max_row = query_one(
+                dw_connection,
+                f"SELECT MAX([{target_updated_col}]) AS max_updated_at FROM {safe_target};",
+            )
+            if target_max_row:
+                snapshot["target_max_updated_at"] = target_max_row.get("max_updated_at")
+
+        source_total = _to_int(snapshot.get("source_total"), 0)
+        target_total = _to_int(snapshot.get("target_total"), 0)
+        snapshot["coverage_percent"] = _safe_ratio(target_total, source_total)
+        snapshot["freshness_minutes"] = _compute_freshness_minutes(
+            snapshot.get("source_max_updated_at"),
+            snapshot.get("target_max_updated_at"),
+        )
+
+        started_at = snapshot.get("last_entity_started_at")
+        finished_at = snapshot.get("last_entity_finished_at")
+        if started_at is not None and finished_at is not None:
+            duration_seconds = max(1.0, (finished_at - started_at).total_seconds())
+            snapshot["last_duration_seconds"] = duration_seconds
+            snapshot["last_throughput_rows_per_sec"] = _to_int(
+                snapshot.get("last_entity_upserted"),
+                0,
+            ) / duration_seconds
+    except Exception as exc:  # noqa: BLE001
+        snapshot["error"] = str(exc)
+    finally:
+        close_quietly(dw_connection)
+        close_quietly(oltp_connection)
+
+    return snapshot
+
+
+@st.cache_data(ttl=5)
+def get_pipeline_recent_source(entity_name: str, limit: int = 20) -> pd.DataFrame:
+    config = ETLConfig.from_env()
+    dw_connection = None
+    oltp_connection = None
+    try:
+        dw_connection = connect_sqlserver(
+            config.dw_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+        control_row = query_one(
+            dw_connection,
+            """
+            SELECT TOP (1)
+                source_table,
+                source_pk_column
+            FROM ctl.etl_control
+            WHERE entity_name = ?;
+            """,
+            (entity_name,),
+        )
+        if control_row is None:
+            return pd.DataFrame()
+
+        source_table = str(control_row.get("source_table") or "")
+        source_pk_column = str(control_row.get("source_pk_column") or "").strip()
+        safe_source = _safe_qualified_name(source_table)
+
+        oltp_connection = connect_sqlserver(
+            config.oltp_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+
+        column_rows = _get_table_columns(oltp_connection, source_table)
+        if not column_rows:
+            return pd.DataFrame()
+
+        ordered_columns = [str(col["COLUMN_NAME"]) for col in column_rows]
+        lower_lookup = {name.lower(): name for name in ordered_columns}
+
+        selected_columns: list[str] = []
+        for candidate in [source_pk_column, "updated_at", "deleted_at", "created_at"]:
+            key = candidate.lower()
+            if key in lower_lookup:
+                selected_columns.append(lower_lookup[key])
+
+        for col_name in ordered_columns:
+            if col_name in selected_columns:
+                continue
+            selected_columns.append(col_name)
+            if len(selected_columns) >= 12:
+                break
+
+        selected_columns = selected_columns[:12]
+        select_list = ", ".join([f"[{col}]" for col in selected_columns if _is_safe_identifier(col)])
+        if not select_list:
+            return pd.DataFrame()
+
+        order_by_parts: list[str] = []
+        if "updated_at" in lower_lookup:
+            order_by_parts.append("[updated_at] DESC")
+        if source_pk_column.lower() in lower_lookup and _is_safe_identifier(lower_lookup[source_pk_column.lower()]):
+            order_by_parts.append(f"[{lower_lookup[source_pk_column.lower()]}] DESC")
+        elif selected_columns:
+            fallback = selected_columns[0]
+            if _is_safe_identifier(fallback):
+                order_by_parts.append(f"[{fallback}] DESC")
+
+        order_by_clause = ", ".join(order_by_parts) if order_by_parts else "(SELECT NULL)"
+        query = f"""
+        SELECT TOP (?)
+            {select_list}
+        FROM {safe_source}
+        ORDER BY {order_by_clause};
+        """
+        rows = query_all(oltp_connection, query, (int(limit),))
+        return _to_dataframe(rows)
+    except Exception:
+        return pd.DataFrame()
+    finally:
+        close_quietly(dw_connection)
+        close_quietly(oltp_connection)
 
 
 @st.cache_data(ttl=5)
@@ -1140,6 +1472,97 @@ def _render_pipeline_overview_section() -> None:
     )
 
 
+def _render_pipeline_health_section(control_df: pd.DataFrame) -> None:
+    st.subheader("Saude por pipeline")
+    if control_df.empty or "entity_name" not in control_df.columns:
+        st.info("Sem entidades cadastradas no controle ETL.")
+        return
+
+    entity_options = control_df["entity_name"].astype(str).sort_values().unique().tolist()
+    selected_entity = st.selectbox(
+        "Selecionar entidade/fato",
+        options=entity_options,
+        index=0,
+    )
+
+    health = get_pipeline_health(selected_entity)
+    if health.get("error"):
+        st.warning("Nao foi possivel calcular a saude do pipeline selecionado.")
+        st.code(str(health["error"]))
+        return
+
+    source_total = _to_int(health.get("source_total"), 0)
+    target_total = _to_int(health.get("target_total"), 0)
+    pending_total = _to_int(health.get("source_pending_since_watermark"), 0)
+    delta_rows = target_total - source_total
+
+    metric_1, metric_2, metric_3, metric_4 = st.columns(4)
+    metric_1.metric("Fonte", source_total)
+    metric_2.metric("Alvo", target_total, delta=delta_rows)
+    metric_3.metric("Pendentes no watermark", pending_total)
+    metric_4.metric("Cobertura", _format_ratio(health.get("coverage_percent")))
+
+    metric_5, metric_6, metric_7, metric_8 = st.columns(4)
+    metric_5.metric("Ativo no controle", "SIM" if _to_bool(health.get("is_active")) else "NAO")
+    metric_6.metric("Status controle", str(health.get("last_status") or "-"))
+    metric_7.metric("Status ultima execucao", str(health.get("last_entity_status") or "-"))
+    metric_8.metric("Latencia", _format_minutes(health.get("freshness_minutes")))
+
+    metric_9, metric_10 = st.columns(2)
+    metric_9.metric(
+        "Duracao ultima execucao",
+        _format_minutes(None if health.get("last_duration_seconds") is None else float(health["last_duration_seconds"]) / 60.0),
+    )
+    metric_10.metric(
+        "Throughput ultima execucao",
+        "-" if health.get("last_throughput_rows_per_sec") is None else f"{float(health['last_throughput_rows_per_sec']):.1f} l/s",
+    )
+
+    st.caption(
+        f"Pipeline: `{health.get('entity_name')}` | "
+        f"Fonte: `{health.get('source_table')}` -> Alvo: `{health.get('target_table')}` | "
+        f"Watermark: `{health.get('watermark_updated_at')} / {health.get('watermark_id')}`"
+    )
+
+    detail_left, detail_right = st.columns(2)
+    with detail_left:
+        st.markdown("**Auditoria da ultima execucao**")
+        audit_rows = [
+            {"campo": "last_run_id", "valor": str(health.get("last_run_id"))},
+            {"campo": "last_success_at", "valor": str(health.get("last_success_at"))},
+            {"campo": "entity_started_at", "valor": str(health.get("last_entity_started_at"))},
+            {"campo": "entity_finished_at", "valor": str(health.get("last_entity_finished_at"))},
+            {"campo": "extraidos", "valor": str(_to_int(health.get("last_entity_extracted"), 0))},
+            {"campo": "upsertados", "valor": str(_to_int(health.get("last_entity_upserted"), 0))},
+            {"campo": "soft_deleted", "valor": str(_to_int(health.get("last_entity_soft_deleted"), 0))},
+        ]
+        st.dataframe(pd.DataFrame(audit_rows), use_container_width=True, hide_index=True)
+    with detail_right:
+        st.markdown("**Integridade basica**")
+        integrity_rows = [
+            {"check": "source_total >= 0", "status": "OK" if source_total >= 0 else "PENDENTE"},
+            {"check": "target_total >= 0", "status": "OK" if target_total >= 0 else "PENDENTE"},
+            {"check": "pendencia incremental", "status": "OK" if pending_total == 0 else "ATENCAO"},
+            {"check": "cobertura >= 95%", "status": "OK" if (health.get("coverage_percent") or 0) >= 95 else "ATENCAO"},
+        ]
+        st.dataframe(pd.DataFrame(integrity_rows), use_container_width=True, hide_index=True)
+
+    last_error = str(health.get("last_entity_error") or "").strip()
+    if last_error:
+        st.markdown("**Ultimo erro da entidade**")
+        st.code(last_error)
+
+    st.markdown("**Registros recentes da origem**")
+    source_recent_df = _ensure_datetime_columns(
+        get_pipeline_recent_source(selected_entity, 20),
+        ["updated_at", "deleted_at", "created_at"],
+    )
+    if source_recent_df.empty:
+        st.info("Nao foi possivel carregar amostra recente da origem para este pipeline.")
+    else:
+        st.dataframe(source_recent_df, use_container_width=True, hide_index=True)
+
+
 def _render_dim_cliente_section() -> None:
     st.subheader("Saude da dim_cliente")
     dim_cliente_health = get_dim_cliente_health()
@@ -1400,14 +1823,13 @@ def render_dashboard() -> None:
             "Pagina",
             options=[
                 "Resumo operacional",
-                "Saude dim_cliente",
-                "Saude dim_produto",
+                "Saude por pipeline",
                 "Runs e controle",
                 "Auditoria de conexoes",
             ],
             index=0,
         )
-        st.caption("Escopo atual: dim_cliente + dim_produto")
+        st.caption("Escopo monitorado: entidades e fatos cadastrados no ctl.etl_control")
 
     preflight = get_preflight_snapshot()
     _render_preflight(preflight)
@@ -1458,10 +1880,8 @@ def render_dashboard() -> None:
         _render_running_section()
         _render_charts_section()
         _render_failures_section(entity_runs_df)
-    elif page == "Saude dim_cliente":
-        _render_dim_cliente_section()
-    elif page == "Saude dim_produto":
-        _render_dim_produto_section()
+    elif page == "Saude por pipeline":
+        _render_pipeline_health_section(control_df)
     elif page == "Runs e controle":
         _render_runs_control_section(runs_df, control_df)
     else:
