@@ -9,7 +9,7 @@ Projeto de laboratorio para simular um cenario real de dados `OLTP -> DW` em SQL
 
 - Infra Docker one-shot pronta (`SQL Server + init + Streamlit monitor + Streamlit vendas + backup`).
 - Auditoria de conexoes ativa (tabela `audit.connection_login_events` + arquivo `.sqlaudit`).
-- Escopo validado ponta a ponta para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`.
+- Escopo validado ponta a ponta para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas` e `fact_metas`.
 - OLTP (`ECOMMERCE_OLTP`) e DW (`DW_ECOMMERCE`) inicializados automaticamente pelo bootstrap.
 
 Este repositorio combina modelagem dimensional com operacao de dados:
@@ -32,15 +32,15 @@ Este repositorio combina modelagem dimensional com operacao de dados:
 
 - Infra Docker one-shot: `SQL Server + sql-init + Streamlit + backup`.
 - Auditoria de conexao ativa: `audit.connection_login_events` e SQL Server Audit (`.sqlaudit`).
-- Readiness operacional no bootstrap da stack para as entidades ETL implementadas (`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`).
-- ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto` e `fact_vendas`.
+- Readiness operacional no bootstrap da stack para as entidades ETL implementadas (`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas` e `fact_metas`).
+- ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto`, `fact_vendas` e `fact_metas`.
 - Dashboards publicados: monitoramento ETL (`:8501`) e vendas R1 (`:8502`).
 - Fluxo validado ponta a ponta: extracao OLTP, upsert DW, watermark, trilha em `audit.*` e monitoramento visual.
 
 ## Status de evolucao
 
 1. Base operacional concluida: OLTP funcional, DW base, ETL incremental inicial e monitoramento tecnico.
-2. Em andamento: ampliacao da cobertura operacional para `fact_metas` e `fact_descontos`.
+2. Em andamento: ampliacao da cobertura operacional para `fact_descontos`.
 3. Em andamento: publicacao dos dashboards de metas/atingimento e descontos/ROI.
 4. Meta: suite automatizada de testes, alertas de falha/SLA e runbook operacional formal.
 
@@ -92,6 +92,7 @@ docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_vendedor
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_equipe
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_vendas
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_metas
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity all
 ```
 
@@ -137,7 +138,7 @@ project_e-commerce_dw/
 ## Apontamentos das atualizacoes recentes
 
 - Infra Docker consolidada para operacao one-shot.
-- Escopo operacional de bootstrap consolidado para as entidades ETL implementadas (6 dimensoes + `fact_vendas`).
+- Escopo operacional de bootstrap consolidado para as entidades ETL implementadas (6 dimensoes + `fact_vendas` + `fact_metas`).
 - ETL incremental implementado para as entidades do rollout atual com onboarding via `ctl.etl_control`.
 - Streamlit evoluido para matriz geral de pipelines, timeline de execucao, qualidade/reconciliacao e painel de SLA/alertas.
 - Auditoria tecnica consolidada no dashboard: conexoes, taxonomia de erros e correlacao temporal com falhas ETL.
