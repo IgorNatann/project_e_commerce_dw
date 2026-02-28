@@ -59,6 +59,31 @@ def utcnow_naive() -> datetime:
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
+def capture_connection_snapshot_safe(
+    dw_connection,
+    *,
+    stage: str,
+    run_id: int | None = None,
+) -> None:
+    run_ref = f", run_id={run_id}" if run_id is not None else ""
+    try:
+        cursor = dw_connection.cursor()
+        cursor.execute(
+            """
+            IF OBJECT_ID('audit.sp_capture_connection_snapshot', 'P') IS NOT NULL
+                EXEC audit.sp_capture_connection_snapshot;
+            """
+        )
+        dw_connection.commit()
+        print(f"[audit] snapshot de conexoes capturado (stage={stage}{run_ref}).")
+    except Exception as exc:  # noqa: BLE001
+        dw_connection.rollback()
+        print(
+            f"[audit] aviso: falha ao capturar snapshot de conexoes "
+            f"(stage={stage}{run_ref}): {type(exc).__name__}: {exc}"
+        )
+
+
 def main() -> int:
     args = parse_args()
     config = ETLConfig.from_env()
@@ -82,6 +107,7 @@ def main() -> int:
             config.dw_conn_str,
             command_timeout_seconds=config.command_timeout_seconds,
         )
+        capture_connection_snapshot_safe(dw_connection, stage="inicio_run")
 
         run_id = start_run(
             dw_connection,
@@ -131,6 +157,7 @@ def main() -> int:
             error_message=final_error,
         )
         dw_connection.commit()
+        capture_connection_snapshot_safe(dw_connection, stage="fim_run", run_id=run_id)
 
         print("")
         print("Resumo final")
@@ -160,6 +187,7 @@ def main() -> int:
                     error_message=error_text[:4000],
                 )
                 dw_connection.commit()
+                capture_connection_snapshot_safe(dw_connection, stage="fim_run_falha", run_id=run_id)
             except Exception:  # noqa: BLE001
                 dw_connection.rollback()
 
