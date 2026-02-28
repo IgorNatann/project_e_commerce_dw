@@ -27,7 +27,7 @@ Atualize este arquivo ao final de cada entrega:
 
 Preencha semanalmente:
 
-- `Percentual atual`: 72
+- `Percentual atual`: 74
 - `Percentual alvo`: 90
 - `Ultima atualizacao`: 2026-02-28
 
@@ -42,20 +42,20 @@ Sugestao de criterio:
 
 ### Dia 1 - 2026-02-28 - Baseline documental
 
-Status: nao_iniciado  
-Responsavel:  
-Delta: 72 ->  
+Status: concluido  
+Responsavel: Igor/Codex  
+Delta: 72 -> 74  
 
 Checklist:
 
-- [ ] Ajustar inconsistencias entre `README.md`, `docs/produto/PRD.md` e status report.
-- [ ] Registrar fonte unica do "estado atual" no repositorio.
-- [ ] Garantir que backlog P0 reflita o que realmente falta.
+- [x] Ajustar inconsistencias entre `README.md`, `docs/produto/PRD.md` e status report.
+- [x] Registrar fonte unica do "estado atual" no repositorio.
+- [x] Garantir que backlog P0 reflita o que realmente falta.
 
 Evidencia:
 
-- Arquivos alterados:
-- Commits/PR:
+- Arquivos alterados: `README.md`, `docs/produto/PRD.md`, `docs/status_reports/2026-02-28.md`
+- Commits/PR: branch local `chore/dia1-alinhamento-documental-portfolio`
 
 Validacao:
 
@@ -234,6 +234,7 @@ rg -n "runbook|go/no-go|portfolio|dashboard" README.md docs -S
 | Data | Item | Status | Evidencia | Observacoes |
 |---|---|---|---|---|
 | 2026-02-28 | Plano criado | concluido | `docs/produto/PLANO_FECHAMENTO_PORTFOLIO_MVP.md` | Baseline inicial 72% |
+| 2026-02-28 | Dia 1 - baseline documental | concluido | `README.md`, `docs/produto/PRD.md`, `docs/status_reports/2026-02-28.md` | Escopo facts alinhado e P0 atualizado |
 
 ## 7) Blocos de validacao continua (para o Codex seguir evoluindo)
 
