@@ -1,6 +1,6 @@
 # ETL Python - estado atual
 
-Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto`, `fact_vendas` e `fact_metas`.
+Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
 
 ## O que esta pronto
 
@@ -13,6 +13,7 @@ Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_
 - Transformacao e upsert Type 1 para `dim_desconto`.
 - Transformacao e upsert incremental para `fact_vendas`.
 - Transformacao e upsert incremental para `fact_metas`.
+- Transformacao e upsert incremental para `fact_descontos`.
 - Auditoria de execucao em `audit.etl_run` e `audit.etl_run_entity`.
 - Monitoramento visual via Streamlit em `dashboards/streamlit/monitoring`.
 
@@ -39,6 +40,7 @@ docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_equipe
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_vendas
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_metas
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_descontos
 ```
 
 4. Opcional: executar ETL local (fora do container), configurando variaveis `ETL_*`:
@@ -52,6 +54,7 @@ python python/etl/run_etl.py --entity dim_equipe
 python python/etl/run_etl.py --entity dim_desconto
 python python/etl/run_etl.py --entity fact_vendas
 python python/etl/run_etl.py --entity fact_metas
+python python/etl/run_etl.py --entity fact_descontos
 ```
 
 ## Variaveis de conexao
@@ -74,6 +77,7 @@ python/etl/
 |   |-- dim_produto.py
 |   |-- dim_regiao.py
 |   |-- dim_vendedor.py
+|   |-- fact_descontos.py
 |   |-- fact_metas.py
 |   `-- fact_vendas.py
 |-- sql/
@@ -83,6 +87,7 @@ python/etl/
 |   |-- extract_dim_produto.sql
 |   |-- extract_dim_regiao.sql
 |   |-- extract_dim_vendedor.sql
+|   |-- extract_fact_descontos.sql
 |   |-- extract_fact_metas.sql
 |   |-- extract_fact_vendas.sql
 |   |-- upsert_dim_cliente.sql
@@ -91,6 +96,7 @@ python/etl/
 |   |-- upsert_dim_produto.sql
 |   |-- upsert_dim_regiao.sql
 |   |-- upsert_dim_vendedor.sql
+|   |-- upsert_fact_descontos.sql
 |   |-- upsert_fact_metas.sql
 |   |-- upsert_fact_vendas.sql
 |   `-- update_watermark.sql

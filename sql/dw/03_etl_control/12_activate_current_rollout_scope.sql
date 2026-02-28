@@ -25,7 +25,8 @@ GO
             ('dim_vendedor', 'core.sellers',            'dim.DIM_VENDEDOR', 'seller_id',      1000, 2),
             ('dim_desconto', 'core.discount_campaigns', 'dim.DIM_DESCONTO', 'discount_id',    1000, 2),
             ('fact_vendas',  'core.order_items',        'fact.FACT_VENDAS', 'order_item_id',  5000, 2),
-            ('fact_metas',   'core.seller_targets_monthly', 'fact.FACT_METAS', 'seller_target_id', 5000, 2)
+            ('fact_metas',   'core.seller_targets_monthly', 'fact.FACT_METAS', 'seller_target_id', 5000, 2),
+            ('fact_descontos','core.order_item_discounts', 'fact.FACT_DESCONTOS', 'order_item_discount_id', 5000, 2)
     ) AS x(entity_name, source_table, target_table, source_pk_column, batch_size, cutoff_minutes)
 )
 MERGE ctl.etl_control AS target
@@ -77,13 +78,24 @@ WHEN NOT MATCHED THEN
     );
 GO
 
--- Mantem entidades ainda nao implementadas no ETL Python como inativas no rollout.
+-- Desativa entidades fora do rollout atual.
 UPDATE ctl.etl_control
 SET
     is_active = 0,
     updated_at = SYSUTCDATETIME()
-WHERE entity_name IN ('fact_descontos')
-  AND is_active <> 0;
+WHERE is_active <> 0
+  AND entity_name NOT IN
+  (
+      'dim_cliente',
+      'dim_produto',
+      'dim_regiao',
+      'dim_equipe',
+      'dim_vendedor',
+      'dim_desconto',
+      'fact_vendas',
+      'fact_metas',
+      'fact_descontos'
+  );
 GO
 
 SELECT

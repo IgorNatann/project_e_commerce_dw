@@ -17,7 +17,7 @@ from control import (
     start_run,
 )
 from db import close_quietly, connect_sqlserver
-from entities import get_entity, list_entities
+from entities import get_entity, list_entities, list_entities_execution_order
 
 
 def parse_args() -> argparse.Namespace:
@@ -63,7 +63,7 @@ def main() -> int:
     args = parse_args()
     config = ETLConfig.from_env()
 
-    entity_names = list_entities() if args.entity == "all" else [args.entity]
+    entity_names = list_entities_execution_order() if args.entity == "all" else [args.entity]
     started_by = getpass.getuser()
 
     oltp_connection = None

@@ -6,6 +6,7 @@ from . import dim_equipe
 from . import dim_produto
 from . import dim_regiao
 from . import dim_vendedor
+from . import fact_descontos
 from . import fact_metas
 from . import fact_vendas
 
@@ -17,13 +18,32 @@ ENTITY_REGISTRY = {
     dim_produto.ENTITY_NAME: dim_produto,
     dim_regiao.ENTITY_NAME: dim_regiao,
     dim_vendedor.ENTITY_NAME: dim_vendedor,
+    fact_descontos.ENTITY_NAME: fact_descontos,
     fact_metas.ENTITY_NAME: fact_metas,
     fact_vendas.ENTITY_NAME: fact_vendas,
 }
 
+_ENTITY_EXECUTION_ORDER = [
+    dim_cliente.ENTITY_NAME,
+    dim_produto.ENTITY_NAME,
+    dim_regiao.ENTITY_NAME,
+    dim_equipe.ENTITY_NAME,
+    dim_vendedor.ENTITY_NAME,
+    dim_desconto.ENTITY_NAME,
+    fact_vendas.ENTITY_NAME,
+    fact_metas.ENTITY_NAME,
+    fact_descontos.ENTITY_NAME,
+]
+
 
 def list_entities() -> list[str]:
     return sorted(ENTITY_REGISTRY.keys())
+
+
+def list_entities_execution_order() -> list[str]:
+    ordered = [name for name in _ENTITY_EXECUTION_ORDER if name in ENTITY_REGISTRY]
+    remaining = sorted(name for name in ENTITY_REGISTRY.keys() if name not in ordered)
+    return ordered + remaining
 
 
 def get_entity(entity_name: str):

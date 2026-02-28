@@ -36,7 +36,7 @@ Data de referencia: 2026-02-28
   - criar `entities/fact_descontos.py`;
   - criar `extract_fact_descontos.sql` e `upsert_fact_descontos.sql`;
   - ativar entidade em rollout quando validada.
-- Status: pendente.
+- Status: concluido em 2026-02-28.
 
 3. `Suite minima de testes ETL`
 - Impacto: regressao pode passar despercebida em bootstrap/carga.
