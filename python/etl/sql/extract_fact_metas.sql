@@ -13,6 +13,9 @@ SELECT TOP ({batch_size})
     stm.deleted_at AS target_deleted_at
 FROM core.seller_targets_monthly AS stm
 WHERE
+    stm.seller_id IS NOT NULL
+    AND stm.seller_id > 0
+    AND
     stm.updated_at <= ?
     AND
     (
