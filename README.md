@@ -41,7 +41,14 @@ Este repositorio combina modelagem dimensional com operacao de dados:
 
 1. Base operacional concluida: OLTP funcional, DW base, ETL incremental inicial e monitoramento tecnico.
 2. Em andamento: publicacao dos dashboards de metas/atingimento e descontos/ROI.
-3. Meta: suite automatizada de testes, alertas de falha/SLA e runbook operacional formal.
+3. Em andamento: consolidacao da suite automatizada de testes (integridade, regressao e smoke diario).
+4. Meta: alertas externos de falha/SLA, runbook operacional formal e deploy de portfolio.
+
+Fonte oficial do estado atual:
+
+- Produto e lacunas: `docs/produto/PRD.md` (secoes 7, 13 e 17).
+- Plano semanal de execucao: `docs/produto/PLANO_FECHAMENTO_PORTFOLIO_MVP.md`.
+- Snapshot periodico: `docs/status_reports/`.
 
 ## Arquitetura resumida
 
@@ -135,6 +142,7 @@ project_e-commerce_dw/
 - [Seguranca de consumo BI](sql/dw/05_security/README.md)
 - [Contratos de dados](docs/contracts/README.md)
 - [Queries analiticas](docs/queries/README.md)
+- [Plano de fechamento portfolio MVP](docs/produto/PLANO_FECHAMENTO_PORTFOLIO_MVP.md)
 
 ## Apontamentos das atualizacoes recentes
 

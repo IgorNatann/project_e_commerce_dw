@@ -1,6 +1,6 @@
 # PRD - Plataforma de Analytics para E-commerce (DW)
 
-Versao: 1.1  
+Versao: 1.2  
 Data: 2026-02-28  
 Status: Atualizado com baseline real do repositorio
 
@@ -101,17 +101,23 @@ Entregar uma plataforma de dados analiticos que permita:
 - Camada OLTP funcional (`ECOMMERCE_OLTP`) com setup, DDL e seed base/incremental.
 - Camada DW (`DW_ECOMMERCE`) com setup, DDL dimensional (7 dimensoes e 3 fatos), views auxiliares e seguranca de leitura (`bi_reader`).
 - Controle ETL e auditoria tecnica ativos (`ctl.etl_control`, `audit.etl_run`, `audit.etl_run_entity`, `audit.connection_login_events`).
-- ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto` e `fact_vendas`.
+- ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
 - Dashboard tecnico de monitoramento ETL publicado (`:8501`) e dashboard de vendas R1 publicado (`:8502`).
 - Documentacao tecnica ampla (modelagem, contratos, queries e evolucao diaria/mensal/marcos).
 
 ### 7.2 Lacunas criticas
 
 - Suite automatizada de validacao ponta a ponta ainda nao consolidada (integridade, regressao e smoke diario).
-- Escopo de carga e operacao ainda parcial frente ao PRD completo (principalmente `fact_metas` e `fact_descontos`).
+- Carga de fatos ja implementada, porem ainda sem consolidacao operacional completa (quality gates, smoke diario e evidencias recorrentes).
 - Dashboards de metas/atingimento e descontos/ROI ainda nao publicados.
 - Alertas automatizados externos para falhas de pipeline ainda nao implementados.
 - Runbook operacional formal de rotina, incidente e recuperacao ainda incompleto.
+
+### 7.3 Fonte oficial de acompanhamento
+
+- Estado de produto e lacunas: este PRD (secoes 7, 13 e 17).
+- Plano de execucao da semana: `docs/produto/PLANO_FECHAMENTO_PORTFOLIO_MVP.md`.
+- Snapshot historico por data: `docs/status_reports/`.
 
 ## 8. Jornadas principais
 
@@ -214,7 +220,7 @@ Entregar uma plataforma de dados analiticos que permita:
 
 ### Fase 2 - Fatos e qualidade (2 a 3 semanas)
 
-- Em andamento: ampliar cobertura de fatos (`fact_metas`, `fact_descontos`) e consolidar testes automatizados de qualidade.
+- Em andamento: consolidar qualidade operacional de fatos (`fact_metas`, `fact_descontos`) com testes automatizados e evidencias recorrentes.
 
 ### Fase 3 - Consumo e rollout (1 a 2 semanas)
 
@@ -225,7 +231,7 @@ Entregar uma plataforma de dados analiticos que permita:
 - Ambiente SQL Server disponivel para DEV/HML/PRD.
 - Definicao de ownership (PO de dados e engenharia responsavel).
 - Ferramenta de orquestracao/execucao (ex.: agendador local ou pipeline CI/CD).
-- Ferramenta de BI definida para publicacao de dashboards.
+- Decisao de ferramenta para pos-MVP (MVP atual usa Streamlit).
 
 ## 15. Riscos e mitigacao
 
@@ -244,7 +250,7 @@ Entregar uma plataforma de dados analiticos que permita:
 ## 16. Open questions
 
 - O produto tera ambiente de producao dedicado ou operacao local/educacional no curto prazo?
-- Qual ferramenta de BI sera oficial no R1?
+- Manter Streamlit como camada oficial de visualizacao no MVP ou migrar parte do consumo para BI dedicado no pos-MVP?
 - Qual frequencia de carga e SLA final esperado pelo negocio (diario, intra-dia)?
 - Quais usuarios terao permissao de escrita em estruturas analiticas?
 
@@ -253,7 +259,7 @@ Entregar uma plataforma de dados analiticos que permita:
 ### P0
 
 - P0-01: Consolidar suite automatizada de testes (integridade, regressao, smoke diario).
-- P0-02: Fechar cobertura operacional de fatos pendentes (`fact_metas` e `fact_descontos`).
+- P0-02: Consolidar validacao operacional de `fact_metas` e `fact_descontos` (smoke, reconciliacao e evidencias de execucao).
 - P0-03: Publicar dashboards R1 pendentes (metas/atingimento e descontos/ROI).
 - P0-04: Implementar alertas automatizados para falha de pipeline e atraso de SLA.
 - P0-05: Formalizar runbook de operacao, incidente e recuperacao.
