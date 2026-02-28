@@ -1,6 +1,6 @@
 # ETL Python - estado atual
 
-Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_vendedor` e `dim_equipe`.
+Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_vendedor`, `dim_equipe` e `dim_desconto`.
 
 ## O que esta pronto
 
@@ -9,6 +9,7 @@ Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_
 - Transformacao e upsert Type 1 para `dim_produto`.
 - Transformacao e upsert Type 1 para `dim_vendedor`.
 - Transformacao e upsert Type 1 para `dim_equipe`.
+- Transformacao e upsert Type 1 para `dim_desconto`.
 - Auditoria de execucao em `audit.etl_run` e `audit.etl_run_entity`.
 - Monitoramento visual via Streamlit.
 
@@ -31,6 +32,7 @@ docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_vendedor
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_equipe
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
 ```
 
 4. Opcional: executar ETL local (fora do container), configurando variaveis `ETL_*`:
@@ -40,6 +42,7 @@ python python/etl/run_etl.py --entity dim_cliente
 python python/etl/run_etl.py --entity dim_produto
 python python/etl/run_etl.py --entity dim_vendedor
 python python/etl/run_etl.py --entity dim_equipe
+python python/etl/run_etl.py --entity dim_desconto
 ```
 
 ## Variaveis de conexao
@@ -57,15 +60,18 @@ python/etl/
 |-- control.py
 |-- entities/
 |   |-- dim_cliente.py
+|   |-- dim_desconto.py
 |   |-- dim_equipe.py
 |   |-- dim_produto.py
 |   `-- dim_vendedor.py
 |-- sql/
 |   |-- extract_dim_cliente.sql
+|   |-- extract_dim_desconto.sql
 |   |-- extract_dim_equipe.sql
 |   |-- extract_dim_produto.sql
 |   |-- extract_dim_vendedor.sql
 |   |-- upsert_dim_cliente.sql
+|   |-- upsert_dim_desconto.sql
 |   |-- upsert_dim_equipe.sql
 |   |-- upsert_dim_produto.sql
 |   |-- upsert_dim_vendedor.sql
@@ -84,4 +90,4 @@ python/etl/
 
 ## Proximo passo natural
 
-Depois de estabilizar `dim_cliente`/`dim_produto`/`dim_vendedor`/`dim_equipe` (auditoria + monitoramento), replicar o padrao para as demais entidades.
+Depois de estabilizar `dim_cliente`/`dim_produto`/`dim_vendedor`/`dim_equipe`/`dim_desconto` (auditoria + monitoramento), replicar o padrao para as demais entidades.
