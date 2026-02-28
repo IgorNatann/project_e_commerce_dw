@@ -11,7 +11,7 @@ Aplicacao Streamlit para consumo de indicadores comerciais com base em `fact.FAC
 ## Execucao local
 
 ```powershell
-streamlit run python/dashboards/vendas/app.py
+streamlit run dashboards/streamlit/vendas/app.py
 ```
 
 ## Variaveis de ambiente
@@ -29,4 +29,4 @@ streamlit run python/dashboards/vendas/app.py
 
 ## Dependencias
 
-Arquivo: `python/dashboards/vendas/requirements.txt`.
+Arquivo: `dashboards/streamlit/vendas/requirements.txt`.

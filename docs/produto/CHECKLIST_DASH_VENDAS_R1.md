@@ -27,7 +27,7 @@ Guia de execucao passo a passo: `docs/produto/PLAYBOOK_IMPL_DASH_VENDAS_R1.md`.
 
 ## 4. Aplicacao do dashboard (Streamlit)
 
-- [ ] Criar app do dashboard em pasta dedicada (ex.: `python/dashboards/vendas/app.py`).
+- [ ] Criar app do dashboard em pasta dedicada (ex.: `dashboards/streamlit/vendas/app.py`).
 - [ ] Implementar filtros minimos: periodo, regiao, categoria, vendedor.
 - [ ] Implementar KPIs principais na tela inicial.
 - [ ] Implementar pelo menos 3 visuais analiticos (tendencia temporal, mix produto, geografico/comercial).

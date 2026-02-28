@@ -15,10 +15,10 @@ RUN apt-get update \
     && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY python/dashboards/vendas/requirements.txt /tmp/requirements-dash-vendas.txt
+COPY dashboards/streamlit/vendas/requirements.txt /tmp/requirements-dash-vendas.txt
 RUN pip install -r /tmp/requirements-dash-vendas.txt
 
-COPY python/dashboards /app/python/dashboards
+COPY dashboards/streamlit /app/dashboards/streamlit
 RUN useradd --uid 10001 --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
 
@@ -26,4 +26,4 @@ USER appuser
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "python/dashboards/vendas/app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+CMD ["streamlit", "run", "dashboards/streamlit/vendas/app.py", "--server.address=0.0.0.0", "--server.port=8501"]

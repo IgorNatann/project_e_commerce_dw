@@ -49,8 +49,13 @@ Este repositorio combina modelagem dimensional com operacao de dados:
 1. Fonte OLTP (`sql/oltp`): tabelas transacionais + seed base + seed incremental.
 2. Destino DW (`sql/dw`): dimensoes, fatos, views e contratos de estrutura.
 3. Controle ETL (`ctl` e `audit`): estado incremental, runs e entidades por run.
-4. ETL Python (`python/etl`): runner, entidades, SQL de extract/upsert e dashboard.
-5. Operacao Docker (`docker`): stack one-shot, variaveis, backup e health checks.
+4. ETL Python (`python/etl`): runner, entidades e SQL de extract/upsert.
+5. Dashboards (`dashboards/streamlit`): monitoramento operacional e dashboards de negocio.
+6. Operacao Docker (`docker`): stack one-shot, variaveis, backup e health checks.
+
+Arquitetura visual (Mermaid):
+
+- [Arquitetura atual do projeto](docs/diagrams/02_arquitetura_atual.md)
 
 ## Quick start (recomendado)
 
@@ -95,11 +100,11 @@ docker exec dw_etl_monitor python python/etl/run_etl.py --entity all
 ```text
 project_e-commerce_dw/
 |-- dashboards/
+|   `-- streamlit/
 |-- docker/
 |-- docs/
 |-- notebooks/
 |-- python/
-|   |-- dashboards/
 |   |-- data_generation/
 |   |-- etl/
 |   |-- tests/
@@ -115,11 +120,14 @@ project_e-commerce_dw/
 ## Documentacao principal
 
 - [Infra Docker one-shot](docker/README.md)
+- [Arquitetura atual (runtime + tecnologias)](docs/diagrams/02_arquitetura_atual.md)
+- [Indice de diagramas](docs/diagrams/README.md)
 - [Guia SQL (Docker-first)](sql/README.md)
 - [ETL Python](python/etl/README.md)
+- [Guia de Dashboards](dashboards/README.md)
 - [Controle ETL e auditoria](sql/dw/03_etl_control/README.md)
-- [Monitoramento Streamlit](python/etl/docs/05_monitoramento_streamlit.md)
-- [Dashboard de vendas R1](python/dashboards/vendas/README.md)
+- [Monitoramento Streamlit](dashboards/streamlit/monitoring/README.md)
+- [Dashboard de vendas R1](dashboards/streamlit/vendas/README.md)
 - [OLTP (fonte)](sql/oltp/README.md)
 - [Views auxiliares DW](sql/dw/04_views/README.md)
 - [Seguranca de consumo BI](sql/dw/05_security/README.md)

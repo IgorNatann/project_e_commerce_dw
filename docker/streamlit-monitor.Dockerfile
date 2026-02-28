@@ -15,10 +15,11 @@ RUN apt-get update \
     && ACCEPT_EULA=Y apt-get install -y --no-install-recommends msodbcsql18 \
     && rm -rf /var/lib/apt/lists/*
 
-COPY python/etl/monitoring/requirements.txt /tmp/requirements-monitoring.txt
+COPY dashboards/streamlit/monitoring/requirements.txt /tmp/requirements-monitoring.txt
 RUN pip install -r /tmp/requirements-monitoring.txt
 
 COPY python/etl /app/python/etl
+COPY dashboards/streamlit /app/dashboards/streamlit
 RUN useradd --uid 10001 --create-home --shell /bin/bash appuser \
     && chown -R appuser:appuser /app
 
@@ -26,4 +27,4 @@ USER appuser
 
 EXPOSE 8501
 
-CMD ["streamlit", "run", "python/etl/monitoring/app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+CMD ["streamlit", "run", "dashboards/streamlit/monitoring/app.py", "--server.address=0.0.0.0", "--server.port=8501"]
