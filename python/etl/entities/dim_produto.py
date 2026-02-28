@@ -21,7 +21,6 @@ def extract_batch(
 ) -> list[dict[str, Any]]:
     safe_batch_size = max(1, int(batch_size))
     sql = read_sql_file("extract_dim_produto.sql").format(batch_size=safe_batch_size)
-
     return query_all(
         oltp_connection,
         sql,

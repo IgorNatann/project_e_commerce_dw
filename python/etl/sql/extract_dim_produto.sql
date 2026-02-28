@@ -33,12 +33,12 @@ SELECT TOP ({batch_size})
     p.product_status,
     p.launch_date,
     p.discontinued_date,
-    p.rating_avg,
-    p.rating_count,
-    p.keywords,
     p.created_at,
     p.updated_at,
-    p.deleted_at
+    p.deleted_at,
+    p.keywords,
+    p.rating_avg,
+    p.rating_count
 FROM core.products AS p
 LEFT JOIN core.suppliers AS s
     ON s.supplier_id = p.supplier_id
