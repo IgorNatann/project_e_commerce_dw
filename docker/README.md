@@ -46,7 +46,7 @@ Servicos esperados:
 Principais variaveis:
 
 - `MSSQL_SA_PASSWORD`
-- `MSSQL_MONITOR_PASSWORD` (usuario `etl_monitor` usado no Streamlit e no ETL de `dim_cliente`/`dim_produto`)
+- `MSSQL_MONITOR_PASSWORD` (usuario `etl_monitor` usado no Streamlit e no ETL das entidades monitoradas)
 - `MSSQL_BACKUP_PASSWORD`
 - `CONNECTION_AUDIT_RETENTION_DAYS`
 - `BACKUP_INTERVAL_HOURS`
@@ -96,4 +96,5 @@ Observacao de auditoria:
 ```powershell
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
 ```

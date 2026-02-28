@@ -247,6 +247,8 @@ def _suggest_connection_fix(error_text: str) -> list[str]:
         suggestions.append("Tabela de origem `core.customers` indisponivel. Execute bootstrap OLTP ou valide permissoes no OLTP.")
     if "CORE.PRODUCTS" in upper_error:
         suggestions.append("Tabela de origem `core.products` indisponivel. Execute bootstrap OLTP ou valide permissoes no OLTP.")
+    if "CORE.DISCOUNT_CAMPAIGNS" in upper_error:
+        suggestions.append("Tabela de origem `core.discount_campaigns` indisponivel. Execute bootstrap OLTP ou valide permissoes no OLTP.")
     if "PERMISSION" in upper_error or "DENIED" in upper_error:
         suggestions.append("Permissao insuficiente para consulta. Revise grants do usuario de monitoramento.")
 
@@ -254,6 +256,175 @@ def _suggest_connection_fix(error_text: str) -> list[str]:
         suggestions.append("Revise a string de conexao e confirme que os scripts SQL de controle ETL foram executados.")
 
     return suggestions
+
+
+def _extract_constraint_name(error_text: str) -> str | None:
+    match = re.search(r'constraint\s+"([^"]+)"', error_text, flags=re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def _extract_object_name(error_text: str) -> str | None:
+    match = re.search(r"object\s+'([^']+)'", error_text, flags=re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def _extract_column_name(error_text: str) -> str | None:
+    match = re.search(r"column\s+'([^']+)'", error_text, flags=re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return None
+
+
+def _compact_error_signature(error_text: str, limit: int = 140) -> str:
+    compact = " ".join(str(error_text or "").split())
+    if len(compact) <= limit:
+        return compact
+    return compact[: limit - 3] + "..."
+
+
+def _classify_error_message(error_message: Any) -> dict[str, str]:
+    text = str(error_message or "").strip()
+    if not text:
+        return {
+            "error_category": "sem_mensagem",
+            "error_reason": "Falha sem mensagem detalhada.",
+            "suggested_action": "Reexecutar com logs detalhados e revisar audit.etl_run_entity.",
+            "error_signature": "(sem mensagem)",
+        }
+
+    upper_text = text.upper()
+    constraint_name = _extract_constraint_name(text)
+    object_name = _extract_object_name(text)
+    column_name = _extract_column_name(text)
+
+    if "ENTIDADE '" in upper_text and "CTL.ETL_CONTROL" in upper_text:
+        return {
+            "error_category": "config_controle",
+            "error_reason": "Entidade inativa ou ausente no ctl.etl_control.",
+            "suggested_action": "Cadastrar/ativar a entidade em ctl.etl_control e validar source/target.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "CHECK CONSTRAINT" in upper_text or "CK_" in upper_text:
+        detail = f" ({constraint_name})" if constraint_name else ""
+        if column_name:
+            detail += f" coluna {column_name}"
+        return {
+            "error_category": "constraint_check",
+            "error_reason": f"Violacao de regra de dominio (CHECK){detail}.",
+            "suggested_action": "Ajustar normalizacao/transformacao para respeitar dominio da coluna.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "FOREIGN KEY CONSTRAINT" in upper_text or "FK_" in upper_text:
+        detail = f" ({constraint_name})" if constraint_name else ""
+        return {
+            "error_category": "constraint_fk",
+            "error_reason": f"Chave estrangeira invalida{detail}.",
+            "suggested_action": "Garantir carga da dimensao pai antes da filha e revisar lookups de chave.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if (
+        "UNIQUE CONSTRAINT" in upper_text
+        or "DUPLICATE KEY" in upper_text
+        or "CANNOT INSERT DUPLICATE KEY" in upper_text
+        or "UQ_" in upper_text
+    ):
+        detail = f" ({constraint_name})" if constraint_name else ""
+        return {
+            "error_category": "constraint_unique",
+            "error_reason": f"Duplicidade em chave unica{detail}.",
+            "suggested_action": "Revisar chave natural, deduplicacao e logica de MERGE/upsert.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "PERMISSION" in upper_text or "DENIED" in upper_text:
+        target = f" no objeto {object_name}" if object_name else ""
+        return {
+            "error_category": "permissao",
+            "error_reason": f"Permissao insuficiente{target}.",
+            "suggested_action": "Aplicar GRANT necessario ao usuario tecnico (etl_monitor).",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "INVALID OBJECT NAME" in upper_text:
+        return {
+            "error_category": "objeto_ausente",
+            "error_reason": "Objeto SQL ausente no banco alvo/origem.",
+            "suggested_action": "Executar scripts DDL/contrato da entidade e validar schema.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "HYT00" in upper_text or "TIMEOUT" in upper_text:
+        return {
+            "error_category": "timeout",
+            "error_reason": "Tempo limite excedido na operacao SQL.",
+            "suggested_action": "Aumentar timeout, reduzir batch e verificar performance/lock.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "IM002" in upper_text:
+        return {
+            "error_category": "driver",
+            "error_reason": "Driver ODBC nao encontrado no ambiente.",
+            "suggested_action": "Configurar ETL_SQL_DRIVER com driver instalado (ODBC 17/18).",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "08001" in upper_text or "SERVER DOES NOT EXIST" in upper_text:
+        return {
+            "error_category": "conexao",
+            "error_reason": "Falha de conexao com o SQL Server.",
+            "suggested_action": "Validar host/porta, disponibilidade da instancia e firewall.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "LOGIN FAILED" in upper_text or "28000" in upper_text:
+        return {
+            "error_category": "autenticacao",
+            "error_reason": "Credenciais invalidas para conexao SQL.",
+            "suggested_action": "Revisar usuario/senha e permissoes do login tecnico.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "CONVERSION" in upper_text or "CAST" in upper_text or "TYPEERROR" in upper_text:
+        return {
+            "error_category": "conversao",
+            "error_reason": "Erro de conversao de tipo durante transformacao/carga.",
+            "suggested_action": "Ajustar cast/normalizacao e tratar nulos/formatos invalidos.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    if "DEADLOCK" in upper_text:
+        return {
+            "error_category": "deadlock",
+            "error_reason": "Conflito concorrente (deadlock) na execucao.",
+            "suggested_action": "Reexecutar com retry e ajustar ordem/transacao de escrita.",
+            "error_signature": _compact_error_signature(text),
+        }
+
+    return {
+        "error_category": "outros",
+        "error_reason": "Falha nao classificada automaticamente.",
+        "suggested_action": "Inspecionar a mensagem tecnica e criar regra de classificacao especifica.",
+        "error_signature": _compact_error_signature(text),
+    }
+
+
+def _enrich_failure_dataframe(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty or "error_message" not in df.columns:
+        return df
+
+    enriched = df.copy()
+    diagnostics = enriched["error_message"].apply(_classify_error_message).apply(pd.Series)
+    for col in diagnostics.columns:
+        enriched[col] = diagnostics[col]
+    return enriched
 
 
 def _fetch_df(sql: str, params: tuple[Any, ...] = ()) -> pd.DataFrame:
@@ -2125,35 +2296,30 @@ def get_etl_failure_summary(hours: int = 24) -> pd.DataFrame:
 @st.cache_data(ttl=5)
 def get_etl_error_taxonomy(days: int = 14) -> pd.DataFrame:
     query = """
-    WITH failures AS
-    (
-        SELECT
-            entity_name,
-            error_message,
-            CASE
-                WHEN error_message IS NULL OR LTRIM(RTRIM(error_message)) = '' THEN 'sem_mensagem'
-                WHEN LOWER(error_message) LIKE '%timeout%' OR LOWER(error_message) LIKE '%hyt00%' THEN 'timeout'
-                WHEN LOWER(error_message) LIKE '%permission%' OR LOWER(error_message) LIKE '%denied%' THEN 'permissao'
-                WHEN LOWER(error_message) LIKE '%invalid object name%' THEN 'objeto_ausente'
-                WHEN LOWER(error_message) LIKE '%deadlock%' THEN 'deadlock'
-                WHEN LOWER(error_message) LIKE '%constraint%' OR LOWER(error_message) LIKE '%unique%' OR LOWER(error_message) LIKE '%foreign key%' THEN 'constraint'
-                WHEN LOWER(error_message) LIKE '%conversion%' OR LOWER(error_message) LIKE '%cast%' OR LOWER(error_message) LIKE '%typeerror%' THEN 'conversao'
-                ELSE 'outros'
-            END AS error_category
-        FROM audit.etl_run_entity
-        WHERE status = 'failed'
-          AND entity_started_at >= DATEADD(DAY, -?, SYSUTCDATETIME())
-    )
     SELECT
-        error_category,
-        COUNT(*) AS total_errors,
-        COUNT(DISTINCT entity_name) AS entities_affected,
-        MAX(ISNULL(NULLIF(LTRIM(RTRIM(error_message)), ''), '(sem mensagem)')) AS sample_error
-    FROM failures
-    GROUP BY error_category
-    ORDER BY total_errors DESC, error_category ASC;
+        run_entity_id,
+        entity_name,
+        error_message
+    FROM audit.etl_run_entity
+    WHERE status = 'failed'
+      AND entity_started_at >= DATEADD(DAY, -?, SYSUTCDATETIME());
     """
-    return _fetch_df(query, (int(days),))
+    failures_df = _fetch_df(query, (int(days),))
+    if failures_df.empty:
+        return failures_df
+
+    failures_df = _enrich_failure_dataframe(failures_df)
+    grouped = (
+        failures_df.groupby(["error_category", "error_reason", "suggested_action"], dropna=False)
+        .agg(
+            total_errors=("run_entity_id", "count"),
+            entities_affected=("entity_name", "nunique"),
+            sample_error=("error_signature", "first"),
+        )
+        .reset_index()
+        .sort_values(["total_errors", "error_category"], ascending=[False, True])
+    )
+    return grouped
 
 
 @st.cache_data(ttl=5)
@@ -2169,23 +2335,14 @@ def get_etl_failures_recent(limit: int = 120, days: int = 14) -> pd.DataFrame:
         extracted_count,
         upserted_count,
         soft_deleted_count,
-        CASE
-            WHEN error_message IS NULL OR LTRIM(RTRIM(error_message)) = '' THEN 'sem_mensagem'
-            WHEN LOWER(error_message) LIKE '%timeout%' OR LOWER(error_message) LIKE '%hyt00%' THEN 'timeout'
-            WHEN LOWER(error_message) LIKE '%permission%' OR LOWER(error_message) LIKE '%denied%' THEN 'permissao'
-            WHEN LOWER(error_message) LIKE '%invalid object name%' THEN 'objeto_ausente'
-            WHEN LOWER(error_message) LIKE '%deadlock%' THEN 'deadlock'
-            WHEN LOWER(error_message) LIKE '%constraint%' OR LOWER(error_message) LIKE '%unique%' OR LOWER(error_message) LIKE '%foreign key%' THEN 'constraint'
-            WHEN LOWER(error_message) LIKE '%conversion%' OR LOWER(error_message) LIKE '%cast%' OR LOWER(error_message) LIKE '%typeerror%' THEN 'conversao'
-            ELSE 'outros'
-        END AS error_category,
         error_message
     FROM audit.etl_run_entity
     WHERE status = 'failed'
       AND entity_started_at >= DATEADD(DAY, -?, SYSUTCDATETIME())
     ORDER BY run_entity_id DESC;
     """
-    return _fetch_df(query, (int(limit), int(days)))
+    failures_df = _fetch_df(query, (int(limit), int(days)))
+    return _enrich_failure_dataframe(failures_df)
 
 
 def _ensure_datetime_columns(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
@@ -2936,6 +3093,7 @@ def _render_failures_section(entity_runs_df: pd.DataFrame) -> None:
         st.success("Nenhuma falha encontrada no historico carregado.")
         return
 
+    failures = _enrich_failure_dataframe(failures)
     st.dataframe(
         failures[
             [
@@ -2943,6 +3101,10 @@ def _render_failures_section(entity_runs_df: pd.DataFrame) -> None:
                 "entity_name",
                 "entity_started_at",
                 "entity_finished_at",
+                "error_category",
+                "error_reason",
+                "suggested_action",
+                "error_signature",
                 "error_message",
             ]
         ],
@@ -3067,7 +3229,16 @@ def _render_connection_audit_section() -> None:
     if etl_error_taxonomy_df.empty:
         st.success("Nenhuma falha ETL registrada na janela de analise.")
     else:
-        st.dataframe(etl_error_taxonomy_df, use_container_width=True, hide_index=True)
+        ordered_cols = [
+            "error_category",
+            "error_reason",
+            "total_errors",
+            "entities_affected",
+            "suggested_action",
+            "sample_error",
+        ]
+        display_cols = [col for col in ordered_cols if col in etl_error_taxonomy_df.columns]
+        st.dataframe(etl_error_taxonomy_df[display_cols], use_container_width=True, hide_index=True)
 
     st.markdown("**Falhas ETL recentes (filtro tecnico)**")
     if etl_fail_recent_df.empty:
@@ -3101,6 +3272,9 @@ def _render_connection_audit_section() -> None:
                     "entity_started_at",
                     "entity_finished_at",
                     "error_category",
+                    "error_reason",
+                    "suggested_action",
+                    "error_signature",
                     "error_message",
                 ]
             ],

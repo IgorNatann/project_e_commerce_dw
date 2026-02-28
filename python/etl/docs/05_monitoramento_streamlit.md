@@ -8,8 +8,10 @@ Este dashboard mostra o estado do ETL em tempo quase real usando:
 - `audit.connection_login_events`
 - `dim.DIM_CLIENTE` (saude do alvo)
 - `dim.DIM_PRODUTO` (saude do alvo)
+- `dim.DIM_DESCONTO` (saude do alvo)
 - `core.customers` (amostra da origem)
 - `core.products` (amostra da origem)
+- `core.discount_campaigns` (amostra da origem)
 
 ## 1) Pre-requisitos
 
@@ -68,7 +70,7 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
    - falhas de run (24h)
    - status do ultimo run
 2. KPIs `OLTP -> DW`:
-   - cobertura `dim_cliente` e `dim_produto` (`target_total/source_total`)
+   - cobertura por entidade ativa (`target_total/source_total`)
    - pendencia incremental total (registros apos watermark)
    - latencia por entidade (diferenca entre `source_max_updated_at` e `target_max_updated_at`)
    - throughput medio (linhas por segundo) nas execucoes com sucesso (24h)
@@ -104,8 +106,8 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
 13. Auditoria tecnica consolidada:
    - filtros por janela, login, programa, base e status
    - correlacao temporal entre eventos de conexao e falhas ETL
-   - taxonomia de erros ETL por tipo
-   - grade de falhas ETL recentes para troubleshooting
+   - taxonomia de erros ETL por tipo com motivo rapido e acao sugerida
+   - grade de falhas ETL recentes com assinatura tecnica para troubleshooting rapido
 
 ## 4) Uso recomendado
 
@@ -130,7 +132,7 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
 1. `Conexao DW = OK`
 2. `Conexao OLTP = OK`
 3. `Dim Cliente pronta = OK`
-4. `dim_cliente ativa = OK`
+4. `pelo menos 1 entidade ativa = OK`
 5. sem erro no bloco de pre-flight
 
 ## 7) Blocos adicionais (escopo atual)
