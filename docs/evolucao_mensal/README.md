@@ -2,6 +2,10 @@
 
 Relatorios mensais gerados a partir do historico Git.
 
+## Nota de infra
+
+Este fluxo e independente da stack Docker (`docker/up_stack.ps1`).
+
 ## Como Atualizar
 
 Mensal incremental (recomendado):

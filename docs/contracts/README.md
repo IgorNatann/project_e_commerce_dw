@@ -1,18 +1,17 @@
-# Contratos de Dados - Fases 0 a 2
+# Contratos de dados (OLTP -> DW)
 
-Esta pasta armazena o contrato de dados para integracao OLTP -> DW.
-O objetivo e manter o processo simples, explicito e versionado em git.
+Esta pasta versiona o contrato de dados usado pela esteira ETL.
 
-## Escopo (Fases 0 a 2)
+## Relacao com a nova infra Docker
 
-- Definir regras globais do contrato.
-- Definir contratos de origem para entidades OLTP principais.
-- Definir baseline de mapeamento OLTP -> DW.
-- Definir regras minimas de qualidade de dados.
-- Definir regras de transformacao para carga no DW.
-- Definir tratamento de chave desconhecida no DW.
+A stack Docker (`docker/up_stack.ps1`) ja sobe um baseline funcional para `dim_cliente`.
+Este baseline depende dos contratos desta pasta para manter consistencia entre:
 
-## Estrutura de Pastas
+- origem OLTP (`core.customers`)
+- destino DW (`dim.DIM_CLIENTE`)
+- regras de transformacao e qualidade
+
+## Estrutura
 
 ```text
 docs/contracts/
@@ -34,17 +33,21 @@ docs/contracts/
     `-- entity_contract_template.md
 ```
 
-## Fluxo de Atualizacao
+## Fluxo de atualizacao
 
-1. Alterar schema de origem (`sql/oltp/...`) ou logica de ETL.
-2. Atualizar o contrato da entidade impactada em `docs/contracts/oltp/`.
-3. Atualizar `mapping/oltp_to_dw_mapping.csv` se o mapeamento de destino mudar.
-4. Adicionar ou ajustar regra em `quality/dq_rules.md`, quando necessario.
-5. Incluir a atualizacao no mesmo PR da mudanca tecnica.
+1. Alterar schema SQL ou logica ETL.
+2. Atualizar contrato da entidade impactada.
+3. Atualizar mapeamento OLTP -> DW, se necessario.
+4. Atualizar regra de qualidade, se necessario.
+5. Commitar junto da mudanca tecnica.
 
-## Regras Gerais
+## Regras base
 
-- Nao remover colunas dos contratos sem nota de migracao.
-- Usar `updated_at + id` como baseline de extracao incremental.
-- Manter timezone em UTC.
-- Preferir evolucao aditiva (novas colunas anulaveis) em vez de quebra de contrato.
+- Nao remover coluna de contrato sem nota de migracao.
+- Manter padrao incremental `updated_at + id`.
+- Manter timestamps em UTC.
+- Preferir evolucao aditiva para reduzir quebra de compatibilidade.
+
+## Escopo atual
+
+A validacao operacional esta focada em `dim_cliente`; proximas entidades seguem o mesmo padrao de contrato.

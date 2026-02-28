@@ -2,6 +2,10 @@
 
 Consolidado de marcos tecnicos do projeto.
 
+## Nota de infra
+
+Este fluxo e independente da stack Docker (`docker/up_stack.ps1`).
+
 - Arquivo principal: [MARCOS.md](MARCOS.md)
 
 Atualize com:

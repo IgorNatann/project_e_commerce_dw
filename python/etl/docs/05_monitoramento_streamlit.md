@@ -5,39 +5,60 @@ Este dashboard mostra o estado do ETL em tempo quase real usando:
 - `ctl.etl_control`
 - `audit.etl_run`
 - `audit.etl_run_entity`
+- `audit.connection_login_events`
+- `dim.DIM_CLIENTE` (saude do alvo)
+- `core.customers` (amostra da origem)
 
 ## 1) Pre-requisitos
 
-1. Dependencias instaladas:
+1. Stack Docker ativa (recomendado):
 
 ```powershell
-pip install -r python/requirements.txt
+powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 ```
 
-2. Variaveis de ambiente do DW configuradas (mesmas do ETL):
+2. Dependencias locais (somente se for rodar Streamlit fora do container):
 
 ```powershell
-$env:ETL_DW_CONN_STR = "Driver={ODBC Driver 17 for SQL Server};Server=localhost,1433;Database=DW_ECOMMERCE;Trusted_Connection=yes;TrustServerCertificate=yes;"
+pip install -r python/etl/monitoring/requirements.txt
 ```
 
-Ou usando variaveis separadas:
+3. Variaveis de ambiente (somente modo local):
 
 ```powershell
-$env:ETL_SQL_DRIVER = "ODBC Driver 17 for SQL Server"
+$env:ETL_SQL_DRIVER = "ODBC Driver 18 for SQL Server"
 $env:ETL_SQL_SERVER = "localhost"
 $env:ETL_SQL_PORT = "1433"
+$env:ETL_SQL_USER = "etl_monitor"
+$env:ETL_SQL_PASSWORD = "<senha de MSSQL_MONITOR_PASSWORD>"
 $env:ETL_DW_DB = "DW_ECOMMERCE"
+$env:ETL_OLTP_DB = "ECOMMERCE_OLTP"
 ```
 
-> Observacao: o app aceita `ODBC Driver 18` ou `17`. Se `ETL_SQL_DRIVER` nao for informado, ele tenta detectar automaticamente.
+> Observacao: o app aceita `ODBC Driver 18` ou `17`.
 
 ## 2) Executar dashboard
+
+Via Docker (ja sobe automaticamente no `up_stack.ps1`):
+
+- `http://localhost:8501`
+
+Via local:
 
 ```powershell
 streamlit run python/etl/monitoring/app.py
 ```
 
 ## 3) O que voce acompanha
+
+Navegacao lateral por paginas:
+
+- `Resumo operacional`
+- `Saude dim_cliente`
+- `Runs e controle`
+- `Auditoria de conexoes`
+
+Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readiness.
 
 1. Cards de resumo:
    - entidades ativas
@@ -56,7 +77,7 @@ streamlit run python/etl/monitoring/app.py
 ## 4) Uso recomendado
 
 1. Abra o dashboard e valide o bloco **Pre-flight de monitoramento**.
-2. Garanta status `Pronto para 1o run = OK`.
+2. Garanta status `Dim Cliente pronta = OK`.
 3. Rode o ETL (`run_etl.py`).
 4. Atualize o dashboard no botao `Atualizar agora`.
 5. Em caso de falha:
@@ -74,7 +95,19 @@ streamlit run python/etl/monitoring/app.py
 ## 6) Checklist rapido antes do primeiro run
 
 1. `Conexao DW = OK`
-2. `Objetos monitoria = OK`
-3. `Pronto para 1o run = OK`
-4. `entities ativas > 0` em `ctl.etl_control`
+2. `Conexao OLTP = OK`
+3. `Dim Cliente pronta = OK`
+4. `dim_cliente ativa = OK`
 5. sem erro no bloco de pre-flight
+
+## 7) Blocos adicionais (escopo dim_cliente)
+
+1. **Saude da dim_cliente**
+   - volume fonte vs alvo
+   - watermark atual da entidade
+   - checks basicos de qualidade (email/estado)
+   - amostra recente da origem `core.customers`
+2. **Auditoria de conexoes SQL**
+   - eventos por hora (24h)
+   - top logins (24h)
+   - tabela de eventos recentes de conexao

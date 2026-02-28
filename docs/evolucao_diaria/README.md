@@ -2,6 +2,10 @@
 
 Relatorios diarios gerados a partir do historico Git do repositorio.
 
+## Nota de infra
+
+Este fluxo e independente da stack Docker (`docker/up_stack.ps1`).
+
 Guia do gerador: [SOBRE_GERADOR.md](SOBRE_GERADOR.md)
 
 ## Como Atualizar

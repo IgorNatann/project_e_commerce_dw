@@ -1,0 +1,196 @@
+name: dw_stack
+
+services:
+  sql-volume-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dw_sql_volume_init
+    user: "0:0"
+    restart: "no"
+    command:
+      - /bin/bash
+      - -lc
+      - |
+        set -euo pipefail
+        mkdir -p \
+          /var/opt/mssql/.system \
+          /var/opt/mssql/data \
+          /var/opt/mssql/log \
+          /var/opt/mssql/secrets \
+          /var/opt/mssql/backup \
+          /var/opt/mssql/audit
+        chown -R 10001:10001 /var/opt/mssql/.system /var/opt/mssql/data /var/opt/mssql/log /var/opt/mssql/secrets /var/opt/mssql/backup /var/opt/mssql/audit
+        chmod 770 /var/opt/mssql/.system /var/opt/mssql/data /var/opt/mssql/log /var/opt/mssql/secrets /var/opt/mssql/backup /var/opt/mssql/audit
+    volumes:
+      - sqlserver_system:/var/opt/mssql/.system
+      - sqlserver_data:/var/opt/mssql/data
+      - sqlserver_log:/var/opt/mssql/log
+      - sqlserver_secrets:/var/opt/mssql/secrets
+      - sqlserver_backup:/var/opt/mssql/backup
+      - sqlserver_audit:/var/opt/mssql/audit
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dw_sqlserver
+    restart: unless-stopped
+    depends_on:
+      sql-volume-init:
+        condition: service_completed_successfully
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_AGENT_ENABLED: "true"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+    ports:
+      - "${SQLSERVER_BIND_IP:-127.0.0.1}:${SQLSERVER_PORT:-1433}:1433"
+    volumes:
+      - sqlserver_system:/var/opt/mssql/.system
+      - sqlserver_data:/var/opt/mssql/data
+      - sqlserver_log:/var/opt/mssql/log
+      - sqlserver_secrets:/var/opt/mssql/secrets
+      - sqlserver_backup:/var/opt/mssql/backup
+      - sqlserver_audit:/var/opt/mssql/audit
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$${MSSQL_SA_PASSWORD}\" -Q \"SELECT 1\" || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  sql-init:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dw_sql_init
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
+      MSSQL_MONITOR_PASSWORD: "${MSSQL_MONITOR_PASSWORD}"
+      MSSQL_BACKUP_PASSWORD: "${MSSQL_BACKUP_PASSWORD}"
+      CONNECTION_AUDIT_RETENTION_DAYS: "${CONNECTION_AUDIT_RETENTION_DAYS:-30}"
+    volumes:
+      - ../:/workspace:ro
+    working_dir: /workspace
+    restart: "no"
+    command:
+      - /bin/bash
+      - -lc
+      - |
+        set -euo pipefail
+        SQLCMD="/opt/mssql-tools18/bin/sqlcmd -b -C -S sqlserver -U sa -P $${MSSQL_SA_PASSWORD}"
+
+        $${SQLCMD} -Q "IF DB_ID('DW_ECOMMERCE') IS NULL CREATE DATABASE DW_ECOMMERCE; IF DB_ID('ECOMMERCE_OLTP') IS NULL CREATE DATABASE ECOMMERCE_OLTP;"
+
+        # OLTP (fonte) - cria apenas no primeiro bootstrap para preservar dados em reinicios.
+        $${SQLCMD} -i /workspace/sql/oltp/00_setup/02_create_schemas.sql
+        if [ "$$($${SQLCMD} -d ECOMMERCE_OLTP -W -h -1 -Q "SET NOCOUNT ON; SELECT CASE WHEN OBJECT_ID('core.customers', 'U') IS NULL THEN 1 ELSE 0 END;" | tr -d '[:space:]')" = "1" ]; then
+          echo "OLTP bootstrap inicial: criando estrutura e seed."
+          $${SQLCMD} -i /workspace/sql/oltp/01_ddl/01_create_tables_core.sql
+          $${SQLCMD} -i /workspace/sql/oltp/02_seed/01_seed_base.sql
+          $${SQLCMD} -i /workspace/sql/oltp/02_seed/02_seed_incremental.sql
+        else
+          echo "OLTP bootstrap: estrutura existente, mantendo dados persistidos."
+        fi
+
+        # DW (alvo) - estrutura minima para dim_cliente.
+        $${SQLCMD} -i /workspace/sql/dw/01_setup/02_create_schemas.sql
+
+        if [ "$$($${SQLCMD} -d DW_ECOMMERCE -W -h -1 -Q "SET NOCOUNT ON; SELECT CASE WHEN OBJECT_ID('dim.DIM_CLIENTE', 'U') IS NULL THEN 1 ELSE 0 END;" | tr -d '[:space:]')" = "1" ]; then
+          $${SQLCMD} -i /workspace/sql/dw/02_ddl/dimensions/02_dim_cliente.sql
+        fi
+        $${SQLCMD} -i /workspace/sql/dw/03_etl_control/08_ensure_dim_cliente_contract.sql
+
+        # Controle ETL + auditoria.
+        $${SQLCMD} -i /workspace/sql/dw/03_etl_control/01_create_schema_ctl.sql
+        $${SQLCMD} -i /workspace/sql/dw/03_etl_control/02_create_etl_control.sql
+        $${SQLCMD} -i /workspace/sql/dw/03_etl_control/03_create_audit_etl_tables.sql
+        $${SQLCMD} -i /workspace/sql/dw/03_etl_control/04_seed_etl_control.sql
+        $${SQLCMD} -i /workspace/sql/dw/03_etl_control/05_create_connection_audit.sql
+        $${SQLCMD} -i /workspace/sql/dw/03_etl_control/06_configure_server_audit_file.sql
+        $${SQLCMD} -i /workspace/sql/dw/03_etl_control/07_activate_dim_cliente_scope.sql
+
+        $${SQLCMD} -Q "IF NOT EXISTS (SELECT 1 FROM sys.sql_logins WHERE name = 'etl_monitor') BEGIN CREATE LOGIN etl_monitor WITH PASSWORD = '$${MSSQL_MONITOR_PASSWORD}', CHECK_POLICY = ON; END ELSE BEGIN ALTER LOGIN etl_monitor WITH PASSWORD = '$${MSSQL_MONITOR_PASSWORD}'; END;"
+        $${SQLCMD} -Q "BEGIN TRY GRANT VIEW SERVER STATE TO etl_monitor; END TRY BEGIN CATCH END CATCH; BEGIN TRY GRANT VIEW SERVER PERFORMANCE STATE TO etl_monitor; END TRY BEGIN CATCH END CATCH;"
+        $${SQLCMD} -d DW_ECOMMERCE -Q "IF DATABASE_PRINCIPAL_ID('etl_monitor') IS NULL CREATE USER etl_monitor FOR LOGIN etl_monitor; GRANT SELECT, UPDATE ON SCHEMA::ctl TO etl_monitor; GRANT SELECT, INSERT, UPDATE ON SCHEMA::audit TO etl_monitor; GRANT SELECT ON SCHEMA::dim TO etl_monitor; IF OBJECT_ID('dim.DIM_CLIENTE','U') IS NOT NULL GRANT INSERT, UPDATE ON OBJECT::dim.DIM_CLIENTE TO etl_monitor; IF OBJECT_ID('audit.sp_capture_connection_snapshot','P') IS NOT NULL GRANT EXECUTE ON OBJECT::audit.sp_capture_connection_snapshot TO etl_monitor; IF OBJECT_ID('audit.sp_connection_audit_cleanup','P') IS NOT NULL GRANT EXECUTE ON OBJECT::audit.sp_connection_audit_cleanup TO etl_monitor; EXEC audit.sp_connection_audit_cleanup @retention_days = $${CONNECTION_AUDIT_RETENTION_DAYS}; EXEC audit.sp_capture_connection_snapshot;"
+        $${SQLCMD} -d ECOMMERCE_OLTP -Q "IF DATABASE_PRINCIPAL_ID('etl_monitor') IS NULL CREATE USER etl_monitor FOR LOGIN etl_monitor; GRANT SELECT ON SCHEMA::core TO etl_monitor;"
+
+        $${SQLCMD} -Q "IF NOT EXISTS (SELECT 1 FROM sys.sql_logins WHERE name = 'etl_backup') BEGIN CREATE LOGIN etl_backup WITH PASSWORD = '$${MSSQL_BACKUP_PASSWORD}', CHECK_POLICY = ON; END ELSE BEGIN ALTER LOGIN etl_backup WITH PASSWORD = '$${MSSQL_BACKUP_PASSWORD}'; END;"
+        $${SQLCMD} -d DW_ECOMMERCE -Q "IF DATABASE_PRINCIPAL_ID('etl_backup') IS NULL CREATE USER etl_backup FOR LOGIN etl_backup; IF IS_ROLEMEMBER('db_backupoperator', 'etl_backup') <> 1 ALTER ROLE db_backupoperator ADD MEMBER etl_backup;"
+        $${SQLCMD} -d ECOMMERCE_OLTP -Q "IF DATABASE_PRINCIPAL_ID('etl_backup') IS NULL CREATE USER etl_backup FOR LOGIN etl_backup; IF IS_ROLEMEMBER('db_backupoperator', 'etl_backup') <> 1 ALTER ROLE db_backupoperator ADD MEMBER etl_backup;"
+
+  sql-backup:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dw_sql_backup
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      sql-init:
+        condition: service_completed_successfully
+    environment:
+      MSSQL_BACKUP_PASSWORD: "${MSSQL_BACKUP_PASSWORD}"
+      MSSQL_MONITOR_PASSWORD: "${MSSQL_MONITOR_PASSWORD}"
+      BACKUP_INTERVAL_HOURS: "${BACKUP_INTERVAL_HOURS:-24}"
+      BACKUP_RETENTION_DAYS: "${BACKUP_RETENTION_DAYS:-14}"
+      CONNECTION_AUDIT_RETENTION_DAYS: "${CONNECTION_AUDIT_RETENTION_DAYS:-30}"
+    volumes:
+      - sqlserver_backup:/var/opt/mssql/backup
+    command:
+      - /bin/bash
+      - -lc
+      - |
+        set -euo pipefail
+        SQLCMD="/opt/mssql-tools18/bin/sqlcmd -C -S sqlserver -U etl_backup -P $${MSSQL_BACKUP_PASSWORD}"
+        MONITOR_SQLCMD="/opt/mssql-tools18/bin/sqlcmd -C -S sqlserver -U etl_monitor -P $${MSSQL_MONITOR_PASSWORD}"
+        interval_secs=$$(( $${BACKUP_INTERVAL_HOURS} * 3600 ))
+        if [ "$$interval_secs" -lt 3600 ]; then interval_secs=3600; fi
+
+        while true; do
+          stamp="$$(date -u +%Y%m%d_%H%M%S)"
+          $${SQLCMD} -Q "BACKUP DATABASE [DW_ECOMMERCE] TO DISK = N'/var/opt/mssql/backup/DW_ECOMMERCE_$${stamp}.bak' WITH COPY_ONLY, COMPRESSION, CHECKSUM, STATS = 5;"
+          $${SQLCMD} -Q "BACKUP DATABASE [ECOMMERCE_OLTP] TO DISK = N'/var/opt/mssql/backup/ECOMMERCE_OLTP_$${stamp}.bak' WITH COPY_ONLY, COMPRESSION, CHECKSUM, STATS = 5;"
+          $${MONITOR_SQLCMD} -d DW_ECOMMERCE -Q "IF OBJECT_ID('audit.sp_connection_audit_cleanup','P') IS NOT NULL EXEC audit.sp_connection_audit_cleanup @retention_days = $${CONNECTION_AUDIT_RETENTION_DAYS};" || true
+          find /var/opt/mssql/backup -type f -name '*.bak' -mtime +$${BACKUP_RETENTION_DAYS} -print -delete || true
+          sleep "$$interval_secs"
+        done
+
+  streamlit-monitor:
+    build:
+      context: ..
+      dockerfile: docker/streamlit-monitor.Dockerfile
+    container_name: dw_etl_monitor
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      sql-init:
+        condition: service_completed_successfully
+    environment:
+      ETL_SQL_DRIVER: "ODBC Driver 18 for SQL Server"
+      ETL_SQL_SERVER: "sqlserver"
+      ETL_SQL_PORT: "1433"
+      ETL_DW_DB: "DW_ECOMMERCE"
+      ETL_SQL_USER: "etl_monitor"
+      ETL_SQL_PASSWORD: "${MSSQL_MONITOR_PASSWORD}"
+      ETL_SQL_ENCRYPT: "yes"
+      ETL_SQL_TRUST_SERVER_CERTIFICATE: "yes"
+      ETL_SQL_TIMEOUT_SECONDS: "120"
+    ports:
+      - "${STREAMLIT_BIND_IP:-127.0.0.1}:${STREAMLIT_PORT:-8501}:8501"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8501/_stcore/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+volumes:
+  sqlserver_system:
+  sqlserver_data:
+  sqlserver_log:
+  sqlserver_secrets:
+  sqlserver_backup:
+  sqlserver_audit:
