@@ -146,6 +146,22 @@ def _capture_connection_snapshot(connection: Any) -> None:
         connection.rollback()
 
 
+def capture_connection_snapshot_now() -> tuple[bool, str | None]:
+    config = ETLConfig.from_env()
+    connection = None
+    try:
+        connection = connect_sqlserver(
+            config.dw_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+        _capture_connection_snapshot(connection)
+        return True, None
+    except Exception as exc:  # noqa: BLE001
+        return False, str(exc)
+    finally:
+        close_quietly(connection)
+
+
 @st.cache_data(ttl=20)
 def get_preflight_snapshot() -> dict[str, Any]:
     config = ETLConfig.from_env()
@@ -1675,6 +1691,147 @@ def get_connection_audit_hourly(hours: int = 24) -> pd.DataFrame:
     return _fetch_df(query, (int(hours),))
 
 
+@st.cache_data(ttl=5)
+def get_connection_audit_programs(hours: int = 24) -> pd.DataFrame:
+    query = """
+    SELECT
+        ISNULL(program_name, '(null)') AS program_name,
+        ISNULL(login_name, '(null)') AS login_name,
+        COUNT(*) AS total_events,
+        MAX(event_time_utc) AS last_event_utc
+    FROM audit.connection_login_events
+    WHERE event_time_utc >= DATEADD(HOUR, -?, SYSUTCDATETIME())
+    GROUP BY program_name, login_name
+    ORDER BY total_events DESC, program_name ASC, login_name ASC;
+    """
+    return _fetch_df(query, (int(hours),))
+
+
+@st.cache_data(ttl=5)
+def get_connection_audit_databases(hours: int = 24) -> pd.DataFrame:
+    query = """
+    SELECT
+        ISNULL(database_name, '(null)') AS database_name,
+        COUNT(*) AS total_events,
+        MAX(event_time_utc) AS last_event_utc
+    FROM audit.connection_login_events
+    WHERE event_time_utc >= DATEADD(HOUR, -?, SYSUTCDATETIME())
+    GROUP BY database_name
+    ORDER BY total_events DESC, database_name ASC;
+    """
+    return _fetch_df(query, (int(hours),))
+
+
+@st.cache_data(ttl=5)
+def get_connection_audit_statuses(hours: int = 24) -> pd.DataFrame:
+    query = """
+    SELECT
+        ISNULL(status, '(null)') AS status,
+        COUNT(*) AS total_events
+    FROM audit.connection_login_events
+    WHERE event_time_utc >= DATEADD(HOUR, -?, SYSUTCDATETIME())
+    GROUP BY status
+    ORDER BY total_events DESC, status ASC;
+    """
+    return _fetch_df(query, (int(hours),))
+
+
+@st.cache_data(ttl=5)
+def get_etl_failures_hourly(hours: int = 24) -> pd.DataFrame:
+    query = """
+    SELECT
+        DATEADD(HOUR, DATEDIFF(HOUR, 0, entity_started_at), 0) AS event_hour_utc,
+        COUNT(*) AS failed_entities
+    FROM audit.etl_run_entity
+    WHERE status = 'failed'
+      AND entity_started_at >= DATEADD(HOUR, -?, SYSUTCDATETIME())
+    GROUP BY DATEADD(HOUR, DATEDIFF(HOUR, 0, entity_started_at), 0)
+    ORDER BY event_hour_utc ASC;
+    """
+    return _fetch_df(query, (int(hours),))
+
+
+@st.cache_data(ttl=5)
+def get_etl_failure_summary(hours: int = 24) -> pd.DataFrame:
+    query = """
+    SELECT
+        COUNT(*) AS total_failed_entities,
+        COUNT(DISTINCT entity_name) AS failed_entities_distinct,
+        COUNT(DISTINCT run_id) AS failed_runs_distinct,
+        MAX(entity_started_at) AS last_failed_at
+    FROM audit.etl_run_entity
+    WHERE status = 'failed'
+      AND entity_started_at >= DATEADD(HOUR, -?, SYSUTCDATETIME());
+    """
+    return _fetch_df(query, (int(hours),))
+
+
+@st.cache_data(ttl=5)
+def get_etl_error_taxonomy(days: int = 14) -> pd.DataFrame:
+    query = """
+    WITH failures AS
+    (
+        SELECT
+            entity_name,
+            error_message,
+            CASE
+                WHEN error_message IS NULL OR LTRIM(RTRIM(error_message)) = '' THEN 'sem_mensagem'
+                WHEN LOWER(error_message) LIKE '%timeout%' OR LOWER(error_message) LIKE '%hyt00%' THEN 'timeout'
+                WHEN LOWER(error_message) LIKE '%permission%' OR LOWER(error_message) LIKE '%denied%' THEN 'permissao'
+                WHEN LOWER(error_message) LIKE '%invalid object name%' THEN 'objeto_ausente'
+                WHEN LOWER(error_message) LIKE '%deadlock%' THEN 'deadlock'
+                WHEN LOWER(error_message) LIKE '%constraint%' OR LOWER(error_message) LIKE '%unique%' OR LOWER(error_message) LIKE '%foreign key%' THEN 'constraint'
+                WHEN LOWER(error_message) LIKE '%conversion%' OR LOWER(error_message) LIKE '%cast%' OR LOWER(error_message) LIKE '%typeerror%' THEN 'conversao'
+                ELSE 'outros'
+            END AS error_category
+        FROM audit.etl_run_entity
+        WHERE status = 'failed'
+          AND entity_started_at >= DATEADD(DAY, -?, SYSUTCDATETIME())
+    )
+    SELECT
+        error_category,
+        COUNT(*) AS total_errors,
+        COUNT(DISTINCT entity_name) AS entities_affected,
+        MAX(ISNULL(NULLIF(LTRIM(RTRIM(error_message)), ''), '(sem mensagem)')) AS sample_error
+    FROM failures
+    GROUP BY error_category
+    ORDER BY total_errors DESC, error_category ASC;
+    """
+    return _fetch_df(query, (int(days),))
+
+
+@st.cache_data(ttl=5)
+def get_etl_failures_recent(limit: int = 120, days: int = 14) -> pd.DataFrame:
+    query = """
+    SELECT TOP (?)
+        run_entity_id,
+        run_id,
+        entity_name,
+        entity_started_at,
+        entity_finished_at,
+        status,
+        extracted_count,
+        upserted_count,
+        soft_deleted_count,
+        CASE
+            WHEN error_message IS NULL OR LTRIM(RTRIM(error_message)) = '' THEN 'sem_mensagem'
+            WHEN LOWER(error_message) LIKE '%timeout%' OR LOWER(error_message) LIKE '%hyt00%' THEN 'timeout'
+            WHEN LOWER(error_message) LIKE '%permission%' OR LOWER(error_message) LIKE '%denied%' THEN 'permissao'
+            WHEN LOWER(error_message) LIKE '%invalid object name%' THEN 'objeto_ausente'
+            WHEN LOWER(error_message) LIKE '%deadlock%' THEN 'deadlock'
+            WHEN LOWER(error_message) LIKE '%constraint%' OR LOWER(error_message) LIKE '%unique%' OR LOWER(error_message) LIKE '%foreign key%' THEN 'constraint'
+            WHEN LOWER(error_message) LIKE '%conversion%' OR LOWER(error_message) LIKE '%cast%' OR LOWER(error_message) LIKE '%typeerror%' THEN 'conversao'
+            ELSE 'outros'
+        END AS error_category,
+        error_message
+    FROM audit.etl_run_entity
+    WHERE status = 'failed'
+      AND entity_started_at >= DATEADD(DAY, -?, SYSUTCDATETIME())
+    ORDER BY run_entity_id DESC;
+    """
+    return _fetch_df(query, (int(limit), int(days)))
+
+
 def _ensure_datetime_columns(df: pd.DataFrame, columns: list[str]) -> pd.DataFrame:
     if df.empty:
         return df
@@ -2441,33 +2598,189 @@ def _render_failures_section(entity_runs_df: pd.DataFrame) -> None:
 
 
 def _render_connection_audit_section() -> None:
-    st.subheader("Auditoria de conexoes SQL")
-    conn_col_1, conn_col_2 = st.columns(2)
-    with conn_col_1:
-        st.markdown("**Eventos por hora (ultimas 24h)**")
-        hourly_df = _ensure_datetime_columns(get_connection_audit_hourly(24), ["event_hour_utc"])
-        if hourly_df.empty:
-            st.info("Sem eventos de conexao capturados no periodo.")
-        else:
-            chart_df = hourly_df.set_index("event_hour_utc")[["total_events"]]
-            st.line_chart(chart_df)
-    with conn_col_2:
-        st.markdown("**Top logins (ultimas 24h)**")
-        login_df = _ensure_datetime_columns(get_connection_audit_logins(24), ["last_event_utc"])
-        if login_df.empty:
-            st.info("Sem eventos de login no periodo.")
-        else:
-            st.dataframe(login_df, use_container_width=True, hide_index=True)
+    st.subheader("Auditoria tecnica consolidada")
 
-    st.markdown("**Eventos recentes de conexao**")
+    c1, c2, c3, c4 = st.columns([1, 1, 1, 1.2])
+    with c1:
+        hours_window = st.select_slider(
+            "Janela (horas)",
+            options=[6, 12, 24, 48, 72, 168],
+            value=24,
+        )
+    with c2:
+        recent_limit = st.select_slider(
+            "Limite eventos",
+            options=[100, 150, 300, 500, 1000],
+            value=300,
+        )
+    with c3:
+        failure_days = st.select_slider(
+            "Janela erros (dias)",
+            options=[3, 7, 14, 30],
+            value=14,
+        )
+    with c4:
+        if st.button("Capturar snapshot agora"):
+            ok, error_text = capture_connection_snapshot_now()
+            if ok:
+                st.cache_data.clear()
+                st.success("Snapshot de conexoes capturado.")
+            else:
+                st.warning("Falha ao capturar snapshot de conexoes.")
+                if error_text:
+                    st.code(error_text)
+
+    conn_hourly_df = _ensure_datetime_columns(get_connection_audit_hourly(hours_window), ["event_hour_utc"])
+    conn_logins_df = _ensure_datetime_columns(get_connection_audit_logins(hours_window), ["last_event_utc"])
+    conn_programs_df = _ensure_datetime_columns(get_connection_audit_programs(hours_window), ["last_event_utc"])
+    conn_databases_df = _ensure_datetime_columns(get_connection_audit_databases(hours_window), ["last_event_utc"])
+    conn_status_df = get_connection_audit_statuses(hours_window)
     conn_recent_df = _ensure_datetime_columns(
-        get_connection_audit_recent(150),
+        get_connection_audit_recent(recent_limit),
         ["event_time_utc", "login_time"],
     )
+    etl_fail_hourly_df = _ensure_datetime_columns(get_etl_failures_hourly(hours_window), ["event_hour_utc"])
+    etl_fail_summary_df = _ensure_datetime_columns(get_etl_failure_summary(hours_window), ["last_failed_at"])
+    etl_error_taxonomy_df = get_etl_error_taxonomy(failure_days)
+    etl_fail_recent_df = _ensure_datetime_columns(
+        get_etl_failures_recent(200, failure_days),
+        ["entity_started_at", "entity_finished_at"],
+    )
+
+    total_conn_events = int(conn_status_df["total_events"].sum()) if not conn_status_df.empty else 0
+    unique_logins = int(conn_recent_df["login_name"].astype(str).nunique()) if not conn_recent_df.empty else 0
+    unique_hosts = int(conn_recent_df["host_name"].astype(str).nunique()) if not conn_recent_df.empty else 0
+    failed_entities = 0
+    last_failed_at = None
+    if not etl_fail_summary_df.empty:
+        failed_entities = _to_int(etl_fail_summary_df.iloc[0].get("total_failed_entities"), 0)
+        last_failed_at = etl_fail_summary_df.iloc[0].get("last_failed_at")
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Eventos conexao (janela)", total_conn_events)
+    m2.metric("Logins unicos", unique_logins)
+    m3.metric("Hosts unicos", unique_hosts)
+    m4.metric("Falhas ETL (janela)", failed_entities)
+
+    st.caption(f"Ultima falha ETL na janela: `{last_failed_at}`")
+
+    st.markdown("**Correlacao temporal: conexoes x falhas ETL**")
+    if conn_hourly_df.empty and etl_fail_hourly_df.empty:
+        st.info("Sem eventos para correlacao temporal nesta janela.")
+    else:
+        chart_df = pd.DataFrame()
+        if not conn_hourly_df.empty:
+            chart_df = conn_hourly_df.rename(columns={"total_events": "conexoes"}).copy()
+        if not etl_fail_hourly_df.empty:
+            if chart_df.empty:
+                chart_df = etl_fail_hourly_df.rename(columns={"failed_entities": "falhas_etl"}).copy()
+            else:
+                chart_df = chart_df.merge(
+                    etl_fail_hourly_df.rename(columns={"failed_entities": "falhas_etl"}),
+                    on="event_hour_utc",
+                    how="outer",
+                )
+        chart_df = chart_df.sort_values("event_hour_utc").fillna(0)
+        for col in ["conexoes", "falhas_etl"]:
+            if col not in chart_df.columns:
+                chart_df[col] = 0
+        st.line_chart(chart_df.set_index("event_hour_utc")[["conexoes", "falhas_etl"]])
+
+    st.markdown("**Top visoes tecnicas de conexao**")
+    tabs = st.tabs(["Top logins", "Programas", "Bases", "Status"])
+    with tabs[0]:
+        if conn_logins_df.empty:
+            st.info("Sem eventos por login na janela.")
+        else:
+            st.dataframe(conn_logins_df, use_container_width=True, hide_index=True)
+    with tabs[1]:
+        if conn_programs_df.empty:
+            st.info("Sem eventos por programa na janela.")
+        else:
+            st.dataframe(conn_programs_df, use_container_width=True, hide_index=True)
+    with tabs[2]:
+        if conn_databases_df.empty:
+            st.info("Sem eventos por base na janela.")
+        else:
+            st.dataframe(conn_databases_df, use_container_width=True, hide_index=True)
+    with tabs[3]:
+        if conn_status_df.empty:
+            st.info("Sem eventos por status na janela.")
+        else:
+            st.dataframe(conn_status_df, use_container_width=True, hide_index=True)
+
+    st.markdown("**Falhas ETL por tipo de erro**")
+    if etl_error_taxonomy_df.empty:
+        st.success("Nenhuma falha ETL registrada na janela de analise.")
+    else:
+        st.dataframe(etl_error_taxonomy_df, use_container_width=True, hide_index=True)
+
+    st.markdown("**Falhas ETL recentes (filtro tecnico)**")
+    if etl_fail_recent_df.empty:
+        st.info("Sem falhas ETL recentes para exibir.")
+    else:
+        category_options = sorted(etl_fail_recent_df["error_category"].astype(str).unique().tolist())
+        entity_options = sorted(etl_fail_recent_df["entity_name"].astype(str).unique().tolist())
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            selected_categories = st.multiselect(
+                "Filtrar categoria de erro",
+                options=category_options,
+                default=category_options,
+            )
+        with col_f2:
+            selected_entities = st.multiselect(
+                "Filtrar entidade",
+                options=entity_options,
+                default=entity_options,
+            )
+
+        filtered_fail_df = etl_fail_recent_df[
+            etl_fail_recent_df["error_category"].astype(str).isin(selected_categories)
+            & etl_fail_recent_df["entity_name"].astype(str).isin(selected_entities)
+        ].copy()
+        st.dataframe(
+            filtered_fail_df[
+                [
+                    "run_id",
+                    "entity_name",
+                    "entity_started_at",
+                    "entity_finished_at",
+                    "error_category",
+                    "error_message",
+                ]
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    st.markdown("**Eventos de conexao recentes (filtro tecnico)**")
     if conn_recent_df.empty:
         st.info("Nenhum evento recente de conexao.")
-    else:
-        st.dataframe(conn_recent_df, use_container_width=True, hide_index=True)
+        return
+
+    login_opts = sorted(conn_recent_df["login_name"].astype(str).unique().tolist())
+    program_opts = sorted(conn_recent_df["program_name"].astype(str).unique().tolist())
+    database_opts = sorted(conn_recent_df["database_name"].astype(str).unique().tolist())
+    status_opts = sorted(conn_recent_df["status"].astype(str).unique().tolist())
+
+    flt1, flt2, flt3, flt4 = st.columns(4)
+    with flt1:
+        selected_logins = st.multiselect("Login", options=login_opts, default=login_opts)
+    with flt2:
+        selected_programs = st.multiselect("Programa", options=program_opts, default=program_opts)
+    with flt3:
+        selected_databases = st.multiselect("Database", options=database_opts, default=database_opts)
+    with flt4:
+        selected_status = st.multiselect("Status conexao", options=status_opts, default=status_opts)
+
+    filtered_conn_df = conn_recent_df[
+        conn_recent_df["login_name"].astype(str).isin(selected_logins)
+        & conn_recent_df["program_name"].astype(str).isin(selected_programs)
+        & conn_recent_df["database_name"].astype(str).isin(selected_databases)
+        & conn_recent_df["status"].astype(str).isin(selected_status)
+    ].copy()
+    st.dataframe(filtered_conn_df, use_container_width=True, hide_index=True)
 
 
 def render_dashboard() -> None:
