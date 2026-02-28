@@ -1,11 +1,12 @@
 # ETL Python - estado atual
 
-Pipeline ETL incremental com foco inicial em `dim_cliente`.
+Pipeline ETL incremental com foco inicial em `dim_cliente` e onboarding tecnico da `dim_produto`.
 
 ## O que esta pronto
 
 - Extracao incremental por watermark (`updated_at`, `id`).
 - Transformacao e upsert Type 1 para `dim_cliente`.
+- Estrutura ETL da `dim_produto` implementada (ainda nao ativa por padrao no `ctl.etl_control`).
 - Auditoria de execucao em `audit.etl_run` e `audit.etl_run_entity`.
 - Monitoramento visual via Streamlit.
 
@@ -47,10 +48,13 @@ python/etl/
 |-- db.py
 |-- control.py
 |-- entities/
-|   `-- dim_cliente.py
+|   |-- dim_cliente.py
+|   `-- dim_produto.py
 |-- sql/
 |   |-- extract_dim_cliente.sql
+|   |-- extract_dim_produto.sql
 |   |-- upsert_dim_cliente.sql
+|   |-- upsert_dim_produto.sql
 |   `-- update_watermark.sql
 |-- monitoring/
 |   |-- app.py
@@ -66,4 +70,4 @@ python/etl/
 
 ## Proximo passo natural
 
-Depois de estabilizar `dim_cliente` (auditoria + monitoramento), replicar o padrao para as demais dimensoes.
+Depois de estabilizar `dim_cliente`/`dim_produto` (auditoria + monitoramento), replicar o padrao para as demais entidades.
