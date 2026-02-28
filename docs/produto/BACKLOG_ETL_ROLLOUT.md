@@ -18,7 +18,7 @@ Data de referencia: 2026-02-28
 - Acao:
   - validar pipeline de subida com check automatizado de escopo ativo em `ctl.etl_control`;
   - adicionar validacao de tabelas obrigatorias (`dim_*` + `fact_vendas`) apos `sql-init`.
-- Status: em andamento.
+- Status: concluido em 2026-02-28.
 
 ## P1 - Alto
 
