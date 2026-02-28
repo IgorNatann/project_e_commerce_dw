@@ -93,3 +93,14 @@ ORDER BY event_time_utc DESC;
 ## Expansao para analytics completo
 
 Quando as proximas dimensoes e fatos estiverem carregadas, este README pode ser estendido com as consultas de vendas, performance, geografia e campanhas.
+
+## Queries de homologacao do dashboard de vendas R1
+
+Arquivo de referencia:
+
+- `docs/queries/vendas/01_kpis_dash_vendas_r1.sql`
+
+Uso:
+
+- definir `@data_inicio` e `@data_fim` iguais ao filtro de periodo aplicado no dashboard;
+- executar o script e comparar KPIs principais (receita, margem, devolucao, ticket e desconto medio).

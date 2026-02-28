@@ -70,6 +70,7 @@ services:
       MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD}"
       MSSQL_MONITOR_PASSWORD: "${MSSQL_MONITOR_PASSWORD}"
       MSSQL_BACKUP_PASSWORD: "${MSSQL_BACKUP_PASSWORD}"
+      MSSQL_BI_PASSWORD: "${MSSQL_BI_PASSWORD:-YourStrongPassword!901}"
       CONNECTION_AUDIT_RETENTION_DAYS: "${CONNECTION_AUDIT_RETENTION_DAYS:-30}"
     volumes:
       - ../:/workspace:ro
@@ -124,6 +125,12 @@ services:
         $${SQLCMD} -Q "IF NOT EXISTS (SELECT 1 FROM sys.sql_logins WHERE name = 'etl_backup') BEGIN CREATE LOGIN etl_backup WITH PASSWORD = '$${MSSQL_BACKUP_PASSWORD}', CHECK_POLICY = ON; END ELSE BEGIN ALTER LOGIN etl_backup WITH PASSWORD = '$${MSSQL_BACKUP_PASSWORD}'; END;"
         $${SQLCMD} -d DW_ECOMMERCE -Q "IF DATABASE_PRINCIPAL_ID('etl_backup') IS NULL CREATE USER etl_backup FOR LOGIN etl_backup; IF IS_ROLEMEMBER('db_backupoperator', 'etl_backup') <> 1 ALTER ROLE db_backupoperator ADD MEMBER etl_backup;"
         $${SQLCMD} -d ECOMMERCE_OLTP -Q "IF DATABASE_PRINCIPAL_ID('etl_backup') IS NULL CREATE USER etl_backup FOR LOGIN etl_backup; IF IS_ROLEMEMBER('db_backupoperator', 'etl_backup') <> 1 ALTER ROLE db_backupoperator ADD MEMBER etl_backup;"
+
+        $${SQLCMD} -v BI_READER_PASSWORD="$${MSSQL_BI_PASSWORD}" -i /workspace/sql/dw/05_security/01_create_bi_reader.sql
+
+        if [ "$$($${SQLCMD} -d DW_ECOMMERCE -W -h -1 -Q "SET NOCOUNT ON; SELECT CASE WHEN OBJECT_ID('fact.FACT_VENDAS', 'U') IS NULL THEN 0 ELSE 1 END;" | tr -d '[:space:]')" = "1" ]; then
+          $${SQLCMD} -i /workspace/sql/dw/04_views/12_vw_dash_vendas_r1.sql
+        fi
 
   sql-backup:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -184,6 +191,36 @@ services:
       ETL_SQL_TIMEOUT_SECONDS: "120"
     ports:
       - "${STREAMLIT_BIND_IP:-127.0.0.1}:${STREAMLIT_PORT:-8501}:8501"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8501/_stcore/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+  streamlit-vendas:
+    build:
+      context: ..
+      dockerfile: docker/streamlit-vendas.Dockerfile
+    container_name: dw_dash_vendas
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      sql-init:
+        condition: service_completed_successfully
+    environment:
+      DASH_SQL_DRIVER: "ODBC Driver 18 for SQL Server"
+      DASH_SQL_SERVER: "sqlserver"
+      DASH_SQL_PORT: "1433"
+      DASH_DW_DB: "DW_ECOMMERCE"
+      DASH_SQL_USER: "bi_reader"
+      DASH_SQL_PASSWORD: "${MSSQL_BI_PASSWORD:-YourStrongPassword!901}"
+      DASH_SQL_ENCRYPT: "yes"
+      DASH_SQL_TRUST_SERVER_CERTIFICATE: "yes"
+      DASH_SQL_TIMEOUT_SECONDS: "120"
+    ports:
+      - "${STREAMLIT_VENDAS_BIND_IP:-127.0.0.1}:${STREAMLIT_VENDAS_PORT:-8502}:8501"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8501/_stcore/health || exit 1"]
       interval: 15s

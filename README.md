@@ -4,7 +4,7 @@ Projeto de laboratorio para simular uma esteira real de dados OLTP -> DW em SQL 
 
 ## Estado atual
 
-- Infra Docker one-shot pronta (`SQL Server + init + Streamlit + backup`).
+- Infra Docker one-shot pronta (`SQL Server + init + Streamlit monitor + Streamlit vendas + backup`).
 - Auditoria de conexoes ativa (tabela `audit.connection_login_events` + arquivo `.sqlaudit`).
 - Escopo validado ponta a ponta focado em `dim_cliente`.
 - OLTP (`ECOMMERCE_OLTP`) e DW (`DW_ECOMMERCE`) inicializados automaticamente pelo bootstrap.
@@ -25,7 +25,8 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 Acessos padrao:
 
 - SQL Server: `localhost:1433`
-- Streamlit monitor: `http://localhost:8501`
+- Streamlit monitor ETL: `http://localhost:8501`
+- Streamlit dashboard vendas: `http://localhost:8502`
 
 Descer stack:
 

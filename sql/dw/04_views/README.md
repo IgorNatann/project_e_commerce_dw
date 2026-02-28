@@ -15,6 +15,7 @@ Catalogo de views analiticas no schema `dim` e script master de orquestracao.
 - `09_vw_equipes_ativas.sql`
 - `10_vw_ranking_equipes_meta.sql`
 - `11_vw_analise_regional_equipes.sql`
+- `12_vw_dash_vendas_r1.sql`
 
 ## Execucao
 
