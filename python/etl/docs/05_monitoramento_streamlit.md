@@ -97,6 +97,10 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
    - tabela de apoio com duracao e volumes da entidade
 10. Grade de falhas recentes com mensagem de erro.
 11. Bloco de execucao em andamento (`status = running`) para run e entidade.
+12. Alertas e SLA:
+   - taxa de sucesso em 24h e 7 dias
+   - conformidade SLA por entidades ativas
+   - alertas de atraso de watermark, sem execucao recente e falha recorrente
 
 ## 4) Uso recomendado
 
