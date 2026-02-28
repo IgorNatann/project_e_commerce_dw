@@ -79,6 +79,9 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
 4. Contexto geral dos pipelines:
    - status por entidade (`OK`, `FALHA`, `RODANDO`, `PENDENTE_ESTRUTURA`, `SEM_EXECUCAO`)
    - ultima execucao da entidade (extraidos/upsertados/erros)
+   - matriz operacional com `source_total`, `target_total`, `coverage_percent`
+   - pendencia incremental por watermark (`source_pending_since_watermark`)
+   - latencia (`freshness_minutes`) e performance (`entity_last_duration_seconds`, `entity_last_throughput_rows_per_sec`)
    - existencia de fonte/alvo por pipeline
 5. Tabela de controle incremental (`ctl.etl_control`).
 6. Tabela dos ultimos runs (`audit.etl_run`).

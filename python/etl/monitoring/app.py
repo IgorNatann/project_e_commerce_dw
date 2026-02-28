@@ -489,12 +489,14 @@ def get_pipeline_overview() -> pd.DataFrame:
         c.is_active,
         c.source_table,
         c.target_table,
+        c.source_pk_column,
         c.watermark_updated_at,
         c.watermark_id,
         c.last_status AS control_last_status,
         c.last_success_at,
         c.last_run_id,
         re.status AS entity_last_status,
+        re.entity_started_at AS entity_last_started_at,
         re.entity_finished_at AS entity_last_finished_at,
         re.extracted_count AS entity_last_extracted,
         re.upserted_count AS entity_last_upserted,
@@ -505,6 +507,7 @@ def get_pipeline_overview() -> pd.DataFrame:
     (
         SELECT TOP (1)
             status,
+            entity_started_at,
             entity_finished_at,
             extracted_count,
             upserted_count,
@@ -535,11 +538,145 @@ def get_pipeline_overview() -> pd.DataFrame:
 
         source_exists: list[bool] = []
         target_exists: list[bool] = []
+        source_totals: list[int] = []
+        target_totals: list[int] = []
+        pending_since_watermark: list[int] = []
+        source_max_updated_list: list[Any] = []
+        target_max_updated_list: list[Any] = []
+        freshness_minutes_list: list[float | None] = []
+        coverage_percent_list: list[float | None] = []
+        duration_seconds_list: list[float | None] = []
+        throughput_rows_per_sec_list: list[float | None] = []
+
+        target_updated_candidates = [
+            "data_ultima_atualizacao",
+            "updated_at",
+            "data_atualizacao",
+            "data_carga",
+            "dt_atualizacao",
+            "load_at",
+            "loaded_at",
+        ]
+
         for _, row in df.iterrows():
-            source_exists.append(_object_exists_table(oltp_connection, str(row["source_table"])))
-            target_exists.append(_object_exists_table(dw_connection, str(row["target_table"])))
+            source_table = str(row["source_table"])
+            target_table = str(row["target_table"])
+            source_pk_column = str(row.get("source_pk_column") or "").strip()
+
+            has_source = _object_exists_table(oltp_connection, source_table)
+            has_target = _object_exists_table(dw_connection, target_table)
+            source_exists.append(has_source)
+            target_exists.append(has_target)
+
+            source_total = 0
+            target_total = 0
+            pending = 0
+            source_max_updated_at = None
+            target_max_updated_at = None
+
+            if has_source:
+                safe_source = _safe_qualified_name(source_table)
+                source_count_row = query_one(
+                    oltp_connection,
+                    f"SELECT COUNT(*) AS total FROM {safe_source};",
+                )
+                source_total = _to_int(source_count_row.get("total") if source_count_row else 0, 0)
+
+                source_columns = {
+                    str(col["COLUMN_NAME"]).lower()
+                    for col in _get_table_columns(oltp_connection, source_table)
+                }
+                if "updated_at" in source_columns:
+                    source_max_row = query_one(
+                        oltp_connection,
+                        f"SELECT MAX(updated_at) AS max_updated_at FROM {safe_source};",
+                    )
+                    if source_max_row:
+                        source_max_updated_at = source_max_row.get("max_updated_at")
+
+                    if (
+                        row.get("watermark_updated_at") is not None
+                        and source_pk_column
+                        and _is_safe_identifier(source_pk_column)
+                        and source_pk_column.lower() in source_columns
+                    ):
+                        safe_pk = f"[{source_pk_column}]"
+                        pending_row = query_one(
+                            oltp_connection,
+                            f"""
+                            SELECT COUNT(*) AS pending_since_watermark
+                            FROM {safe_source}
+                            WHERE updated_at > ?
+                               OR (updated_at = ? AND {safe_pk} > ?);
+                            """,
+                            (
+                                row.get("watermark_updated_at"),
+                                row.get("watermark_updated_at"),
+                                _to_int(row.get("watermark_id"), 0),
+                            ),
+                        )
+                        pending = _to_int(
+                            pending_row.get("pending_since_watermark") if pending_row else 0,
+                            0,
+                        )
+
+            if has_target:
+                safe_target = _safe_qualified_name(target_table)
+                target_count_row = query_one(
+                    dw_connection,
+                    f"SELECT COUNT(*) AS total FROM {safe_target};",
+                )
+                target_total = _to_int(target_count_row.get("total") if target_count_row else 0, 0)
+
+                target_columns = {
+                    str(col["COLUMN_NAME"]).lower()
+                    for col in _get_table_columns(dw_connection, target_table)
+                }
+                target_updated_col = next(
+                    (col for col in target_updated_candidates if col in target_columns),
+                    None,
+                )
+                if target_updated_col is not None:
+                    target_max_row = query_one(
+                        dw_connection,
+                        f"SELECT MAX([{target_updated_col}]) AS max_updated_at FROM {safe_target};",
+                    )
+                    if target_max_row:
+                        target_max_updated_at = target_max_row.get("max_updated_at")
+
+            source_totals.append(source_total)
+            target_totals.append(target_total)
+            pending_since_watermark.append(pending)
+            source_max_updated_list.append(source_max_updated_at)
+            target_max_updated_list.append(target_max_updated_at)
+            coverage_percent_list.append(_safe_ratio(target_total, source_total))
+            freshness_minutes_list.append(
+                _compute_freshness_minutes(source_max_updated_at, target_max_updated_at),
+            )
+
+            started_at = row.get("entity_last_started_at")
+            finished_at = row.get("entity_last_finished_at")
+            if started_at is not None and finished_at is not None:
+                duration_seconds = max(1.0, (finished_at - started_at).total_seconds())
+                duration_seconds_list.append(duration_seconds)
+                throughput_rows_per_sec_list.append(
+                    _to_int(row.get("entity_last_upserted"), 0) / duration_seconds,
+                )
+            else:
+                duration_seconds_list.append(None)
+                throughput_rows_per_sec_list.append(None)
+
         df["source_exists"] = source_exists
         df["target_exists"] = target_exists
+        df["source_total"] = source_totals
+        df["target_total"] = target_totals
+        df["source_pending_since_watermark"] = pending_since_watermark
+        df["source_max_updated_at"] = source_max_updated_list
+        df["target_max_updated_at"] = target_max_updated_list
+        df["coverage_percent"] = coverage_percent_list
+        df["freshness_minutes"] = freshness_minutes_list
+        df["entity_last_duration_seconds"] = duration_seconds_list
+        df["entity_last_throughput_rows_per_sec"] = throughput_rows_per_sec_list
     finally:
         close_quietly(dw_connection)
         close_quietly(oltp_connection)
@@ -1409,7 +1546,14 @@ def _render_pipeline_overview_section() -> None:
     st.subheader("Contexto geral dos pipelines")
     overview_df = _ensure_datetime_columns(
         get_pipeline_overview(),
-        ["watermark_updated_at", "last_success_at", "entity_last_finished_at"],
+        [
+            "watermark_updated_at",
+            "last_success_at",
+            "entity_last_started_at",
+            "entity_last_finished_at",
+            "source_max_updated_at",
+            "target_max_updated_at",
+        ],
     )
     if overview_df.empty:
         st.info("Sem entidades cadastradas no controle ETL.")
@@ -1430,6 +1574,23 @@ def _render_pipeline_overview_section() -> None:
     k5.metric("Pendente estrutura", pending_struct_count)
     k6.metric("Sem execucao", no_exec_count)
 
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Pendencia total", int(overview_df["source_pending_since_watermark"].fillna(0).sum()))
+    m2.metric(
+        "Latencia media",
+        _format_minutes(
+            None
+            if overview_df["freshness_minutes"].dropna().empty
+            else float(overview_df["freshness_minutes"].dropna().mean())
+        ),
+    )
+    m3.metric(
+        "Throughput medio",
+        "-"
+        if overview_df["entity_last_throughput_rows_per_sec"].dropna().empty
+        else f"{float(overview_df['entity_last_throughput_rows_per_sec'].dropna().mean()):.1f} l/s",
+    )
+
     status_options = sorted(overview_df["pipeline_status"].astype(str).unique().tolist())
     selected_status = st.multiselect(
         "Filtrar status do pipeline",
@@ -1440,6 +1601,14 @@ def _render_pipeline_overview_section() -> None:
     filtered_df["is_active"] = filtered_df["is_active"].apply(lambda x: "SIM" if _to_bool(x) else "NAO")
     filtered_df["source_exists"] = filtered_df["source_exists"].apply(lambda x: "OK" if bool(x) else "PENDENTE")
     filtered_df["target_exists"] = filtered_df["target_exists"].apply(lambda x: "OK" if bool(x) else "PENDENTE")
+    filtered_df["coverage_percent"] = filtered_df["coverage_percent"].apply(_format_ratio)
+    filtered_df["freshness_minutes"] = filtered_df["freshness_minutes"].apply(_format_minutes)
+    filtered_df["entity_last_duration_seconds"] = filtered_df["entity_last_duration_seconds"].apply(
+        lambda x: _format_minutes(None if pd.isna(x) else float(x) / 60.0),
+    )
+    filtered_df["entity_last_throughput_rows_per_sec"] = filtered_df["entity_last_throughput_rows_per_sec"].apply(
+        lambda x: "-" if pd.isna(x) else f"{float(x):.1f}",
+    )
     filtered_df["entity_last_error"] = filtered_df["entity_last_error"].fillna("")
 
     display_columns = [
@@ -1448,11 +1617,18 @@ def _render_pipeline_overview_section() -> None:
         "is_active",
         "source_exists",
         "target_exists",
+        "source_total",
+        "target_total",
+        "coverage_percent",
+        "source_pending_since_watermark",
+        "freshness_minutes",
         "control_last_status",
         "entity_last_status",
         "entity_last_extracted",
         "entity_last_upserted",
         "entity_last_soft_deleted",
+        "entity_last_duration_seconds",
+        "entity_last_throughput_rows_per_sec",
         "entity_last_finished_at",
         "watermark_updated_at",
         "watermark_id",
@@ -1465,6 +1641,8 @@ def _render_pipeline_overview_section() -> None:
     )
 
     st.caption(
+        "Matriz geral de acompanhamento: status, cobertura, pendencia incremental, "
+        "latencia, duracao e throughput por pipeline. "
         "Use `pipeline_status` para auditoria rapida: "
         "`OK` (saudavel), `FALHA` (ultima execucao com erro), "
         "`RODANDO` (run em andamento), `PENDENTE_ESTRUTURA` (fonte/alvo ausente), "
