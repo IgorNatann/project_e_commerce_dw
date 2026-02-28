@@ -4,6 +4,7 @@
 
 # ============ CREDENCIAIS & SECRETS ============
 .env
+.env.sqlserver
 .env.local
 .env.production
 config.ini
@@ -95,6 +96,7 @@ logs/
 log/
 *.txt
 !python/requirements.txt
+!python/etl/monitoring/requirements.txt
 
 # ============ IDE / EDITORS ============
 # VS Code

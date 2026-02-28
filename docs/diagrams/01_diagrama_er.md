@@ -719,10 +719,10 @@ Venda #123:
 
 ## 📚 Referências
 
-- **[Modelagem Completa](02_dimensoes.md)** - Detalhes de todas as dimensões
-- **[Tabelas Fato](03_fatos.md)** - Especificação das facts
-- **[Relacionamentos](04_relacionamentos.md)** - Mapa de FKs e integridade
-- **[Dicionário de Dados](05_dicionario_dados.md)** - Catálogo de campos
+- **[Modelagem Completa](../modelagem/02_dimensoes.md)** - Detalhes de todas as dimensões
+- **[Tabelas Fato](../modelagem/03_fatos.md)** - Especificação das facts
+- **[Relacionamentos](../modelagem/04_relacionamentos.md)** - Mapa de FKs e integridade
+- **[Dicionário de Dados](../modelagem/05_dicionario_dados.md)** - Catálogo de campos
 
 ---
 

@@ -186,11 +186,15 @@ def run_entity(
     entity = get_entity(entity_name)
     control = get_entity_control(dw_connection, entity_name)
 
-    batch_size = batch_size_override or control.batch_size or default_batch_size
+    batch_size = (
+        batch_size_override
+        if batch_size_override is not None
+        else (control.batch_size if control.batch_size is not None else default_batch_size)
+    )
     cutoff_minutes = (
         cutoff_minutes_override
         if cutoff_minutes_override is not None
-        else (control.cutoff_minutes or default_cutoff_minutes)
+        else (control.cutoff_minutes if control.cutoff_minutes is not None else default_cutoff_minutes)
     )
     batch_size = max(1, int(batch_size))
     cutoff_minutes = max(0, int(cutoff_minutes))

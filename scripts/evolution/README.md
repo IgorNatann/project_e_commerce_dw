@@ -2,6 +2,10 @@
 
 Automacoes para documentar evolucao do projeto no portfolio.
 
+## Nota de infra
+
+Estes scripts sao independentes da stack Docker (`docker/up_stack.ps1`).
+
 ## Scripts
 
 - `generate_daily_reports.py`: gera/atualiza relatorios diarios em `docs/evolucao_diaria/`

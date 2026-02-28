@@ -80,6 +80,6 @@ def execute(
 def _require_pyodbc():
     if pyodbc is None:
         raise ModuleNotFoundError(
-            "Dependencia ausente: pyodbc. Instale com `pip install -r python/requirements.txt`."
+            "Dependencia ausente: pyodbc. Instale com `pip install -r python/etl/monitoring/requirements.txt`."
         )
     return pyodbc
