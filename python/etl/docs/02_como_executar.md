@@ -20,6 +20,12 @@ Executar ETL da `dim_produto`:
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
 ```
 
+Executar ETL da `dim_regiao`:
+
+```powershell
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_regiao
+```
+
 Executar ETL da `dim_vendedor`:
 
 ```powershell
@@ -86,6 +92,7 @@ Executar:
 ```powershell
 python python/etl/run_etl.py --entity dim_cliente
 python python/etl/run_etl.py --entity dim_produto
+python python/etl/run_etl.py --entity dim_regiao
 python python/etl/run_etl.py --entity dim_vendedor
 python python/etl/run_etl.py --entity dim_equipe
 python python/etl/run_etl.py --entity dim_desconto
@@ -98,7 +105,7 @@ SELECT TOP 20 * FROM audit.etl_run ORDER BY started_at DESC;
 SELECT TOP 20 * FROM audit.etl_run_entity ORDER BY entity_started_at DESC;
 SELECT entity_name, watermark_updated_at, watermark_id
 FROM ctl.etl_control
-WHERE entity_name IN ('dim_cliente', 'dim_produto', 'dim_vendedor', 'dim_equipe', 'dim_desconto');
+WHERE entity_name IN ('dim_cliente', 'dim_produto', 'dim_regiao', 'dim_vendedor', 'dim_equipe', 'dim_desconto');
 ```
 
 ## 4) Monitoramento visual

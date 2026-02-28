@@ -96,5 +96,6 @@ Observacao de auditoria:
 ```powershell
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_regiao
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
 ```
