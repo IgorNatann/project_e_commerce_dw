@@ -231,7 +231,7 @@ def _normalize_tipo_desconto(value: Any) -> str:
     text = _normalize_key(value)
     mapping = {
         "cupom": "Cupom",
-        "promocaoautomatica": "Promo??o Autom?tica",
+        "promocaoautomatica": "Promoção Automática",
         "descontoprogressivo": "Desconto Progressivo",
         "fidelidade": "Fidelidade",
         "primeiracompra": "Primeira Compra",
@@ -240,7 +240,7 @@ def _normalize_tipo_desconto(value: Any) -> str:
     if text in mapping:
         return mapping[text]
     if "promocao" in text:
-        return "Promo??o Autom?tica"
+        return "Promoção Automática"
     if "progress" in text:
         return "Desconto Progressivo"
     if "primeira" in text:
@@ -253,14 +253,14 @@ def _normalize_metodo_desconto(value: Any) -> str:
     mapping = {
         "percentual": "Percentual",
         "valorfixo": "Valor Fixo",
-        "fretegratis": "Frete Gr?tis",
+        "fretegratis": "Frete Grátis",
         "brinde": "Brinde",
         "combo": "Combo",
     }
     if text in mapping:
         return mapping[text]
     if "frete" in text:
-        return "Frete Gr?tis"
+        return "Frete Grátis"
     if "fixo" in text:
         return "Valor Fixo"
     return "Percentual"
@@ -270,7 +270,7 @@ def _normalize_aplica_em(value: Any) -> str:
     text = _normalize_key(value)
     mapping = {
         "pedidototal": "Pedido Total",
-        "produtoespecifico": "Produto Espec?fico",
+        "produtoespecifico": "Produto Específico",
         "categoria": "Categoria",
         "frete": "Frete",
         "itemindividual": "Item Individual",
@@ -278,7 +278,7 @@ def _normalize_aplica_em(value: Any) -> str:
     if text in mapping:
         return mapping[text]
     if "produto" in text:
-        return "Produto Espec?fico"
+        return "Produto Específico"
     if "item" in text:
         return "Item Individual"
     return "Pedido Total"

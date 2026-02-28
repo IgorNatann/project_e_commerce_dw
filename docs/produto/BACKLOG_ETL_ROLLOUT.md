@@ -11,7 +11,7 @@ Data de referencia: 2026-02-28
   - corrigir normalizacao em `python/etl/entities/dim_desconto.py`;
   - validar `tipo_desconto`, `metodo_desconto` e `aplica_em` contra constraints DW;
   - executar carga full de `dim_desconto` e retestar `--entity all`.
-- Status: pendente.
+- Status: concluido em 2026-02-28.
 
 2. `Consolidar rollout padrao da stack no CI/manual runbook`
 - Impacto: risco de ambiente subir com escopo diferente do esperado.
