@@ -35,3 +35,9 @@ Arquivo: `dashboards/streamlit/metas/requirements.txt`.
 
 - View de consumo: `sql/dw/04_views/13_vw_dash_metas_r1.sql`
 - Query de referencia: `docs/queries/metas/01_kpis_dash_metas_r1.sql`
+
+## Smoke recorrente de filtros
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/recurring_tests/run_dash_metas_filter_smoke.ps1
+```

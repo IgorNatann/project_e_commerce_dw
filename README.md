@@ -41,7 +41,7 @@ Este repositorio combina modelagem dimensional com operacao de dados:
 
 1. Base operacional concluida: OLTP funcional, DW base, ETL incremental inicial e monitoramento tecnico.
 2. Concluido: publicacao dos dashboards R1 de vendas, metas e descontos/ROI.
-3. Em andamento: consolidacao da suite automatizada de testes (integridade, regressao e smoke diario).
+3. Concluido: consolidacao da suite automatizada minima de testes (integridade + smoke de filtros em vendas, metas e descontos).
 4. Meta: alertas externos de falha/SLA, runbook operacional formal e deploy de portfolio.
 
 Fonte oficial do estado atual:
