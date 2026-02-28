@@ -72,7 +72,7 @@ Pre-requisitos:
 - Dependencias instaladas
 
 ```powershell
-pip install -r python/etl/monitoring/requirements.txt
+pip install -r dashboards/streamlit/monitoring/requirements.txt
 ```
 
 Configurar conexao SQL Server (autenticacao SQL):
@@ -117,5 +117,5 @@ Via Docker (recomendado):
 Via local:
 
 ```powershell
-python -m streamlit run python/etl/monitoring/app.py
+python -m streamlit run dashboards/streamlit/monitoring/app.py
 ```

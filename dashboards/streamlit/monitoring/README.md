@@ -26,7 +26,7 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 2. Dependencias locais (somente se for rodar Streamlit fora do container):
 
 ```powershell
-pip install -r python/etl/monitoring/requirements.txt
+pip install -r dashboards/streamlit/monitoring/requirements.txt
 ```
 
 3. Variaveis de ambiente (somente modo local):
@@ -52,7 +52,7 @@ Via Docker (ja sobe automaticamente no `up_stack.ps1`):
 Via local:
 
 ```powershell
-streamlit run python/etl/monitoring/app.py
+streamlit run dashboards/streamlit/monitoring/app.py
 ```
 
 ## 3) O que voce acompanha

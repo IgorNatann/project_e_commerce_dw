@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import os
 from datetime import date, datetime, timedelta
@@ -249,7 +249,7 @@ def _build_conn_str() -> str:
 def _open_connection(conn_str: str):
     if pyodbc is None:
         raise ModuleNotFoundError(
-            "Dependencia ausente: pyodbc. Instale com `pip install -r python/dashboards/vendas/requirements.txt`."
+            "Dependencia ausente: pyodbc. Instale com `pip install -r dashboards/streamlit/vendas/requirements.txt`."
         )
     timeout = _safe_int(os.getenv("DASH_SQL_TIMEOUT_SECONDS"), 120)
     connection = pyodbc.connect(conn_str, autocommit=True)

@@ -12,7 +12,8 @@ import pandas as pd
 import streamlit as st
 
 
-ETL_DIR = Path(__file__).resolve().parents[1]
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+ETL_DIR = PROJECT_ROOT / "python" / "etl"
 if str(ETL_DIR) not in sys.path:
     sys.path.append(str(ETL_DIR))
 

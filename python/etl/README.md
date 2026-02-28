@@ -13,7 +13,7 @@ Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_
 - Transformacao e upsert Type 1 para `dim_desconto`.
 - Transformacao e upsert incremental para `fact_vendas`.
 - Auditoria de execucao em `audit.etl_run` e `audit.etl_run_entity`.
-- Monitoramento visual via Streamlit.
+- Monitoramento visual via Streamlit em `dashboards/streamlit/monitoring`.
 
 ## Fluxo recomendado com Docker
 
@@ -88,17 +88,18 @@ python/etl/
 |   |-- upsert_dim_vendedor.sql
 |   |-- upsert_fact_vendas.sql
 |   `-- update_watermark.sql
-|-- monitoring/
-|   |-- app.py
-|   `-- requirements.txt
 `-- docs/
     |-- 01_fluxo_geral.md
     |-- 02_como_executar.md
     |-- 03_troubleshooting.md
     |-- 04_fluxo_visual.md
-    |-- 05_monitoramento_streamlit.md
     `-- 06_validacao_dim_cliente_e2e.md
 ```
+
+Dashboard Streamlit de monitoramento:
+
+- `dashboards/streamlit/monitoring/app.py`
+- `dashboards/streamlit/monitoring/requirements.txt`
 
 ## Proximo passo natural
 

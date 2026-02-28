@@ -92,7 +92,7 @@ Critico para seguir:
 Estrutura recomendada:
 
 ```text
-python/dashboards/vendas/
+dashboards/streamlit/vendas/
 |-- app.py
 |-- requirements.txt
 `-- README.md
@@ -107,7 +107,7 @@ MVP minimo do app:
 Execucao local rapida:
 
 ```powershell
-streamlit run python/dashboards/vendas/app.py
+streamlit run dashboards/streamlit/vendas/app.py
 ```
 
 ## 6. Publicar via Docker (novo servico)
