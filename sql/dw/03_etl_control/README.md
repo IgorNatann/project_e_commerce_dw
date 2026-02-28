@@ -19,10 +19,11 @@ Esta pasta contem os scripts de controle operacional da carga incremental.
 6. `06_configure_server_audit_file.sql`
 7. `07_activate_dim_cliente_scope.sql`
 8. `08_ensure_dim_cliente_contract.sql`
-9. `99_validation/01_checks.sql`
-10. `99_validation/02_preflight_readiness.sql`
-11. `99_validation/03_connection_audit_checks.sql`
-12. `99_validation/04_server_audit_file_checks.sql`
+9. `09_ensure_dim_produto_contract.sql`
+10. `99_validation/01_checks.sql`
+11. `99_validation/02_preflight_readiness.sql`
+12. `99_validation/03_connection_audit_checks.sql`
+13. `99_validation/04_server_audit_file_checks.sql`
 
 ## Com Docker
 
