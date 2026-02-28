@@ -27,7 +27,7 @@ Atualize este arquivo ao final de cada entrega:
 
 Preencha semanalmente:
 
-- `Percentual atual`: 82
+- `Percentual atual`: 86
 - `Percentual alvo`: 90
 - `Ultima atualizacao`: 2026-02-28
 
@@ -121,25 +121,25 @@ docker compose --env-file docker/.env.sqlserver -f docker/docker-compose.sqlserv
 
 ### Dia 4 - 2026-03-03 - Testes automatizados
 
-Status: nao_iniciado  
-Responsavel:  
-Delta:  ->  
+Status: concluido  
+Responsavel: Igor/Codex  
+Delta: 82 -> 86  
 
 Checklist:
 
-- [ ] Consolidar smoke de filtros para vendas, metas e descontos.
-- [ ] Criar checks de integridade minima (FK orfa, duplicidade NK, cobertura minima).
-- [ ] Padronizar saida JSON para execucao manual/agendada/CI.
+- [x] Consolidar smoke de filtros para vendas, metas e descontos.
+- [x] Criar checks de integridade minima (FK orfa, duplicidade NK, cobertura minima).
+- [x] Padronizar saida JSON para execucao manual/agendada/CI.
 
 Evidencia:
 
-- Arquivos alterados:
-- Artefatos JSON:
+- Arquivos alterados: `scripts/recurring_tests/*` (novos runners/validadores de metas, descontos, integridade DW e suite consolidada), `dashboards/streamlit/metas/README.md`, `dashboards/streamlit/descontos/README.md`
+- Artefatos JSON: `scripts/recurring_tests/artifacts/day4_suite.json` (gerado via `-OutputPath`)
 
 Validacao:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/recurring_tests/run_dash_vendas_filter_smoke.ps1 -Json
+powershell -ExecutionPolicy Bypass -File scripts/recurring_tests/run_day4_recurring_tests.ps1 -Json
 ```
 
 ---
@@ -239,6 +239,7 @@ rg -n "runbook|go/no-go|portfolio|dashboard" README.md docs -S
 | 2026-02-28 | Dia 1 - baseline documental | concluido | `README.md`, `docs/produto/PRD.md`, `docs/status_reports/2026-02-28.md` | Escopo facts alinhado e P0 atualizado |
 | 2026-02-28 | Dia 2 - dashboard metas | concluido | `dashboards/streamlit/metas/*`, `docker/streamlit-metas.Dockerfile`, `sql/dw/04_views/13_vw_dash_metas_r1.sql` | Dashboard metas R1 publicado no stack |
 | 2026-02-28 | Dia 3 - dashboard descontos/ROI | concluido | `dashboards/streamlit/descontos/*`, `docker/streamlit-descontos.Dockerfile`, `sql/dw/04_views/14_vw_dash_descontos_r1.sql` | Dashboard descontos/ROI R1 publicado no stack |
+| 2026-02-28 | Dia 4 - testes automatizados | concluido | `scripts/recurring_tests/*`, `dashboards/streamlit/metas/README.md`, `dashboards/streamlit/descontos/README.md` | Suite consolidada com 60/60 checks aprovados |
 
 ## 7) Blocos de validacao continua (para o Codex seguir evoluindo)
 
