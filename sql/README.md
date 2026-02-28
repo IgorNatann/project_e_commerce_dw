@@ -14,6 +14,7 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 ```
 
 O servico `sql-init` ja executa o bootstrap minimo para validacao de `dim_cliente` e `dim_produto`.
+Tambem configura o perfil de leitura `bi_reader` para consumo do dashboard de vendas.
 
 Observacao:
 - `sql/dw/02_ddl/dimensions/02_dim_cliente.sql` esta em modo idempotente (nao faz `DROP TABLE` e preserva dados).
@@ -50,10 +51,13 @@ Observacao:
 7. `sql/dw/03_etl_control/07_activate_dim_cliente_scope.sql`
 8. `sql/dw/03_etl_control/08_ensure_dim_cliente_contract.sql`
 9. `sql/dw/03_etl_control/09_ensure_dim_produto_contract.sql`
-10. `sql/dw/03_etl_control/99_validation/01_checks.sql`
-11. `sql/dw/03_etl_control/99_validation/02_preflight_readiness.sql`
-12. `sql/dw/03_etl_control/99_validation/03_connection_audit_checks.sql`
-13. `sql/dw/03_etl_control/99_validation/04_server_audit_file_checks.sql`
+10. `sql/dw/03_etl_control/10_ensure_fact_vendas_contract.sql`
+11. `sql/dw/03_etl_control/11_activate_fact_vendas_scope.sql`
+12. `sql/dw/05_security/01_create_bi_reader.sql`
+13. `sql/dw/03_etl_control/99_validation/01_checks.sql`
+14. `sql/dw/03_etl_control/99_validation/02_preflight_readiness.sql`
+15. `sql/dw/03_etl_control/99_validation/03_connection_audit_checks.sql`
+16. `sql/dw/03_etl_control/99_validation/04_server_audit_file_checks.sql`
 
 ## Validacao rapida
 

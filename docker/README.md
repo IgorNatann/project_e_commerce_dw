@@ -5,6 +5,7 @@ Este diretorio sobe toda a infra de laboratorio em um comando:
 - SQL Server 2022
 - bootstrap automatico de OLTP + DW (escopo atual `dim_cliente` + `dim_produto`)
 - Streamlit para monitoramento ETL
+- Streamlit para dashboard de vendas (R1)
 - auditoria de conexoes (tabela + SQL Server Audit em arquivo)
 - backup automatico para volume dedicado
 
@@ -31,12 +32,14 @@ Servicos esperados:
 - `dw_sqlserver`
 - `dw_sql_init` (completa e finaliza)
 - `dw_etl_monitor`
+- `dw_dash_vendas`
 - `dw_sql_backup`
 
 ## Endpoints
 
 - SQL Server: `localhost:1433`
-- Streamlit: `http://localhost:8501`
+- Streamlit monitor ETL: `http://localhost:8501`
+- Streamlit dashboard vendas: `http://localhost:8502`
 
 ## Arquivo de credenciais
 
@@ -48,11 +51,13 @@ Principais variaveis:
 - `MSSQL_SA_PASSWORD`
 - `MSSQL_MONITOR_PASSWORD` (usuario `etl_monitor` usado no Streamlit e no ETL das entidades monitoradas)
 - `MSSQL_BACKUP_PASSWORD`
+- `MSSQL_BI_PASSWORD` (usuario `bi_reader` usado pelo dashboard de vendas)
 - `CONNECTION_AUDIT_RETENTION_DAYS`
 - `BACKUP_INTERVAL_HOURS`
 - `BACKUP_RETENTION_DAYS`
 - `SQLSERVER_BIND_IP`, `SQLSERVER_PORT`
 - `STREAMLIT_BIND_IP`, `STREAMLIT_PORT`
+- `STREAMLIT_VENDAS_BIND_IP`, `STREAMLIT_VENDAS_PORT`
 
 ## Volumes persistentes
 

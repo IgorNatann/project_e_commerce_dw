@@ -7,7 +7,10 @@ Projeto de laboratorio para simular um cenario real de dados `OLTP -> DW` em SQL
 [![Method](https://img.shields.io/badge/Method-Kimball-green)](https://www.kimballgroup.com/)
 [![Infra](https://img.shields.io/badge/Infra-Docker%20One--Shot-2496ED?style=flat&logo=docker)](docker/README.md)
 
-## Sobre o projeto
+- Infra Docker one-shot pronta (`SQL Server + init + Streamlit monitor + Streamlit vendas + backup`).
+- Auditoria de conexoes ativa (tabela `audit.connection_login_events` + arquivo `.sqlaudit`).
+- Escopo validado ponta a ponta focado em `dim_cliente`.
+- OLTP (`ECOMMERCE_OLTP`) e DW (`DW_ECOMMERCE`) inicializados automaticamente pelo bootstrap.
 
 Este repositorio combina modelagem dimensional com operacao de dados:
 
@@ -62,7 +65,8 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 Endpoints:
 
 - SQL Server: `localhost:1433`
-- Streamlit: `http://localhost:8501`
+- Streamlit monitor ETL: `http://localhost:8501`
+- Streamlit dashboard vendas: `http://localhost:8502`
 
 Descer a stack:
 

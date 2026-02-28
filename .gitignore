@@ -97,6 +97,7 @@ log/
 *.txt
 !python/requirements.txt
 !python/etl/monitoring/requirements.txt
+!python/dashboards/vendas/requirements.txt
 
 # ============ IDE / EDITORS ============
 # VS Code

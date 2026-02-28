@@ -69,6 +69,12 @@ try {
     if ($envMap["MSSQL_BACKUP_PASSWORD"] -match '\$') {
         $envMap["MSSQL_BACKUP_PASSWORD"] = New-StrongPassword
     }
+    if (-not $envMap.ContainsKey("MSSQL_BI_PASSWORD") -or $envMap["MSSQL_BI_PASSWORD"] -eq "YourStrongPassword!901") {
+        $envMap["MSSQL_BI_PASSWORD"] = New-StrongPassword
+    }
+    if ($envMap["MSSQL_BI_PASSWORD"] -match '\$') {
+        $envMap["MSSQL_BI_PASSWORD"] = New-StrongPassword
+    }
     if (-not $envMap.ContainsKey("SQLSERVER_BIND_IP")) {
         $envMap["SQLSERVER_BIND_IP"] = "127.0.0.1"
     }
@@ -80,6 +86,12 @@ try {
     }
     if (-not $envMap.ContainsKey("STREAMLIT_PORT")) {
         $envMap["STREAMLIT_PORT"] = "8501"
+    }
+    if (-not $envMap.ContainsKey("STREAMLIT_VENDAS_BIND_IP")) {
+        $envMap["STREAMLIT_VENDAS_BIND_IP"] = "127.0.0.1"
+    }
+    if (-not $envMap.ContainsKey("STREAMLIT_VENDAS_PORT")) {
+        $envMap["STREAMLIT_VENDAS_PORT"] = "8502"
     }
     if (-not $envMap.ContainsKey("CONNECTION_AUDIT_RETENTION_DAYS")) {
         $envMap["CONNECTION_AUDIT_RETENTION_DAYS"] = "30"
@@ -95,13 +107,16 @@ try {
         "MSSQL_SA_PASSWORD=$($envMap["MSSQL_SA_PASSWORD"])",
         "MSSQL_MONITOR_PASSWORD=$($envMap["MSSQL_MONITOR_PASSWORD"])",
         "MSSQL_BACKUP_PASSWORD=$($envMap["MSSQL_BACKUP_PASSWORD"])",
+        "MSSQL_BI_PASSWORD=$($envMap["MSSQL_BI_PASSWORD"])",
         "CONNECTION_AUDIT_RETENTION_DAYS=$($envMap["CONNECTION_AUDIT_RETENTION_DAYS"])",
         "BACKUP_INTERVAL_HOURS=$($envMap["BACKUP_INTERVAL_HOURS"])",
         "BACKUP_RETENTION_DAYS=$($envMap["BACKUP_RETENTION_DAYS"])",
         "SQLSERVER_BIND_IP=$($envMap["SQLSERVER_BIND_IP"])",
         "SQLSERVER_PORT=$($envMap["SQLSERVER_PORT"])",
         "STREAMLIT_BIND_IP=$($envMap["STREAMLIT_BIND_IP"])",
-        "STREAMLIT_PORT=$($envMap["STREAMLIT_PORT"])"
+        "STREAMLIT_PORT=$($envMap["STREAMLIT_PORT"])",
+        "STREAMLIT_VENDAS_BIND_IP=$($envMap["STREAMLIT_VENDAS_BIND_IP"])",
+        "STREAMLIT_VENDAS_PORT=$($envMap["STREAMLIT_VENDAS_PORT"])"
     ) | Set-Content $envPath
 
     if ($envGenerated) {
@@ -114,7 +129,7 @@ try {
     }
 
     # Evita conflito de nomes ao trocar localizacao do compose
-    foreach ($legacyContainer in @("dw_etl_monitor", "dw_sql_init", "dw_sqlserver", "dw_sql_volume_init", "dw_sql_backup")) {
+    foreach ($legacyContainer in @("dw_etl_monitor", "dw_dash_vendas", "dw_sql_init", "dw_sqlserver", "dw_sql_volume_init", "dw_sql_backup")) {
         cmd /c "docker rm -f $legacyContainer >nul 2>nul"
     }
 
@@ -126,7 +141,8 @@ try {
     Write-Host ""
     Write-Host "Stack iniciada."
     Write-Host "- SQL Server:  localhost:1433"
-    Write-Host "- Streamlit:   http://localhost:8501"
+    Write-Host "- Monitor ETL: http://localhost:8501"
+    Write-Host "- Dash Vendas: http://localhost:8502"
     Write-Host "- Backup loop: ativo em dw_sql_backup (intervalo em BACKUP_INTERVAL_HOURS)"
 }
 finally {
