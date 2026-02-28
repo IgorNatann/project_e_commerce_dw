@@ -22,10 +22,11 @@ Esta pasta contem os scripts de controle operacional da carga incremental.
 9. `13_ensure_fact_vendas_table.sql`
 10. `10_ensure_fact_vendas_contract.sql`
 11. `12_activate_current_rollout_scope.sql`
-12. `99_validation/01_checks.sql`
-13. `99_validation/02_preflight_readiness.sql`
-14. `99_validation/03_connection_audit_checks.sql`
-15. `99_validation/04_server_audit_file_checks.sql`
+12. `99_validation/05_current_rollout_scope_checks.sql`
+13. `99_validation/01_checks.sql`
+14. `99_validation/02_preflight_readiness.sql`
+15. `99_validation/03_connection_audit_checks.sql`
+16. `99_validation/04_server_audit_file_checks.sql`
 
 Scripts legados de rollout:
 

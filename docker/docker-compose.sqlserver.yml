@@ -146,6 +146,7 @@ services:
         $${SQLCMD} -i /workspace/sql/dw/03_etl_control/05_create_connection_audit.sql
         $${SQLCMD} -i /workspace/sql/dw/03_etl_control/06_configure_server_audit_file.sql
         $${SQLCMD} -i /workspace/sql/dw/03_etl_control/12_activate_current_rollout_scope.sql
+        $${SQLCMD} -i /workspace/sql/dw/03_etl_control/99_validation/05_current_rollout_scope_checks.sql
 
         $${SQLCMD} -Q "IF NOT EXISTS (SELECT 1 FROM sys.sql_logins WHERE name = 'etl_monitor') BEGIN CREATE LOGIN etl_monitor WITH PASSWORD = '$${MSSQL_MONITOR_PASSWORD}', CHECK_POLICY = ON; END ELSE BEGIN ALTER LOGIN etl_monitor WITH PASSWORD = '$${MSSQL_MONITOR_PASSWORD}'; END;"
         $${SQLCMD} -Q "BEGIN TRY GRANT VIEW SERVER STATE TO etl_monitor; END TRY BEGIN CATCH END CATCH; BEGIN TRY GRANT VIEW SERVER PERFORMANCE STATE TO etl_monitor; END TRY BEGIN CATCH END CATCH;"

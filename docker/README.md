@@ -89,6 +89,10 @@ A automacao da stack garante readiness operacional das entidades ETL implementad
 
 As entidades `fact_metas` e `fact_descontos` continuam em evolucao para onboarding progressivo.
 
+Observacao:
+- o `sql-init` executa validacao automatica de rollout (`05_current_rollout_scope_checks.sql`);
+- se o escopo ativo no `ctl.etl_control` ou as tabelas obrigatorias divergirem, o bootstrap falha para evitar stack inconsistente.
+
 Observacao de persistencia:
 
 - o bootstrap OLTP completo (DDL + seeds) roda apenas quando `core.customers` ainda nao existe;

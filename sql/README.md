@@ -20,6 +20,7 @@ Tambem configura o perfil de leitura `bi_reader` para consumo do dashboard de ve
 Observacao:
 - `sql/dw/02_ddl/dimensions/02_dim_cliente.sql` esta em modo idempotente (nao faz `DROP TABLE` e preserva dados).
 - o escopo ativo no controle ETL e definido por `sql/dw/03_etl_control/12_activate_current_rollout_scope.sql`.
+- a validacao automatica do rollout e executada em `sql/dw/03_etl_control/99_validation/05_current_rollout_scope_checks.sql`.
 
 ## Ordem manual (quando necessario)
 
@@ -60,11 +61,12 @@ Observacao:
 9. `sql/dw/03_etl_control/13_ensure_fact_vendas_table.sql`
 10. `sql/dw/03_etl_control/10_ensure_fact_vendas_contract.sql`
 11. `sql/dw/03_etl_control/12_activate_current_rollout_scope.sql`
-12. `sql/dw/05_security/01_create_bi_reader.sql`
-13. `sql/dw/03_etl_control/99_validation/01_checks.sql`
-14. `sql/dw/03_etl_control/99_validation/02_preflight_readiness.sql`
-15. `sql/dw/03_etl_control/99_validation/03_connection_audit_checks.sql`
-16. `sql/dw/03_etl_control/99_validation/04_server_audit_file_checks.sql`
+12. `sql/dw/03_etl_control/99_validation/05_current_rollout_scope_checks.sql`
+13. `sql/dw/05_security/01_create_bi_reader.sql`
+14. `sql/dw/03_etl_control/99_validation/01_checks.sql`
+15. `sql/dw/03_etl_control/99_validation/02_preflight_readiness.sql`
+16. `sql/dw/03_etl_control/99_validation/03_connection_audit_checks.sql`
+17. `sql/dw/03_etl_control/99_validation/04_server_audit_file_checks.sql`
 
 ## Validacao rapida
 
