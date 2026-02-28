@@ -1,16 +1,16 @@
 # PRD - Plataforma de Analytics para E-commerce (DW)
 
-Versao: 1.0  
-Data: 2026-02-25  
-Status: Draft para execucao
+Versao: 1.1  
+Data: 2026-02-28  
+Status: Atualizado com baseline real do repositorio
 
 ## 1. Resumo executivo
 
 Este produto cria uma plataforma de analytics para e-commerce baseada em SQL Server, modelagem dimensional (Kimball) e camada de consumo para decisao comercial.
 
-O repositorio ja possui uma base tecnica relevante no DW (dimensoes, fatos e views), mas ainda nao opera como produto ponta a ponta. Faltam camada OLTP funcional, ETL incremental, testes automatizados e dashboards publicados.
+O repositorio ja possui operacao ponta a ponta em ambiente Docker para o escopo inicial: camada OLTP funcional, ETL incremental em Python, auditoria tecnica e dashboards Streamlit (monitor ETL e vendas R1).
 
-Este PRD define o que precisa ser entregue para sair de "modelo tecnico local" e virar "produto de dados operacional" para negocio.
+Este PRD consolida o estado atual e define o que ainda precisa ser entregue para evoluir de escopo inicial validado para produto de dados operacional completo para negocio.
 
 ## 2. Problema
 
@@ -97,17 +97,21 @@ Entregar uma plataforma de dados analiticos que permita:
 
 ### 7.1 Ja implementado
 
-- Estrutura DW com scripts SQL de setup, DDL e dados de exemplo.
-- Modelo dimensional com 7 dimensoes, 3 fatos e views auxiliares.
-- Documentacao tecnica extensa de modelagem, dicionario e queries.
+- Infra one-shot com Docker Compose para SQL Server, bootstrap SQL e apps Streamlit.
+- Camada OLTP funcional (`ECOMMERCE_OLTP`) com setup, DDL e seed base/incremental.
+- Camada DW (`DW_ECOMMERCE`) com setup, DDL dimensional (7 dimensoes e 3 fatos), views auxiliares e seguranca de leitura (`bi_reader`).
+- Controle ETL e auditoria tecnica ativos (`ctl.etl_control`, `audit.etl_run`, `audit.etl_run_entity`, `audit.connection_login_events`).
+- ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto` e `fact_vendas`.
+- Dashboard tecnico de monitoramento ETL publicado (`:8501`) e dashboard de vendas R1 publicado (`:8502`).
+- Documentacao tecnica ampla (modelagem, contratos, queries e evolucao diaria/mensal/marcos).
 
 ### 7.2 Lacunas criticas
 
-- Camada OLTP esta em placeholder (scripts com TODO).
-- Pasta `python/` sem implementacao efetiva de ETL/testes.
-- Pastas de dashboards sem artefatos publicados.
-- Ausencia de suite automatizada de validacao de ponta a ponta.
-- Falta de runbook operacional formal para execucao recorrente.
+- Suite automatizada de validacao ponta a ponta ainda nao consolidada (integridade, regressao e smoke diario).
+- Escopo de carga e operacao ainda parcial frente ao PRD completo (principalmente `fact_metas` e `fact_descontos`).
+- Dashboards de metas/atingimento e descontos/ROI ainda nao publicados.
+- Alertas automatizados externos para falhas de pipeline ainda nao implementados.
+- Runbook operacional formal de rotina, incidente e recuperacao ainda incompleto.
 
 ## 8. Jornadas principais
 
@@ -202,23 +206,19 @@ Entregar uma plataforma de dados analiticos que permita:
 
 ### Fase 0 - Alinhamento e contrato (1 semana)
 
-- Fechar escopo R1 e dono de cada requisito.
-- Congelar definicoes de KPI e granularidade.
+- Concluida: escopo R1 inicial, base de KPIs e granularidade definida para vendas.
 
 ### Fase 1 - Fundacao operacional (2 a 3 semanas)
 
-- Implementar OLTP funcional.
-- Implementar ETL base e carga incremental de dimensoes.
+- Concluida: OLTP funcional, DW base, ETL incremental inicial e monitoramento tecnico.
 
 ### Fase 2 - Fatos e qualidade (2 a 3 semanas)
 
-- Implementar carga incremental de fatos.
-- Implementar testes automatizados e alertas.
+- Em andamento: ampliar cobertura de fatos (`fact_metas`, `fact_descontos`) e consolidar testes automatizados de qualidade.
 
 ### Fase 3 - Consumo e rollout (1 a 2 semanas)
 
-- Publicar dashboards R1.
-- Homologacao com negocio e entrada em operacao.
+- Em andamento: expandir camada de consumo para metas/descontos e formalizar homologacao operacional com negocio.
 
 ## 14. Dependencias
 
@@ -252,11 +252,11 @@ Entregar uma plataforma de dados analiticos que permita:
 
 ### P0
 
-- P0-01: Implementar scripts OLTP sem TODO.
-- P0-02: Implementar ETL incremental para dimensoes e fatos.
-- P0-03: Implementar testes de integridade e regressao de views.
-- P0-04: Publicar dashboards R1.
-- P0-05: Criar runbook de operacao e recuperacao.
+- P0-01: Consolidar suite automatizada de testes (integridade, regressao, smoke diario).
+- P0-02: Fechar cobertura operacional de fatos pendentes (`fact_metas` e `fact_descontos`).
+- P0-03: Publicar dashboards R1 pendentes (metas/atingimento e descontos/ROI).
+- P0-04: Implementar alertas automatizados para falha de pipeline e atraso de SLA.
+- P0-05: Formalizar runbook de operacao, incidente e recuperacao.
 
 ### P1
 
