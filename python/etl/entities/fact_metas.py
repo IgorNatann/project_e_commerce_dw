@@ -49,9 +49,12 @@ def transform_rows(raw_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             soft_deleted_count += 1
 
         source_id = int(raw["seller_target_id"])
-        vendedor_original_id = _to_int(raw.get("seller_id"), default=None, min_value=0)
+        raw_seller_id = raw.get("seller_id")
+        vendedor_original_id = _to_int(raw_seller_id, default=None, min_value=1)
         if vendedor_original_id is None:
-            raise ValueError(f"[fact_metas] seller_id invalido para seller_target_id={source_id}.")
+            raise ValueError(
+                f"[fact_metas] seller_id invalido ({raw_seller_id}) para seller_target_id={source_id}."
+            )
 
         data_referencia = _to_month_start_date(raw.get("target_month"))
         if data_referencia is None:

@@ -129,6 +129,7 @@ project_e-commerce_dw/
 - [Controle ETL e auditoria](sql/dw/03_etl_control/README.md)
 - [Monitoramento Streamlit](dashboards/streamlit/monitoring/README.md)
 - [Dashboard de vendas R1](dashboards/streamlit/vendas/README.md)
+- [Testes recorrentes operacionais](scripts/recurring_tests/README.md)
 - [OLTP (fonte)](sql/oltp/README.md)
 - [Views auxiliares DW](sql/dw/04_views/README.md)
 - [Seguranca de consumo BI](sql/dw/05_security/README.md)
