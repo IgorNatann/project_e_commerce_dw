@@ -56,8 +56,7 @@ streamlit run python/etl/monitoring/app.py
 Navegacao lateral por paginas:
 
 - `Resumo operacional`
-- `Saude dim_cliente`
-- `Saude dim_produto`
+- `Saude por pipeline`
 - `Runs e controle`
 - `Auditoria de conexoes`
 
@@ -73,18 +72,22 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
    - pendencia incremental total (registros apos watermark)
    - latencia por entidade (diferenca entre `source_max_updated_at` e `target_max_updated_at`)
    - throughput medio (linhas por segundo) nas execucoes com sucesso (24h)
-3. Contexto geral dos pipelines:
+3. Saude por pipeline:
+   - seletor dinamico para qualquer entidade/fato cadastrado em `ctl.etl_control`
+   - metricas de cobertura, pendencia incremental, latencia, duracao e throughput
+   - amostra recente da origem do pipeline selecionado
+4. Contexto geral dos pipelines:
    - status por entidade (`OK`, `FALHA`, `RODANDO`, `PENDENTE_ESTRUTURA`, `SEM_EXECUCAO`)
    - ultima execucao da entidade (extraidos/upsertados/erros)
    - existencia de fonte/alvo por pipeline
-4. Tabela de controle incremental (`ctl.etl_control`).
-5. Tabela dos ultimos runs (`audit.etl_run`).
-6. Detalhe por entidade de um `run_id` selecionado.
-7. Graficos:
+5. Tabela de controle incremental (`ctl.etl_control`).
+6. Tabela dos ultimos runs (`audit.etl_run`).
+7. Detalhe por entidade de um `run_id` selecionado.
+8. Graficos:
    - runs por status (14 dias)
    - volume extraido/upsertado por entidade (14 dias)
-8. Grade de falhas recentes com mensagem de erro.
-9. Bloco de execucao em andamento (`status = running`) para run e entidade.
+9. Grade de falhas recentes com mensagem de erro.
+10. Bloco de execucao em andamento (`status = running`) para run e entidade.
 
 ## 4) Uso recomendado
 
@@ -112,19 +115,15 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
 4. `dim_cliente ativa = OK`
 5. sem erro no bloco de pre-flight
 
-## 7) Blocos adicionais (escopo dim_cliente)
+## 7) Blocos adicionais (escopo atual)
 
-1. **Saude da dim_cliente**
+1. **Saude por pipeline**
+   - suporte dinamico para entidade/fato
    - volume fonte vs alvo
-   - watermark atual da entidade
-   - checks basicos de qualidade (email/estado)
-   - amostra recente da origem `core.customers`
-2. **Saude da dim_produto**
-   - volume fonte vs alvo
-   - watermark atual da entidade
-   - checks basicos de qualidade (status/preco)
-   - amostra recente da origem `core.products`
-3. **Auditoria de conexoes SQL**
+   - watermark atual da entidade selecionada
+   - checks de integridade basica e auditoria da ultima execucao
+   - amostra recente da origem correspondente
+2. **Auditoria de conexoes SQL**
    - eventos por hora (24h)
    - top logins (24h)
    - tabela de eventos recentes de conexao
