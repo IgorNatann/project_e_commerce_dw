@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from datetime import date, datetime
 from typing import Any
 
@@ -36,6 +37,8 @@ def extract_batch(
 def transform_rows(raw_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]], int]:
     transformed_rows: list[dict[str, Any]] = []
     soft_deleted_count = 0
+    fallback_tipo_cliente_count = 0
+    fallback_segmento_count = 0
 
     for raw in raw_rows:
         if raw.get("deleted_at") is not None:
@@ -53,6 +56,18 @@ def transform_rows(raw_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
         if not isinstance(updated_at, datetime):
             updated_at = datetime(1900, 1, 1)
 
+        tipo_cliente, tipo_defaulted = _normalize_tipo_cliente(
+            raw.get("customer_type"),
+            is_active=raw.get("is_active"),
+            is_vip=raw.get("is_vip"),
+            deleted_at=raw.get("deleted_at"),
+        )
+        segmento, segmento_defaulted = _normalize_segmento(raw.get("segment"))
+        if tipo_defaulted:
+            fallback_tipo_cliente_count += 1
+        if segmento_defaulted:
+            fallback_segmento_count += 1
+
         transformed = {
             "cliente_original_id": int(raw["customer_id"]),
             "nome_cliente": _clean_text(raw.get("full_name"), default="Cliente sem nome", max_len=100),
@@ -61,8 +76,8 @@ def transform_rows(raw_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
             "cpf_cnpj": _clean_text(raw.get("document_number"), default=None, max_len=18),
             "data_nascimento": _to_date(raw.get("birth_date")),
             "genero": _normalize_gender(raw.get("gender")),
-            "tipo_cliente": _normalize_tipo_cliente(raw.get("customer_type")),
-            "segmento": _normalize_segmento(raw.get("segment")),
+            "tipo_cliente": tipo_cliente,
+            "segmento": segmento,
             "score_credito": _normalize_credit_score(raw.get("credit_score")),
             "categoria_valor": _clean_text(raw.get("value_category"), default=None, max_len=20),
             "endereco_completo": _clean_text(raw.get("address_line"), default=None, max_len=200),
@@ -82,6 +97,13 @@ def transform_rows(raw_rows: list[dict[str, Any]]) -> tuple[list[dict[str, Any]]
         }
         transformed_rows.append(transformed)
 
+    if fallback_tipo_cliente_count > 0 or fallback_segmento_count > 0:
+        print(
+            "[dim_cliente] alertas de normalizacao: "
+            f"tipo_cliente_default={fallback_tipo_cliente_count}, "
+            f"segmento_default={fallback_segmento_count}"
+        )
+
     return transformed_rows, soft_deleted_count
 
 
@@ -90,10 +112,15 @@ def upsert_rows(dw_connection: Any, rows: list[dict[str, Any]]) -> int:
         return 0
 
     sql = read_sql_file("upsert_dim_cliente.sql")
+    params = [_to_upsert_params(row) for row in rows]
     cursor = dw_connection.cursor()
     try:
-        for row in rows:
-            cursor.execute(sql, _to_upsert_params(row))
+        # Reduz roundtrips no SQL Server para lotes grandes.
+        try:
+            cursor.fast_executemany = True
+        except Exception:  # noqa: BLE001
+            pass
+        cursor.executemany(sql, params)
     finally:
         cursor.close()
     return len(rows)
@@ -173,7 +200,13 @@ def _normalize_gender(value: Any) -> str | None:
     return None
 
 
-def _normalize_tipo_cliente(value: Any) -> str:
+def _normalize_tipo_cliente(
+    value: Any,
+    *,
+    is_active: Any,
+    is_vip: Any,
+    deleted_at: Any,
+) -> tuple[str, bool]:
     text = _normalize_key(value)
     mapping = {
         "novo": "Novo",
@@ -181,14 +214,35 @@ def _normalize_tipo_cliente(value: Any) -> str:
         "vip": "VIP",
         "inativo": "Inativo",
     }
-    return mapping.get(text, "Novo")
+    if text in mapping:
+        return mapping[text], False
+    if "vip" in text:
+        return "VIP", True
+    if "recorr" in text:
+        return "Recorrente", True
+    if "inativ" in text:
+        return "Inativo", True
+    if "novo" in text:
+        return "Novo", True
+
+    if deleted_at is not None or _to_bit(is_active) == 0:
+        return "Inativo", True
+    if _to_bit(is_vip) == 1:
+        return "VIP", True
+    return "Novo", True
 
 
-def _normalize_segmento(value: Any) -> str:
+def _normalize_segmento(value: Any) -> tuple[str, bool]:
     text = _normalize_key(value)
-    if "juridica" in text or text == "pj":
-        return "Pessoa Juridica"
-    return "Pessoa Fisica"
+    if text in {"pessoafisica", "fisica", "pf"}:
+        return "Pessoa Fisica", False
+    if text in {"pessoajuridica", "juridica", "pj"}:
+        return "Pessoa Juridica", False
+    if "jur" in text:
+        return "Pessoa Juridica", True
+    if "fis" in text:
+        return "Pessoa Fisica", True
+    return "Pessoa Fisica", True
 
 
 def _normalize_state(value: Any) -> str:
@@ -229,18 +283,22 @@ def _normalize_key(value: Any) -> str:
     if value is None:
         return ""
     text = str(value).strip().lower()
-    text = (
-        text.replace("á", "a")
-        .replace("à", "a")
-        .replace("â", "a")
-        .replace("ã", "a")
-        .replace("é", "e")
-        .replace("ê", "e")
-        .replace("í", "i")
-        .replace("ó", "o")
-        .replace("ô", "o")
-        .replace("õ", "o")
-        .replace("ú", "u")
-        .replace("ç", "c")
-    )
+    mojibake_fixes = {
+        "Ã¡": "a",
+        "Ã ": "a",
+        "Ã¢": "a",
+        "Ã£": "a",
+        "Ã©": "e",
+        "Ãª": "e",
+        "Ã­": "i",
+        "Ã³": "o",
+        "Ã´": "o",
+        "Ãµ": "o",
+        "Ãº": "u",
+        "Ã§": "c",
+    }
+    for wrong, right in mojibake_fixes.items():
+        text = text.replace(wrong, right)
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
     return re.sub(r"[^a-z0-9]", "", text)
