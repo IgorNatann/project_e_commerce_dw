@@ -101,6 +101,11 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
    - taxa de sucesso em 24h e 7 dias
    - conformidade SLA por entidades ativas
    - alertas de atraso de watermark, sem execucao recente e falha recorrente
+13. Auditoria tecnica consolidada:
+   - filtros por janela, login, programa, base e status
+   - correlacao temporal entre eventos de conexao e falhas ETL
+   - taxonomia de erros ETL por tipo
+   - grade de falhas ETL recentes para troubleshooting
 
 ## 4) Uso recomendado
 
@@ -140,4 +145,6 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
 2. **Auditoria de conexoes SQL**
    - eventos por hora (24h)
    - top logins (24h)
-   - tabela de eventos recentes de conexao
+   - consolidacao tecnica com programas, bases, status e filtros
+   - correlacao de conexoes com falhas ETL
+   - taxonomia e detalhe de erros ETL recentes
