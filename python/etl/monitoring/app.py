@@ -83,6 +83,138 @@ def _safe_qualified_name(table_name: str) -> str:
     return f"[{schema_name}].[{object_name}]"
 
 
+def _normalize_table_key(table_name: str) -> str | None:
+    parsed = _parse_table_name(table_name)
+    if parsed is None:
+        return None
+    schema_name, object_name = parsed
+    return f"{schema_name.lower()}.{object_name.lower()}"
+
+
+def _collect_safe_table_pairs(table_names: list[str]) -> list[tuple[str, str]]:
+    seen: set[str] = set()
+    pairs: list[tuple[str, str]] = []
+    for table_name in table_names:
+        parsed = _parse_table_name(str(table_name))
+        if parsed is None:
+            continue
+        schema_name, object_name = parsed
+        if not _is_safe_identifier(schema_name) or not _is_safe_identifier(object_name):
+            continue
+        table_key = f"{schema_name.lower()}.{object_name.lower()}"
+        if table_key in seen:
+            continue
+        seen.add(table_key)
+        pairs.append((schema_name, object_name))
+    return pairs
+
+
+def _build_table_filter_sql(
+    table_pairs: list[tuple[str, str]],
+    schema_column: str,
+    table_column: str,
+) -> tuple[str, tuple[Any, ...]]:
+    if not table_pairs:
+        return "1 = 0", ()
+    clauses: list[str] = []
+    params: list[Any] = []
+    for schema_name, table_name in table_pairs:
+        clauses.append(f"({schema_column} = ? AND {table_column} = ?)")
+        params.extend([schema_name, table_name])
+    return " OR ".join(clauses), tuple(params)
+
+
+def _get_existing_tables(connection: Any, table_names: list[str]) -> set[str]:
+    table_pairs = _collect_safe_table_pairs(table_names)
+    if not table_pairs:
+        return set()
+    filter_sql, params = _build_table_filter_sql(table_pairs, "TABLE_SCHEMA", "TABLE_NAME")
+    rows = query_all(
+        connection,
+        f"""
+        SELECT
+            TABLE_SCHEMA,
+            TABLE_NAME
+        FROM INFORMATION_SCHEMA.TABLES
+        WHERE TABLE_TYPE = 'BASE TABLE'
+          AND ({filter_sql});
+        """,
+        params,
+    )
+    existing: set[str] = set()
+    for row in rows:
+        schema_name = str(row.get("TABLE_SCHEMA") or "")
+        table_name = str(row.get("TABLE_NAME") or "")
+        if schema_name and table_name:
+            existing.add(f"{schema_name.lower()}.{table_name.lower()}")
+    return existing
+
+
+def _get_table_columns_map(connection: Any, table_names: list[str]) -> dict[str, list[str]]:
+    table_pairs = _collect_safe_table_pairs(table_names)
+    if not table_pairs:
+        return {}
+    filter_sql, params = _build_table_filter_sql(table_pairs, "TABLE_SCHEMA", "TABLE_NAME")
+    rows = query_all(
+        connection,
+        f"""
+        SELECT
+            TABLE_SCHEMA,
+            TABLE_NAME,
+            COLUMN_NAME,
+            ORDINAL_POSITION
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE ({filter_sql})
+        ORDER BY TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION;
+        """,
+        params,
+    )
+    columns_map: dict[str, list[str]] = {}
+    for row in rows:
+        schema_name = str(row.get("TABLE_SCHEMA") or "")
+        table_name = str(row.get("TABLE_NAME") or "")
+        column_name = str(row.get("COLUMN_NAME") or "")
+        if not schema_name or not table_name or not column_name:
+            continue
+        table_key = f"{schema_name.lower()}.{table_name.lower()}"
+        columns_map.setdefault(table_key, []).append(column_name)
+    return columns_map
+
+
+def _get_table_row_count_map(connection: Any, table_names: list[str]) -> dict[str, int]:
+    table_pairs = _collect_safe_table_pairs(table_names)
+    if not table_pairs:
+        return {}
+    filter_sql, params = _build_table_filter_sql(table_pairs, "s.name", "t.name")
+    rows = query_all(
+        connection,
+        f"""
+        SELECT
+            s.name AS schema_name,
+            t.name AS table_name,
+            COALESCE(SUM(p.rows), 0) AS total_rows
+        FROM sys.tables AS t
+        INNER JOIN sys.schemas AS s
+            ON s.schema_id = t.schema_id
+        LEFT JOIN sys.partitions AS p
+            ON p.object_id = t.object_id
+           AND p.index_id IN (0, 1)
+        WHERE ({filter_sql})
+        GROUP BY s.name, t.name;
+        """,
+        params,
+    )
+    row_count_map: dict[str, int] = {}
+    for row in rows:
+        schema_name = str(row.get("schema_name") or "")
+        table_name = str(row.get("table_name") or "")
+        if not schema_name or not table_name:
+            continue
+        table_key = f"{schema_name.lower()}.{table_name.lower()}"
+        row_count_map[table_key] = _to_int(row.get("total_rows"), 0)
+    return row_count_map
+
+
 def _find_column_case_insensitive(columns: list[str], target_name: str) -> str | None:
     lookup = {col.lower(): col for col in columns}
     return lookup.get(target_name.lower())
@@ -169,6 +301,7 @@ def get_preflight_snapshot() -> dict[str, Any]:
         "connection_ok": False,
         "ready_for_monitoring": False,
         "ready_for_first_run": False,
+        "ready_for_all_active": False,
         "db_name": None,
         "server_name": None,
         "driver": _extract_conn_attr(config.dw_conn_str, "Driver"),
@@ -178,17 +311,15 @@ def get_preflight_snapshot() -> dict[str, Any]:
         "has_ctl_etl_control": False,
         "has_audit_etl_run": False,
         "has_audit_etl_run_entity": False,
-        "has_dim_cliente_table": False,
-        "has_dim_cliente_active": False,
-        "has_dim_produto_table": False,
-        "has_dim_produto_active": False,
         "oltp_connection_ok": False,
-        "has_core_customers_table": False,
-        "has_core_products_table": False,
-        "ready_for_dim_cliente": False,
-        "ready_for_dim_produto": False,
         "control_entities": 0,
         "active_entities": 0,
+        "inactive_entities": 0,
+        "active_entities_ready": 0,
+        "entity_checks": [],
+        "invalid_mapping_entities": [],
+        "missing_source_tables": [],
+        "missing_target_tables": [],
         "run_count": 0,
         "error": None,
         "oltp_error": None,
@@ -213,9 +344,7 @@ def get_preflight_snapshot() -> dict[str, Any]:
             CASE WHEN SCHEMA_ID('audit') IS NOT NULL THEN 1 ELSE 0 END AS has_schema_audit,
             CASE WHEN OBJECT_ID('ctl.etl_control', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_ctl_etl_control,
             CASE WHEN OBJECT_ID('audit.etl_run', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_audit_etl_run,
-            CASE WHEN OBJECT_ID('audit.etl_run_entity', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_audit_etl_run_entity,
-            CASE WHEN OBJECT_ID('dim.DIM_CLIENTE', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_dim_cliente_table,
-            CASE WHEN OBJECT_ID('dim.DIM_PRODUTO', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_dim_produto_table;
+            CASE WHEN OBJECT_ID('audit.etl_run_entity', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_audit_etl_run_entity;
         """
         base_info = query_one(connection, base_info_sql)
         if base_info is None:
@@ -228,8 +357,6 @@ def get_preflight_snapshot() -> dict[str, Any]:
         snapshot["has_ctl_etl_control"] = _to_bool(base_info.get("has_ctl_etl_control"))
         snapshot["has_audit_etl_run"] = _to_bool(base_info.get("has_audit_etl_run"))
         snapshot["has_audit_etl_run_entity"] = _to_bool(base_info.get("has_audit_etl_run_entity"))
-        snapshot["has_dim_cliente_table"] = _to_bool(base_info.get("has_dim_cliente_table"))
-        snapshot["has_dim_produto_table"] = _to_bool(base_info.get("has_dim_produto_table"))
 
         if snapshot["has_ctl_etl_control"]:
             control_counts = query_one(
@@ -237,17 +364,17 @@ def get_preflight_snapshot() -> dict[str, Any]:
                 """
                 SELECT
                     COUNT(*) AS control_entities,
-                    SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active_entities,
-                    SUM(CASE WHEN entity_name = 'dim_cliente' AND is_active = 1 THEN 1 ELSE 0 END) AS dim_cliente_active,
-                    SUM(CASE WHEN entity_name = 'dim_produto' AND is_active = 1 THEN 1 ELSE 0 END) AS dim_produto_active
+                    SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active_entities
                 FROM ctl.etl_control;
                 """,
             )
             if control_counts:
                 snapshot["control_entities"] = _to_int(control_counts.get("control_entities"), 0)
                 snapshot["active_entities"] = _to_int(control_counts.get("active_entities"), 0)
-                snapshot["has_dim_cliente_active"] = _to_int(control_counts.get("dim_cliente_active"), 0) > 0
-                snapshot["has_dim_produto_active"] = _to_int(control_counts.get("dim_produto_active"), 0) > 0
+                snapshot["inactive_entities"] = max(
+                    0,
+                    snapshot["control_entities"] - snapshot["active_entities"],
+                )
 
         if snapshot["has_audit_etl_run"]:
             run_counts = query_one(connection, "SELECT COUNT(*) AS run_count FROM audit.etl_run;")
@@ -260,17 +387,6 @@ def get_preflight_snapshot() -> dict[str, Any]:
                 command_timeout_seconds=config.command_timeout_seconds,
             )
             snapshot["oltp_connection_ok"] = True
-            source_check = query_one(
-                oltp_connection,
-                """
-                SELECT
-                    CASE WHEN OBJECT_ID('core.customers', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_core_customers_table,
-                    CASE WHEN OBJECT_ID('core.products', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_core_products_table;
-                """,
-            )
-            if source_check:
-                snapshot["has_core_customers_table"] = _to_bool(source_check.get("has_core_customers_table"))
-                snapshot["has_core_products_table"] = _to_bool(source_check.get("has_core_products_table"))
         except Exception as exc:  # noqa: BLE001
             snapshot["oltp_error"] = str(exc)
 
@@ -282,21 +398,104 @@ def get_preflight_snapshot() -> dict[str, Any]:
             and snapshot["has_audit_etl_run"]
             and snapshot["has_audit_etl_run_entity"]
         )
-        snapshot["ready_for_dim_cliente"] = (
-            snapshot["ready_for_monitoring"]
-            and snapshot["has_dim_cliente_table"]
-            and snapshot["has_dim_cliente_active"]
-            and snapshot["oltp_connection_ok"]
-            and snapshot["has_core_customers_table"]
+        if snapshot["has_ctl_etl_control"]:
+            control_rows = query_all(
+                connection,
+                """
+                SELECT
+                    entity_name,
+                    is_active,
+                    source_table,
+                    target_table
+                FROM ctl.etl_control
+                ORDER BY entity_name;
+                """,
+            )
+            source_tables = [str(row.get("source_table") or "") for row in control_rows]
+            target_tables = [str(row.get("target_table") or "") for row in control_rows]
+            dw_existing_targets = _get_existing_tables(connection, target_tables)
+            oltp_existing_sources = (
+                _get_existing_tables(oltp_connection, source_tables)
+                if snapshot["oltp_connection_ok"] and oltp_connection is not None
+                else set()
+            )
+
+            entity_checks: list[dict[str, Any]] = []
+            invalid_mapping_entities: list[str] = []
+            missing_source_tables: list[str] = []
+            missing_target_tables: list[str] = []
+            active_ready_count = 0
+
+            for row in control_rows:
+                entity_name = str(row.get("entity_name") or "")
+                is_active = _to_bool(row.get("is_active"))
+                source_table = str(row.get("source_table") or "")
+                target_table = str(row.get("target_table") or "")
+
+                source_key = _normalize_table_key(source_table)
+                target_key = _normalize_table_key(target_table)
+                mapping_ok = source_key is not None and target_key is not None
+                source_exists = bool(
+                    source_key is not None
+                    and snapshot["oltp_connection_ok"]
+                    and source_key in oltp_existing_sources
+                )
+                target_exists = bool(target_key is not None and target_key in dw_existing_targets)
+                ready = bool(
+                    snapshot["ready_for_monitoring"]
+                    and is_active
+                    and mapping_ok
+                    and target_exists
+                    and snapshot["oltp_connection_ok"]
+                    and source_exists
+                )
+
+                if is_active and not mapping_ok:
+                    invalid_mapping_entities.append(entity_name)
+                if is_active and mapping_ok and snapshot["oltp_connection_ok"] and not source_exists:
+                    missing_source_tables.append(source_table)
+                if is_active and mapping_ok and not target_exists:
+                    missing_target_tables.append(target_table)
+                if ready:
+                    active_ready_count += 1
+
+                entity_checks.append(
+                    {
+                        "entity_name": entity_name,
+                        "is_active": is_active,
+                        "source_table": source_table,
+                        "target_table": target_table,
+                        "mapping_ok": mapping_ok,
+                        "source_exists": source_exists,
+                        "target_exists": target_exists,
+                        "ready": ready,
+                    }
+                )
+
+            snapshot["entity_checks"] = entity_checks
+            snapshot["invalid_mapping_entities"] = sorted(set(invalid_mapping_entities))
+            snapshot["missing_source_tables"] = sorted({table for table in missing_source_tables if table})
+            snapshot["missing_target_tables"] = sorted({table for table in missing_target_tables if table})
+            snapshot["active_entities_ready"] = active_ready_count
+
+        snapshot["ready_for_first_run"] = snapshot["active_entities_ready"] > 0
+        snapshot["ready_for_all_active"] = bool(
+            snapshot["active_entities"] > 0
+            and snapshot["active_entities_ready"] == snapshot["active_entities"]
         )
-        snapshot["ready_for_dim_produto"] = (
-            snapshot["ready_for_monitoring"]
-            and snapshot["has_dim_produto_table"]
-            and snapshot["has_dim_produto_active"]
-            and snapshot["oltp_connection_ok"]
-            and snapshot["has_core_products_table"]
-        )
-        snapshot["ready_for_first_run"] = snapshot["ready_for_dim_cliente"]
+
+        if snapshot["active_entities"] == 0:
+            snapshot["suggestions"].append("Nao ha entidades ativas no ctl.etl_control. Ative pelo menos uma pipeline.")
+        if snapshot["invalid_mapping_entities"]:
+            snapshot["suggestions"].append(
+                "Existem entidades ativas com source_table/target_table invalidos no ctl.etl_control."
+            )
+        if snapshot["missing_target_tables"]:
+            snapshot["suggestions"].append("Existem tabelas de destino ausentes no DW para entidades ativas.")
+        if snapshot["oltp_connection_ok"] and snapshot["missing_source_tables"]:
+            snapshot["suggestions"].append("Existem tabelas de origem ausentes no OLTP para entidades ativas.")
+        if not snapshot["oltp_connection_ok"] and snapshot["ready_for_monitoring"]:
+            snapshot["suggestions"].append("Conexao OLTP indisponivel: validacao de origem ficou pendente.")
 
     except Exception as exc:  # noqa: BLE001
         error_text = str(exc)
@@ -320,8 +519,11 @@ def _render_preflight(snapshot: dict[str, Any]) -> None:
         a, b, c, d = st.columns(4)
         a.metric("Conexao DW", _status_badge(bool(snapshot["connection_ok"])))
         b.metric("Conexao OLTP", _status_badge(bool(snapshot["oltp_connection_ok"])))
-        c.metric("Dim Cliente pronta", _status_badge(bool(snapshot.get("ready_for_dim_cliente"))))
-        d.metric("Dim Produto pronta", _status_badge(bool(snapshot.get("ready_for_dim_produto"))))
+        c.metric(
+            "Pipelines ativas prontas",
+            f"{_to_int(snapshot.get('active_entities_ready'), 0)}/{_to_int(snapshot.get('active_entities'), 0)}",
+        )
+        d.metric("Escopo ativo validado", _status_badge(bool(snapshot.get("ready_for_all_active"))))
 
         details_left, details_right = st.columns(2)
         with details_left:
@@ -330,9 +532,17 @@ def _render_preflight(snapshot: dict[str, Any]) -> None:
             st.write(f"- driver: `{snapshot.get('driver') or 'N/A'}`")
             st.write(f"- entities cadastradas: `{snapshot.get('control_entities', 0)}`")
             st.write(f"- entities ativas: `{snapshot.get('active_entities', 0)}`")
+            st.write(f"- entities inativas: `{snapshot.get('inactive_entities', 0)}`")
             st.write(f"- runs historicos: `{snapshot.get('run_count', 0)}`")
-            st.write(f"- dim_cliente ativa: `{_status_badge(bool(snapshot.get('has_dim_cliente_active')))} `")
-            st.write(f"- dim_produto ativa: `{_status_badge(bool(snapshot.get('has_dim_produto_active')))} `")
+            st.write(
+                f"- mapping invalido (ativas): `{len(snapshot.get('invalid_mapping_entities', []))}`"
+            )
+            st.write(
+                f"- tabelas origem ausentes: `{len(snapshot.get('missing_source_tables', []))}`"
+            )
+            st.write(
+                f"- tabelas destino ausentes: `{len(snapshot.get('missing_target_tables', []))}`"
+            )
 
         with details_right:
             st.write(f"- schema ctl: `{_status_badge(bool(snapshot['has_schema_ctl']))}`")
@@ -340,10 +550,31 @@ def _render_preflight(snapshot: dict[str, Any]) -> None:
             st.write(f"- tabela ctl.etl_control: `{_status_badge(bool(snapshot['has_ctl_etl_control']))}`")
             st.write(f"- tabela audit.etl_run: `{_status_badge(bool(snapshot['has_audit_etl_run']))}`")
             st.write(f"- tabela audit.etl_run_entity: `{_status_badge(bool(snapshot['has_audit_etl_run_entity']))}`")
-            st.write(f"- tabela dim.DIM_CLIENTE: `{_status_badge(bool(snapshot.get('has_dim_cliente_table')))} `")
-            st.write(f"- tabela dim.DIM_PRODUTO: `{_status_badge(bool(snapshot.get('has_dim_produto_table')))} `")
-            st.write(f"- tabela core.customers: `{_status_badge(bool(snapshot.get('has_core_customers_table')))} `")
-            st.write(f"- tabela core.products: `{_status_badge(bool(snapshot.get('has_core_products_table')))} `")
+
+        entity_checks_df = pd.DataFrame(snapshot.get("entity_checks", []))
+        if not entity_checks_df.empty:
+            entity_checks_df["is_active"] = entity_checks_df["is_active"].apply(lambda x: "SIM" if _to_bool(x) else "NAO")
+            entity_checks_df["mapping_ok"] = entity_checks_df["mapping_ok"].apply(lambda x: "OK" if bool(x) else "PENDENTE")
+            entity_checks_df["source_exists"] = entity_checks_df["source_exists"].apply(lambda x: "OK" if bool(x) else "PENDENTE")
+            entity_checks_df["target_exists"] = entity_checks_df["target_exists"].apply(lambda x: "OK" if bool(x) else "PENDENTE")
+            entity_checks_df["ready"] = entity_checks_df["ready"].apply(lambda x: "SIM" if bool(x) else "NAO")
+            st.markdown("**Validacao por entidade/fato**")
+            st.dataframe(
+                entity_checks_df[
+                    [
+                        "entity_name",
+                        "is_active",
+                        "mapping_ok",
+                        "source_exists",
+                        "target_exists",
+                        "ready",
+                        "source_table",
+                        "target_table",
+                    ]
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
 
         if snapshot.get("error"):
             st.error("Falha no pre-flight de conexao.")
@@ -360,10 +591,17 @@ def _render_preflight(snapshot: dict[str, Any]) -> None:
 
         if not snapshot.get("ready_for_monitoring"):
             st.warning("Monitoramento ainda nao pronto. Execute os scripts de controle ETL e revise a conexao.")
-        elif not snapshot.get("ready_for_dim_cliente") or not snapshot.get("ready_for_dim_produto"):
-            st.info("Monitoramento pronto, mas o escopo `dim_cliente`/`dim_produto` ainda nao esta totalmente validado.")
+        elif _to_int(snapshot.get("active_entities"), 0) == 0:
+            st.warning("Monitoramento pronto, mas nao ha entidades ativas no controle.")
+        elif not snapshot.get("ready_for_first_run"):
+            st.info("Monitoramento pronto, mas nenhuma entidade ativa esta pronta para execucao.")
+        elif not snapshot.get("ready_for_all_active"):
+            st.info(
+                "Monitoramento pronto, com escopo parcialmente validado. "
+                "Revise entidades ativas com estrutura pendente."
+            )
         else:
-            st.success("Pre-flight concluido. Ambiente pronto para validar `dim_cliente` e `dim_produto`.")
+            st.success("Pre-flight concluido. Ambiente pronto para executar e auditar o escopo ativo completo.")
 
 
 @st.cache_data(ttl=5)
@@ -537,7 +775,7 @@ def _resolve_pipeline_status(row: dict[str, Any]) -> str:
     return "SEM_EXECUCAO"
 
 
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=10)
 def get_pipeline_overview() -> pd.DataFrame:
     query = """
     SELECT
@@ -592,6 +830,16 @@ def get_pipeline_overview() -> pd.DataFrame:
             command_timeout_seconds=config.command_timeout_seconds,
         )
 
+        source_table_names = [str(value) for value in df["source_table"].tolist()]
+        target_table_names = [str(value) for value in df["target_table"].tolist()]
+
+        source_existing = _get_existing_tables(oltp_connection, source_table_names)
+        target_existing = _get_existing_tables(dw_connection, target_table_names)
+        source_columns_map = _get_table_columns_map(oltp_connection, source_table_names)
+        target_columns_map = _get_table_columns_map(dw_connection, target_table_names)
+        source_row_counts = _get_table_row_count_map(oltp_connection, source_table_names)
+        target_row_counts = _get_table_row_count_map(dw_connection, target_table_names)
+
         source_exists: list[bool] = []
         target_exists: list[bool] = []
         source_totals: list[int] = []
@@ -618,29 +866,25 @@ def get_pipeline_overview() -> pd.DataFrame:
             source_table = str(row["source_table"])
             target_table = str(row["target_table"])
             source_pk_column = str(row.get("source_pk_column") or "").strip()
+            source_key = _normalize_table_key(source_table)
+            target_key = _normalize_table_key(target_table)
 
-            has_source = _object_exists_table(oltp_connection, source_table)
-            has_target = _object_exists_table(dw_connection, target_table)
+            has_source = bool(source_key and source_key in source_existing)
+            has_target = bool(target_key and target_key in target_existing)
             source_exists.append(has_source)
             target_exists.append(has_target)
 
-            source_total = 0
-            target_total = 0
+            source_total = _to_int(source_row_counts.get(source_key) if source_key else 0, 0) if has_source else 0
+            target_total = _to_int(target_row_counts.get(target_key) if target_key else 0, 0) if has_target else 0
             pending = 0
             source_max_updated_at = None
             target_max_updated_at = None
 
             if has_source:
                 safe_source = _safe_qualified_name(source_table)
-                source_count_row = query_one(
-                    oltp_connection,
-                    f"SELECT COUNT(*) AS total FROM {safe_source};",
-                )
-                source_total = _to_int(source_count_row.get("total") if source_count_row else 0, 0)
-
                 source_columns = {
-                    str(col["COLUMN_NAME"]).lower()
-                    for col in _get_table_columns(oltp_connection, source_table)
+                    str(column_name).lower()
+                    for column_name in source_columns_map.get(source_key or "", [])
                 }
                 if "updated_at" in source_columns:
                     source_max_row = query_one(
@@ -678,15 +922,9 @@ def get_pipeline_overview() -> pd.DataFrame:
 
             if has_target:
                 safe_target = _safe_qualified_name(target_table)
-                target_count_row = query_one(
-                    dw_connection,
-                    f"SELECT COUNT(*) AS total FROM {safe_target};",
-                )
-                target_total = _to_int(target_count_row.get("total") if target_count_row else 0, 0)
-
                 target_columns = {
-                    str(col["COLUMN_NAME"]).lower()
-                    for col in _get_table_columns(dw_connection, target_table)
+                    str(column_name).lower()
+                    for column_name in target_columns_map.get(target_key or "", [])
                 }
                 target_updated_col = next(
                     (col for col in target_updated_candidates if col in target_columns),
@@ -790,6 +1028,7 @@ def _get_table_columns(connection: Any, table_name: str) -> list[dict[str, Any]]
         SELECT
             COLUMN_NAME,
             DATA_TYPE,
+            IS_NULLABLE,
             ORDINAL_POSITION
         FROM INFORMATION_SCHEMA.COLUMNS
         WHERE TABLE_SCHEMA = ?
@@ -1135,8 +1374,10 @@ def get_pipeline_quality_snapshot(entity_name: str) -> dict[str, Any]:
         safe_source = _safe_qualified_name(source_table)
         safe_target = _safe_qualified_name(target_table)
 
-        source_columns = [str(col["COLUMN_NAME"]) for col in _get_table_columns(oltp_connection, source_table)]
-        target_columns = [str(col["COLUMN_NAME"]) for col in _get_table_columns(dw_connection, target_table)]
+        source_column_rows = _get_table_columns(oltp_connection, source_table)
+        target_column_rows = _get_table_columns(dw_connection, target_table)
+        source_columns = [str(col["COLUMN_NAME"]) for col in source_column_rows]
+        target_columns = [str(col["COLUMN_NAME"]) for col in target_column_rows]
 
         def add_check(check: str, status: str, value: Any, detail: str) -> None:
             snapshot["checks"].append(
@@ -1293,6 +1534,121 @@ def get_pipeline_quality_snapshot(entity_name: str) -> dict[str, Any]:
                 f"fonte={source_soft_deleted} | alvo={target_soft_deleted_proxy}",
                 f"Diferenca absoluta={delta_soft_delete} (tolerancia={tolerance}).",
             )
+
+        target_parsed = _parse_table_name(target_table)
+        target_schema = target_parsed[0].lower() if target_parsed is not None else ""
+        is_fact_pipeline = entity_name.lower().startswith("fact_") or target_schema == "fact"
+        if is_fact_pipeline:
+            target_natural_key_lower = (
+                target_natural_key.lower()
+                if target_natural_key is not None and _is_safe_identifier(target_natural_key)
+                else None
+            )
+
+            required_id_columns: list[str] = []
+            for col in target_column_rows:
+                column_name = str(col.get("COLUMN_NAME") or "")
+                is_nullable = str(col.get("IS_NULLABLE") or "").upper()
+                if (
+                    column_name
+                    and column_name.lower().endswith("_id")
+                    and is_nullable == "NO"
+                    and _is_safe_identifier(column_name)
+                    and column_name.lower() != target_natural_key_lower
+                ):
+                    required_id_columns.append(column_name)
+
+            if required_id_columns:
+                null_sum_parts = [
+                    f"SUM(CASE WHEN [{column_name}] IS NULL THEN 1 ELSE 0 END) AS [{column_name}__nulls]"
+                    for column_name in required_id_columns
+                ]
+                null_counts_row = query_one(
+                    dw_connection,
+                    f"""
+                    SELECT
+                        {", ".join(null_sum_parts)}
+                    FROM {safe_target};
+                    """,
+                )
+                null_offenders: list[str] = []
+                total_required_id_nulls = 0
+                if null_counts_row is not None:
+                    for column_name in required_id_columns:
+                        key = f"{column_name}__nulls"
+                        null_count = _to_int(null_counts_row.get(key), 0)
+                        total_required_id_nulls += null_count
+                        if null_count > 0:
+                            null_offenders.append(f"{column_name}={null_count}")
+
+                add_check(
+                    "fato_fk_obrigatoria_nula",
+                    "OK" if total_required_id_nulls == 0 else "ALERTA",
+                    total_required_id_nulls,
+                    "Nulos em colunas *_id obrigatorias no fato."
+                    if not null_offenders
+                    else "Nulos em: " + ", ".join(null_offenders[:4]),
+                )
+
+            numeric_types = {
+                "tinyint",
+                "smallint",
+                "int",
+                "bigint",
+                "decimal",
+                "numeric",
+                "float",
+                "real",
+                "money",
+                "smallmoney",
+            }
+            metric_columns: list[str] = []
+            for col in target_column_rows:
+                column_name = str(col.get("COLUMN_NAME") or "")
+                data_type = str(col.get("DATA_TYPE") or "").lower()
+                if (
+                    column_name
+                    and _is_safe_identifier(column_name)
+                    and data_type in numeric_types
+                    and (
+                        column_name.lower().startswith("valor_")
+                        or column_name.lower().startswith("quantidade_")
+                        or column_name.lower().startswith("percentual_")
+                    )
+                ):
+                    metric_columns.append(column_name)
+
+            if metric_columns:
+                negative_sum_parts = [
+                    f"SUM(CASE WHEN [{column_name}] < 0 THEN 1 ELSE 0 END) AS [{column_name}__neg]"
+                    for column_name in metric_columns
+                ]
+                negative_counts_row = query_one(
+                    dw_connection,
+                    f"""
+                    SELECT
+                        {", ".join(negative_sum_parts)}
+                    FROM {safe_target};
+                    """,
+                )
+                negative_offenders: list[str] = []
+                total_negative_values = 0
+                if negative_counts_row is not None:
+                    for column_name in metric_columns:
+                        key = f"{column_name}__neg"
+                        negative_count = _to_int(negative_counts_row.get(key), 0)
+                        total_negative_values += negative_count
+                        if negative_count > 0:
+                            negative_offenders.append(f"{column_name}={negative_count}")
+
+                add_check(
+                    "fato_metricas_negativas",
+                    "OK" if total_negative_values == 0 else "ALERTA",
+                    total_negative_values,
+                    "Valores negativos nas metricas numericas do fato."
+                    if not negative_offenders
+                    else "Negativos em: " + ", ".join(negative_offenders[:4]),
+                )
 
         for row in snapshot["checks"]:
             status = str(row.get("status") or "")
@@ -1874,7 +2230,7 @@ def _format_minutes(value: float | None) -> str:
 
 
 def _render_kpi_cards(runs_df: pd.DataFrame, control_df: pd.DataFrame, entity_runs_df: pd.DataFrame) -> None:
-    st.subheader("KPIs OLTP -> DW (escopo atual)")
+    st.subheader("KPIs OLTP -> DW (escopo monitorado)")
 
     latest_run = runs_df.iloc[0] if not runs_df.empty else None
     active_entities = int((control_df["is_active"] == 1).sum()) if "is_active" in control_df.columns else 0
@@ -1904,28 +2260,24 @@ def _render_kpi_cards(runs_df: pd.DataFrame, control_df: pd.DataFrame, entity_ru
     else:
         metric_4.metric("Status ultimo run", "-")
 
-    dim_cliente_health = get_dim_cliente_health()
-    dim_produto_health = get_dim_produto_health()
-
-    coverage_cliente = _safe_ratio(
-        _to_int(dim_cliente_health.get("target_total"), 0),
-        _to_int(dim_cliente_health.get("source_total"), 0),
+    overview_df = _ensure_datetime_columns(
+        get_pipeline_overview(),
+        ["source_max_updated_at", "target_max_updated_at"],
     )
-    coverage_produto = _safe_ratio(
-        _to_int(dim_produto_health.get("target_total"), 0),
-        _to_int(dim_produto_health.get("source_total"), 0),
+    source_total_all = int(overview_df["source_total"].fillna(0).sum()) if not overview_df.empty else 0
+    target_total_all = int(overview_df["target_total"].fillna(0).sum()) if not overview_df.empty else 0
+    coverage_global = _safe_ratio(target_total_all, source_total_all)
+    pending_total = int(overview_df["source_pending_since_watermark"].fillna(0).sum()) if not overview_df.empty else 0
+    freshness_mean = (
+        None
+        if overview_df.empty or overview_df["freshness_minutes"].dropna().empty
+        else float(overview_df["freshness_minutes"].dropna().mean())
     )
-    pending_total = _to_int(dim_cliente_health.get("source_pending_since_watermark"), 0) + _to_int(
-        dim_produto_health.get("source_pending_since_watermark"),
-        0,
-    )
-    freshness_cliente = _compute_freshness_minutes(
-        dim_cliente_health.get("source_max_updated_at"),
-        dim_cliente_health.get("target_max_updated_at"),
-    )
-    freshness_produto = _compute_freshness_minutes(
-        dim_produto_health.get("source_max_updated_at"),
-        dim_produto_health.get("target_max_updated_at"),
+    ok_pipelines = int((overview_df["pipeline_status"] == "OK").sum()) if not overview_df.empty else 0
+    fail_pipelines = int((overview_df["pipeline_status"] == "FALHA").sum()) if not overview_df.empty else 0
+    running_pipelines = int((overview_df["pipeline_status"] == "RODANDO").sum()) if not overview_df.empty else 0
+    pending_struct_pipelines = (
+        int((overview_df["pipeline_status"] == "PENDENTE_ESTRUTURA").sum()) if not overview_df.empty else 0
     )
 
     throughput_rows_per_sec = None
@@ -1949,18 +2301,20 @@ def _render_kpi_cards(runs_df: pd.DataFrame, control_df: pd.DataFrame, entity_ru
             throughput_rows_per_sec = float(throughput_series.mean()) if not throughput_series.empty else None
 
     metric_5, metric_6, metric_7, metric_8 = st.columns(4)
-    metric_5.metric("Cobertura dim_cliente", _format_ratio(coverage_cliente))
-    metric_6.metric("Cobertura dim_produto", _format_ratio(coverage_produto))
-    metric_7.metric("Pendentes watermark", pending_total)
+    metric_5.metric("Cobertura geral", _format_ratio(coverage_global))
+    metric_6.metric("Pendentes watermark", pending_total)
+    metric_7.metric("Latencia media", _format_minutes(freshness_mean))
     metric_8.metric("Throughput medio (24h)", "-" if throughput_rows_per_sec is None else f"{throughput_rows_per_sec:.1f} l/s")
 
-    metric_9, metric_10 = st.columns(2)
-    metric_9.metric("Latencia dim_cliente", _format_minutes(freshness_cliente))
-    metric_10.metric("Latencia dim_produto", _format_minutes(freshness_produto))
+    metric_9, metric_10, metric_11, metric_12 = st.columns(4)
+    metric_9.metric("Pipelines OK", ok_pipelines)
+    metric_10.metric("Pipelines em falha", fail_pipelines)
+    metric_11.metric("Pipelines rodando", running_pipelines)
+    metric_12.metric("Pendentes estrutura", pending_struct_pipelines)
 
     st.caption(
-        "KPIs principais: cobertura (fonte x alvo), pendencia incremental, "
-        "latencia de atualizacao, taxa de sucesso e throughput medio."
+        "KPIs principais: sucesso dos runs, cobertura global, pendencia incremental, "
+        "latencia media e status operacional dos pipelines."
     )
 
 
