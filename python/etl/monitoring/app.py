@@ -249,6 +249,8 @@ def _suggest_connection_fix(error_text: str) -> list[str]:
         suggestions.append("Tabela de origem `core.products` indisponivel. Execute bootstrap OLTP ou valide permissoes no OLTP.")
     if "CORE.DISCOUNT_CAMPAIGNS" in upper_error:
         suggestions.append("Tabela de origem `core.discount_campaigns` indisponivel. Execute bootstrap OLTP ou valide permissoes no OLTP.")
+    if "CORE.REGIONS" in upper_error:
+        suggestions.append("Tabela de origem `core.regions` indisponivel. Execute bootstrap OLTP ou valide permissoes no OLTP.")
     if "PERMISSION" in upper_error or "DENIED" in upper_error:
         suggestions.append("Permissao insuficiente para consulta. Revise grants do usuario de monitoramento.")
 

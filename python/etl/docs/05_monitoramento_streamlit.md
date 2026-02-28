@@ -8,9 +8,11 @@ Este dashboard mostra o estado do ETL em tempo quase real usando:
 - `audit.connection_login_events`
 - `dim.DIM_CLIENTE` (saude do alvo)
 - `dim.DIM_PRODUTO` (saude do alvo)
+- `dim.DIM_REGIAO` (saude do alvo)
 - `dim.DIM_DESCONTO` (saude do alvo)
 - `core.customers` (amostra da origem)
 - `core.products` (amostra da origem)
+- `core.regions` (amostra da origem)
 - `core.discount_campaigns` (amostra da origem)
 
 ## 1) Pre-requisitos
