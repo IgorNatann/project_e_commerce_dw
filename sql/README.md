@@ -47,10 +47,11 @@ Observacao:
 6. `sql/dw/03_etl_control/06_configure_server_audit_file.sql`
 7. `sql/dw/03_etl_control/07_activate_dim_cliente_scope.sql`
 8. `sql/dw/03_etl_control/08_ensure_dim_cliente_contract.sql`
-9. `sql/dw/03_etl_control/99_validation/01_checks.sql`
-10. `sql/dw/03_etl_control/99_validation/02_preflight_readiness.sql`
-11. `sql/dw/03_etl_control/99_validation/03_connection_audit_checks.sql`
-12. `sql/dw/03_etl_control/99_validation/04_server_audit_file_checks.sql`
+9. `sql/dw/03_etl_control/09_ensure_dim_produto_contract.sql`
+10. `sql/dw/03_etl_control/99_validation/01_checks.sql`
+11. `sql/dw/03_etl_control/99_validation/02_preflight_readiness.sql`
+12. `sql/dw/03_etl_control/99_validation/03_connection_audit_checks.sql`
+13. `sql/dw/03_etl_control/99_validation/04_server_audit_file_checks.sql`
 
 ## Validacao rapida
 

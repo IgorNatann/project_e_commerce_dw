@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 from . import dim_cliente
+from . import dim_produto
 
 
 ENTITY_REGISTRY = {
     dim_cliente.ENTITY_NAME: dim_cliente,
+    dim_produto.ENTITY_NAME: dim_produto,
 }
 
 
