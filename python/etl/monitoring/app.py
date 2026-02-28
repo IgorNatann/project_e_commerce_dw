@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
+import altair as alt
 import pandas as pd
 import streamlit as st
 
@@ -455,6 +456,31 @@ def get_entity_volume(days: int = 14) -> pd.DataFrame:
     ORDER BY re.entity_name;
     """
     return _fetch_df(query, (int(days),))
+
+
+@st.cache_data(ttl=5)
+def get_execution_timeline(limit: int = 400) -> pd.DataFrame:
+    query = """
+    SELECT TOP (?)
+        re.run_entity_id,
+        re.run_id,
+        re.entity_name,
+        re.status,
+        re.entity_started_at,
+        re.entity_finished_at,
+        re.extracted_count,
+        re.upserted_count,
+        re.soft_deleted_count,
+        re.error_message,
+        r.started_at AS run_started_at,
+        r.status AS run_status,
+        r.started_by
+    FROM audit.etl_run_entity AS re
+    INNER JOIN audit.etl_run AS r
+        ON r.run_id = re.run_id
+    ORDER BY re.run_entity_id DESC;
+    """
+    return _fetch_df(query, (int(limit),))
 
 
 def _object_exists_table(connection: Any, table_name: str) -> bool:
@@ -1863,6 +1889,103 @@ def _render_running_section() -> None:
         st.dataframe(running_entities_df, use_container_width=True, hide_index=True)
 
 
+def _render_execution_timeline_section() -> None:
+    st.subheader("Timeline de execucao por run e entidade")
+    timeline_df = _ensure_datetime_columns(
+        get_execution_timeline(400),
+        ["run_started_at", "entity_started_at", "entity_finished_at"],
+    )
+    if timeline_df.empty:
+        st.info("Sem historico de execucao para montar timeline.")
+        return
+
+    run_options = sorted(timeline_df["run_id"].dropna().astype(int).unique().tolist(), reverse=True)
+    default_runs = run_options[: min(10, len(run_options))]
+    selected_runs = st.multiselect(
+        "Filtrar run_id na timeline",
+        options=run_options,
+        default=default_runs,
+    )
+    filtered_df = timeline_df[timeline_df["run_id"].astype(int).isin(selected_runs)].copy()
+    if filtered_df.empty:
+        st.info("Nenhum dado para os runs selecionados.")
+        return
+
+    filtered_df = filtered_df[filtered_df["entity_started_at"].notna()].copy()
+    if filtered_df.empty:
+        st.info("Runs selecionados sem inicio de entidade registrado.")
+        return
+
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    filtered_df["timeline_finished_at"] = filtered_df["entity_finished_at"].fillna(now_utc)
+    filtered_df["duration_seconds"] = (
+        filtered_df["timeline_finished_at"] - filtered_df["entity_started_at"]
+    ).dt.total_seconds().clip(lower=0)
+    filtered_df["duration_seconds"] = filtered_df["duration_seconds"].fillna(0)
+    filtered_df["execution_key"] = filtered_df.apply(
+        lambda row: f"run {int(row['run_id'])} | {row['entity_name']}",
+        axis=1,
+    )
+    filtered_df["status"] = filtered_df["status"].fillna("unknown").astype(str)
+
+    run_count = int(filtered_df["run_id"].nunique())
+    entity_count = int(filtered_df["entity_name"].nunique())
+    running_count = int((filtered_df["status"] == "running").sum())
+    failed_count = int((filtered_df["status"] == "failed").sum())
+    metric_1, metric_2, metric_3, metric_4 = st.columns(4)
+    metric_1.metric("Runs selecionados", run_count)
+    metric_2.metric("Entidades na timeline", entity_count)
+    metric_3.metric("Execucoes rodando", running_count)
+    metric_4.metric("Execucoes com falha", failed_count)
+
+    chart_height = min(900, max(260, 20 * len(filtered_df)))
+    status_scale = alt.Scale(
+        domain=["success", "running", "failed", "partial", "unknown"],
+        range=["#00A86B", "#1E90FF", "#DC143C", "#FF8C00", "#708090"],
+    )
+    chart = (
+        alt.Chart(filtered_df)
+        .mark_bar()
+        .encode(
+            x=alt.X("entity_started_at:T", title="Inicio"),
+            x2=alt.X2("timeline_finished_at:T"),
+            y=alt.Y("execution_key:N", title="Run / Entidade", sort="-x"),
+            color=alt.Color("status:N", title="Status", scale=status_scale),
+            tooltip=[
+                alt.Tooltip("run_id:Q", title="run_id"),
+                alt.Tooltip("entity_name:N", title="entidade"),
+                alt.Tooltip("status:N", title="status"),
+                alt.Tooltip("entity_started_at:T", title="inicio"),
+                alt.Tooltip("entity_finished_at:T", title="fim"),
+                alt.Tooltip("duration_seconds:Q", title="duracao (s)", format=".0f"),
+                alt.Tooltip("extracted_count:Q", title="extraidos"),
+                alt.Tooltip("upserted_count:Q", title="upsertados"),
+                alt.Tooltip("soft_deleted_count:Q", title="soft_deleted"),
+            ],
+        )
+        .properties(height=chart_height)
+    )
+    st.altair_chart(chart, use_container_width=True)
+
+    detail_columns = [
+        "run_id",
+        "entity_name",
+        "status",
+        "entity_started_at",
+        "entity_finished_at",
+        "duration_seconds",
+        "extracted_count",
+        "upserted_count",
+        "soft_deleted_count",
+        "error_message",
+    ]
+    st.dataframe(
+        filtered_df[detail_columns].sort_values(["run_id", "entity_started_at"], ascending=[False, False]),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
 def _render_runs_control_section(runs_df: pd.DataFrame, control_df: pd.DataFrame) -> None:
     st.subheader("Controle incremental (ctl.etl_control)")
     st.dataframe(control_df, use_container_width=True, hide_index=True)
@@ -2055,6 +2178,7 @@ def render_dashboard() -> None:
     if page == "Resumo operacional":
         _render_kpi_cards(runs_df, control_df, entity_runs_df)
         _render_pipeline_overview_section()
+        _render_execution_timeline_section()
         _render_running_section()
         _render_charts_section()
         _render_failures_section(entity_runs_df)
