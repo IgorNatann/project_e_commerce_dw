@@ -576,7 +576,7 @@ def _render_kpi_strip(
         ("Ticket medio", "ticket_medio", _fmt_currency, "normal"),
         ("Itens vendidos", "itens", _fmt_int, "normal"),
         ("Taxa devolucao", "taxa_devolucao", _fmt_pct, "inverse"),
-        ("Desconto medio", "desconto_pct", _fmt_pct, "inverse"),
+        ("Desconto medio (bruto)", "desconto_pct", _fmt_pct, "inverse"),
         ("Comissao total", "comissao", _fmt_currency, "normal"),
     ]
 
@@ -751,6 +751,7 @@ def _render_product_region_tab(df: pd.DataFrame) -> None:
         df.groupby("categoria", as_index=False)
         .agg(
             receita=("valor_total_liquido", "sum"),
+            bruto=("valor_total_bruto", "sum"),
             margem=("margem_bruta", "sum"),
             itens=("quantidade_vendida", "sum"),
             descontos=("valor_total_descontos", "sum"),
@@ -761,7 +762,7 @@ def _render_product_region_tab(df: pd.DataFrame) -> None:
         lambda row: (row["margem"] / row["receita"]) if row["receita"] else 0.0, axis=1
     )
     mix_categoria["desconto_pct"] = mix_categoria.apply(
-        lambda row: (row["descontos"] / row["receita"]) if row["receita"] else 0.0, axis=1
+        lambda row: (row["descontos"] / row["bruto"]) if row["bruto"] else 0.0, axis=1
     )
 
     c1, c2 = st.columns(2)
@@ -798,7 +799,7 @@ def _render_product_region_tab(df: pd.DataFrame) -> None:
             "margem": "Margem",
             "itens": "Itens",
             "margem_pct": "Margem %",
-            "desconto_pct": "Desconto %",
+            "desconto_pct": "Desconto % (Bruto)",
         }
     )
     st.dataframe(mix_show, use_container_width=True, hide_index=True)

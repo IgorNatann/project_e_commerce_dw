@@ -30,3 +30,11 @@ streamlit run dashboards/streamlit/vendas/app.py
 ## Dependencias
 
 Arquivo: `dashboards/streamlit/vendas/requirements.txt`.
+
+## Smoke recorrente de filtros
+
+Executar validacao recorrente dos filtros do dashboard:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/recurring_tests/run_dash_vendas_filter_smoke.ps1
+```

@@ -14,7 +14,7 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 ```
 
 O servico `sql-init` ja executa o bootstrap do rollout atual:
-`dim_data`, `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`.
+`dim_data`, `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
 Tambem configura o perfil de leitura `bi_reader` para consumo do dashboard de vendas.
 
 Observacao:
@@ -60,13 +60,15 @@ Observacao:
 8. `sql/dw/03_etl_control/09_ensure_dim_produto_contract.sql`
 9. `sql/dw/03_etl_control/13_ensure_fact_vendas_table.sql`
 10. `sql/dw/03_etl_control/10_ensure_fact_vendas_contract.sql`
-11. `sql/dw/03_etl_control/12_activate_current_rollout_scope.sql`
-12. `sql/dw/03_etl_control/99_validation/05_current_rollout_scope_checks.sql`
-13. `sql/dw/05_security/01_create_bi_reader.sql`
-14. `sql/dw/03_etl_control/99_validation/01_checks.sql`
-15. `sql/dw/03_etl_control/99_validation/02_preflight_readiness.sql`
-16. `sql/dw/03_etl_control/99_validation/03_connection_audit_checks.sql`
-17. `sql/dw/03_etl_control/99_validation/04_server_audit_file_checks.sql`
+11. `sql/dw/03_etl_control/14_ensure_fact_metas_table.sql`
+12. `sql/dw/03_etl_control/15_ensure_fact_descontos_table.sql`
+13. `sql/dw/03_etl_control/12_activate_current_rollout_scope.sql`
+14. `sql/dw/03_etl_control/99_validation/05_current_rollout_scope_checks.sql`
+15. `sql/dw/05_security/01_create_bi_reader.sql`
+16. `sql/dw/03_etl_control/99_validation/01_checks.sql`
+17. `sql/dw/03_etl_control/99_validation/02_preflight_readiness.sql`
+18. `sql/dw/03_etl_control/99_validation/03_connection_audit_checks.sql`
+19. `sql/dw/03_etl_control/99_validation/04_server_audit_file_checks.sql`
 
 ## Validacao rapida
 
@@ -85,4 +87,4 @@ ORDER BY event_time_utc DESC;
 
 ## Observacao de escopo
 
-A stack Docker aplica o rollout do ETL ja implementado (6 dimensoes + `fact_vendas`). A expansao para `fact_metas` e `fact_descontos` continua nas proximas etapas.
+A stack Docker aplica o rollout do ETL ja implementado (6 dimensoes + `fact_vendas` + `fact_metas` + `fact_descontos`).
