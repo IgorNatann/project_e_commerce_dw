@@ -2,10 +2,6 @@
 
 Relatorios diarios gerados a partir do historico Git do repositorio.
 
-## Nota de infra
-
-Este fluxo e independente da stack Docker (`docker/up_stack.ps1`).
-
 Guia do gerador: [SOBRE_GERADOR.md](SOBRE_GERADOR.md)
 
 ## Como Atualizar
@@ -26,6 +22,7 @@ python scripts/evolution/run_all.py
 
 | data | total commits | no merges | merges | relatorio |
 |---|---:|---:|---:|---|
+| 2026-02-28 | 13 | 13 | 0 | [abrir](2026-02-28.md) |
 | 2026-02-26 | 19 | 10 | 9 | [abrir](2026-02-26.md) |
 | 2026-02-25 | 41 | 20 | 21 | [abrir](2026-02-25.md) |
 | 2026-02-24 | 3 | 1 | 2 | [abrir](2026-02-24.md) |
