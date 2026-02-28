@@ -3,7 +3,7 @@
 Este diretorio sobe toda a infra de laboratorio em um comando:
 
 - SQL Server 2022
-- bootstrap automatico de OLTP + DW (rollout atual: 6 dimensoes + `fact_vendas` + `fact_metas`)
+- bootstrap automatico de OLTP + DW (rollout atual: 6 dimensoes + `fact_vendas` + `fact_metas` + `fact_descontos`)
 - Streamlit para monitoramento ETL
 - Streamlit para dashboard de vendas (R1)
 - auditoria de conexoes (tabela + SQL Server Audit em arquivo)
@@ -85,9 +85,7 @@ powershell -ExecutionPolicy Bypass -File docker/prune_legacy_sql_volumes.ps1 -Ap
 ## Escopo atual de validacao
 
 A automacao da stack garante readiness operacional das entidades ETL implementadas:
-`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas` e `fact_metas`.
-
-A entidade `fact_descontos` continua em evolucao para onboarding progressivo.
+`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
 
 Observacao:
 - o `sql-init` executa validacao automatica de rollout (`05_current_rollout_scope_checks.sql`);
@@ -113,5 +111,6 @@ docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_vendedor
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_vendas
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_metas
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_descontos
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity all
 ```
