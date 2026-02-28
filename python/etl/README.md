@@ -1,6 +1,6 @@
 # ETL Python - estado atual
 
-Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe` e `dim_desconto`.
+Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto` e `fact_vendas`.
 
 ## O que esta pronto
 
@@ -11,6 +11,7 @@ Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto`, `dim_
 - Transformacao e upsert Type 1 para `dim_vendedor`.
 - Transformacao e upsert Type 1 para `dim_equipe`.
 - Transformacao e upsert Type 1 para `dim_desconto`.
+- Transformacao e upsert incremental para `fact_vendas`.
 - Auditoria de execucao em `audit.etl_run` e `audit.etl_run_entity`.
 - Monitoramento visual via Streamlit.
 
@@ -35,6 +36,7 @@ docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_regiao
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_vendedor
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_equipe
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_vendas
 ```
 
 4. Opcional: executar ETL local (fora do container), configurando variaveis `ETL_*`:
@@ -46,6 +48,7 @@ python python/etl/run_etl.py --entity dim_regiao
 python python/etl/run_etl.py --entity dim_vendedor
 python python/etl/run_etl.py --entity dim_equipe
 python python/etl/run_etl.py --entity dim_desconto
+python python/etl/run_etl.py --entity fact_vendas
 ```
 
 ## Variaveis de conexao
@@ -67,7 +70,8 @@ python/etl/
 |   |-- dim_equipe.py
 |   |-- dim_produto.py
 |   |-- dim_regiao.py
-|   `-- dim_vendedor.py
+|   |-- dim_vendedor.py
+|   `-- fact_vendas.py
 |-- sql/
 |   |-- extract_dim_cliente.sql
 |   |-- extract_dim_desconto.sql
@@ -75,12 +79,14 @@ python/etl/
 |   |-- extract_dim_produto.sql
 |   |-- extract_dim_regiao.sql
 |   |-- extract_dim_vendedor.sql
+|   |-- extract_fact_vendas.sql
 |   |-- upsert_dim_cliente.sql
 |   |-- upsert_dim_desconto.sql
 |   |-- upsert_dim_equipe.sql
 |   |-- upsert_dim_produto.sql
 |   |-- upsert_dim_regiao.sql
 |   |-- upsert_dim_vendedor.sql
+|   |-- upsert_fact_vendas.sql
 |   `-- update_watermark.sql
 |-- monitoring/
 |   |-- app.py
@@ -96,4 +102,4 @@ python/etl/
 
 ## Proximo passo natural
 
-Depois de estabilizar `dim_cliente`/`dim_produto`/`dim_regiao`/`dim_vendedor`/`dim_equipe`/`dim_desconto` (auditoria + monitoramento), replicar o padrao para as demais entidades.
+Depois de estabilizar `dim_cliente`/`dim_produto`/`dim_regiao`/`dim_vendedor`/`dim_equipe`/`dim_desconto`/`fact_vendas` (auditoria + monitoramento), replicar o padrao para as demais entidades.

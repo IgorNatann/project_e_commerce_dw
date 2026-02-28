@@ -20,10 +20,12 @@ Esta pasta contem os scripts de controle operacional da carga incremental.
 7. `07_activate_dim_cliente_scope.sql`
 8. `08_ensure_dim_cliente_contract.sql`
 9. `09_ensure_dim_produto_contract.sql`
-10. `99_validation/01_checks.sql`
-11. `99_validation/02_preflight_readiness.sql`
-12. `99_validation/03_connection_audit_checks.sql`
-13. `99_validation/04_server_audit_file_checks.sql`
+10. `10_ensure_fact_vendas_contract.sql`
+11. `11_activate_fact_vendas_scope.sql`
+12. `99_validation/01_checks.sql`
+13. `99_validation/02_preflight_readiness.sql`
+14. `99_validation/03_connection_audit_checks.sql`
+15. `99_validation/04_server_audit_file_checks.sql`
 
 ## Com Docker
 
@@ -52,4 +54,4 @@ ORDER BY event_time_utc DESC;
 
 ## Escopo atual
 
-`dim_cliente` e `dim_produto` ficam ativas por padrao para garantir onboarding controlado e observabilidade completa antes de expandir para outras entidades.
+`dim_cliente`, `dim_produto` e `fact_vendas` podem ser mantidas ativas conforme estrategia de rollout. O controle de escopo fica em `ctl.etl_control`.
