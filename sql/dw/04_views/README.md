@@ -17,6 +17,7 @@ Catalogo de views analiticas no schema `dim` e script master de orquestracao.
 - `11_vw_analise_regional_equipes.sql`
 - `12_vw_dash_vendas_r1.sql`
 - `13_vw_dash_metas_r1.sql`
+- `14_vw_dash_descontos_r1.sql`
 
 ## Execucao
 
@@ -41,4 +42,4 @@ As views nao sao pre-requisito para o primeiro ciclo validado e podem ser aplica
 
 - Antes de criar consultas analiticas em `docs/queries`.
 - Antes de publicar dashboards de negocio alem do monitor ETL.
-- As views `fact.VW_DASH_VENDAS_R1` e `fact.VW_DASH_METAS_R1` sao a base certificada dos dashboards R1 de vendas e metas.
+- As views `fact.VW_DASH_VENDAS_R1`, `fact.VW_DASH_METAS_R1` e `fact.VW_DASH_DESCONTOS_R1` sao a base certificada dos dashboards R1 de vendas, metas e descontos/ROI.

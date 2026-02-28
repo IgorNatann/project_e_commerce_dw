@@ -116,3 +116,14 @@ Uso:
 
 - definir `@data_inicio` e `@data_fim` iguais ao filtro de periodo aplicado no dashboard;
 - executar o script e comparar KPIs principais (meta total, realizado, atingimento, gap e taxa de meta batida).
+
+## Queries de homologacao do dashboard de descontos/ROI R1
+
+Arquivo de referencia:
+
+- `docs/queries/descontos/01_kpis_dash_descontos_r1.sql`
+
+Uso:
+
+- definir `@data_inicio` e `@data_fim` iguais ao filtro de periodo aplicado no dashboard;
+- executar o script e comparar KPIs principais (desconto total, receita com desconto, ROI, impacto de margem e taxa de aprovacao).

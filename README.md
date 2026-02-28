@@ -7,7 +7,7 @@ Projeto de laboratorio para simular um cenario real de dados `OLTP -> DW` em SQL
 [![Method](https://img.shields.io/badge/Method-Kimball-green)](https://www.kimballgroup.com/)
 [![Infra](https://img.shields.io/badge/Infra-Docker%20One--Shot-2496ED?style=flat&logo=docker)](docker/README.md)
 
-- Infra Docker one-shot pronta (`SQL Server + init + Streamlit monitor + Streamlit vendas + Streamlit metas + backup`).
+- Infra Docker one-shot pronta (`SQL Server + init + Streamlit monitor + Streamlit vendas + Streamlit metas + Streamlit descontos + backup`).
 - Auditoria de conexoes ativa (tabela `audit.connection_login_events` + arquivo `.sqlaudit`).
 - Escopo validado ponta a ponta para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
 - OLTP (`ECOMMERCE_OLTP`) e DW (`DW_ECOMMERCE`) inicializados automaticamente pelo bootstrap.
@@ -34,13 +34,13 @@ Este repositorio combina modelagem dimensional com operacao de dados:
 - Auditoria de conexao ativa: `audit.connection_login_events` e SQL Server Audit (`.sqlaudit`).
 - Readiness operacional no bootstrap da stack para as entidades ETL implementadas (`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`).
 - ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
-- Dashboards publicados: monitoramento ETL (`:8501`), vendas R1 (`:8502`) e metas R1 (`:8503`).
+- Dashboards publicados: monitoramento ETL (`:8501`), vendas R1 (`:8502`), metas R1 (`:8503`) e descontos/ROI R1 (`:8504`).
 - Fluxo validado ponta a ponta: extracao OLTP, upsert DW, watermark, trilha em `audit.*` e monitoramento visual.
 
 ## Status de evolucao
 
 1. Base operacional concluida: OLTP funcional, DW base, ETL incremental inicial e monitoramento tecnico.
-2. Em andamento: publicacao do dashboard de descontos/ROI (dashboard de metas/atingimento ja publicado).
+2. Concluido: publicacao dos dashboards R1 de vendas, metas e descontos/ROI.
 3. Em andamento: consolidacao da suite automatizada de testes (integridade, regressao e smoke diario).
 4. Meta: alertas externos de falha/SLA, runbook operacional formal e deploy de portfolio.
 
@@ -82,6 +82,7 @@ Endpoints:
 - Streamlit monitor ETL: `http://localhost:8501`
 - Streamlit dashboard vendas: `http://localhost:8502`
 - Streamlit dashboard metas: `http://localhost:8503`
+- Streamlit dashboard descontos/ROI: `http://localhost:8504`
 
 Descer a stack:
 
@@ -138,6 +139,7 @@ project_e-commerce_dw/
 - [Monitoramento Streamlit](dashboards/streamlit/monitoring/README.md)
 - [Dashboard de vendas R1](dashboards/streamlit/vendas/README.md)
 - [Dashboard de metas R1](dashboards/streamlit/metas/README.md)
+- [Dashboard de descontos/ROI R1](dashboards/streamlit/descontos/README.md)
 - [Testes recorrentes operacionais](scripts/recurring_tests/README.md)
 - [OLTP (fonte)](sql/oltp/README.md)
 - [Views auxiliares DW](sql/dw/04_views/README.md)
