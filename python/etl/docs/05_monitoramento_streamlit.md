@@ -89,8 +89,12 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
 8. Graficos:
    - runs por status (14 dias)
    - volume extraido/upsertado por entidade (14 dias)
-9. Grade de falhas recentes com mensagem de erro.
-10. Bloco de execucao em andamento (`status = running`) para run e entidade.
+9. Timeline de execucao:
+   - visualizacao temporal por `run_id` e `entity_name`
+   - barra com inicio/fim/status da execucao
+   - tabela de apoio com duracao e volumes da entidade
+10. Grade de falhas recentes com mensagem de erro.
+11. Bloco de execucao em andamento (`status = running`) para run e entidade.
 
 ## 4) Uso recomendado
 
