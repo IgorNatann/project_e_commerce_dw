@@ -14,6 +14,12 @@ Executar ETL da `dim_cliente`:
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
 ```
 
+Executar ETL da `dim_produto`:
+
+```powershell
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
+```
+
 Dry-run:
 
 ```powershell
@@ -24,6 +30,12 @@ Com batch customizado:
 
 ```powershell
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente --batch-size 500
+```
+
+Para executar tudo que estiver ativo no controle:
+
+```powershell
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity all
 ```
 
 ## 2) Modo local (fora do container)
@@ -53,6 +65,7 @@ Executar:
 
 ```powershell
 python python/etl/run_etl.py --entity dim_cliente
+python python/etl/run_etl.py --entity dim_produto
 ```
 
 ## 3) Conferir resultado
@@ -62,7 +75,7 @@ SELECT TOP 20 * FROM audit.etl_run ORDER BY started_at DESC;
 SELECT TOP 20 * FROM audit.etl_run_entity ORDER BY entity_started_at DESC;
 SELECT entity_name, watermark_updated_at, watermark_id
 FROM ctl.etl_control
-WHERE entity_name = 'dim_cliente';
+WHERE entity_name IN ('dim_cliente', 'dim_produto');
 ```
 
 ## 4) Monitoramento visual

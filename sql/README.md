@@ -13,10 +13,11 @@ Use a stack Docker one-shot para evitar setup manual:
 powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 ```
 
-O servico `sql-init` ja executa o bootstrap minimo para validacao de `dim_cliente`.
+O servico `sql-init` ja executa o bootstrap minimo para validacao de `dim_cliente` e `dim_produto`.
 
 Observacao:
 - `sql/dw/02_ddl/dimensions/02_dim_cliente.sql` esta em modo idempotente (nao faz `DROP TABLE` e preserva dados).
+- `sql/dw/03_etl_control/07_activate_dim_cliente_scope.sql` preserva escopo ativo de `dim_cliente` + `dim_produto`.
 
 ## Ordem manual (quando necessario)
 
@@ -36,6 +37,7 @@ Observacao:
 2. `sql/dw/01_setup/02_create_schemas.sql`
 3. `sql/dw/01_setup/03_configure_database.sql`
 4. `sql/dw/02_ddl/dimensions/02_dim_cliente.sql`
+5. `sql/dw/02_ddl/dimensions/03_dim_produto.sql` (somente se tabela ainda nao existir)
 
 ### 3) Controle ETL e auditoria
 
@@ -70,4 +72,4 @@ ORDER BY event_time_utc DESC;
 
 ## Observacao de escopo
 
-A stack Docker foi preparada para garantir operacao inicial da entidade `dim_cliente`. A expansao para outras dimensoes/fatos continua nas proximas etapas.
+A stack Docker foi preparada para garantir operacao inicial de `dim_cliente` e `dim_produto`. A expansao para outras dimensoes/fatos continua nas proximas etapas.

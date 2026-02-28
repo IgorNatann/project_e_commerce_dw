@@ -52,4 +52,4 @@ ORDER BY event_time_utc DESC;
 
 ## Escopo atual
 
-`dim_cliente` fica ativa por padrao para garantir onboarding controlado e observabilidade completa antes de expandir para outras entidades.
+`dim_cliente` e `dim_produto` ficam ativas por padrao para garantir onboarding controlado e observabilidade completa antes de expandir para outras entidades.
