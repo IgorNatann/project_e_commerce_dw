@@ -6,7 +6,7 @@ Pipeline ETL incremental com foco inicial em `dim_cliente` e onboarding tecnico 
 
 - Extracao incremental por watermark (`updated_at`, `id`).
 - Transformacao e upsert Type 1 para `dim_cliente`.
-- Estrutura ETL da `dim_produto` implementada (ainda nao ativa por padrao no `ctl.etl_control`).
+- Transformacao e upsert Type 1 para `dim_produto`.
 - Auditoria de execucao em `audit.etl_run` e `audit.etl_run_entity`.
 - Monitoramento visual via Streamlit.
 
@@ -26,12 +26,14 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 
 ```powershell
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
 ```
 
 4. Opcional: executar ETL local (fora do container), configurando variaveis `ETL_*`:
 
 ```powershell
 python python/etl/run_etl.py --entity dim_cliente
+python python/etl/run_etl.py --entity dim_produto
 ```
 
 ## Variaveis de conexao

@@ -45,7 +45,10 @@ WHEN MATCHED THEN
             WHEN target.cutoff_minutes BETWEEN 0 AND 1440 THEN target.cutoff_minutes
             ELSE source.cutoff_minutes
         END,
-        target.is_active = CASE WHEN source.entity_name = 'dim_cliente' THEN 1 ELSE 0 END,
+        target.is_active = CASE
+            WHEN source.entity_name IN ('dim_cliente', 'dim_produto') THEN 1
+            ELSE target.is_active
+        END,
         target.updated_at = SYSUTCDATETIME()
 WHEN NOT MATCHED THEN
     INSERT
@@ -72,7 +75,7 @@ WHEN NOT MATCHED THEN
         0,
         source.cutoff_minutes,
         source.batch_size,
-        CASE WHEN source.entity_name = 'dim_cliente' THEN 1 ELSE 0 END,
+        CASE WHEN source.entity_name IN ('dim_cliente', 'dim_produto') THEN 1 ELSE 0 END,
         SYSUTCDATETIME(),
         SYSUTCDATETIME()
     );

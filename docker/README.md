@@ -3,7 +3,7 @@
 Este diretorio sobe toda a infra de laboratorio em um comando:
 
 - SQL Server 2022
-- bootstrap automatico de OLTP + DW (escopo inicial `dim_cliente`)
+- bootstrap automatico de OLTP + DW (escopo atual `dim_cliente` + `dim_produto`)
 - Streamlit para monitoramento ETL
 - auditoria de conexoes (tabela + SQL Server Audit em arquivo)
 - backup automatico para volume dedicado
@@ -46,7 +46,7 @@ Servicos esperados:
 Principais variaveis:
 
 - `MSSQL_SA_PASSWORD`
-- `MSSQL_MONITOR_PASSWORD` (usuario `etl_monitor` usado no Streamlit e no ETL da `dim_cliente`)
+- `MSSQL_MONITOR_PASSWORD` (usuario `etl_monitor` usado no Streamlit e no ETL de `dim_cliente`/`dim_produto`)
 - `MSSQL_BACKUP_PASSWORD`
 - `CONNECTION_AUDIT_RETENTION_DAYS`
 - `BACKUP_INTERVAL_HOURS`
@@ -79,8 +79,8 @@ powershell -ExecutionPolicy Bypass -File docker/prune_legacy_sql_volumes.ps1 -Ap
 
 ## Escopo atual de validacao
 
-A automacao da stack garante readiness operacional de `dim_cliente` primeiro.
-As demais entidades continuam em evolucao para onboarding progressivo.
+A automacao da stack garante readiness operacional de `dim_cliente` e `dim_produto`.
+As demais entidades/fatos continuam em evolucao para onboarding progressivo.
 
 Observacao de persistencia:
 
@@ -95,4 +95,5 @@ Observacao de auditoria:
 
 ```powershell
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
 ```
