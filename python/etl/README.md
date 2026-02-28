@@ -1,12 +1,13 @@
 # ETL Python - estado atual
 
-Pipeline ETL incremental com foco inicial em `dim_cliente` e onboarding tecnico da `dim_produto`.
+Pipeline ETL incremental com foco inicial em `dim_cliente`, `dim_produto` e `dim_vendedor`.
 
 ## O que esta pronto
 
 - Extracao incremental por watermark (`updated_at`, `id`).
 - Transformacao e upsert Type 1 para `dim_cliente`.
 - Transformacao e upsert Type 1 para `dim_produto`.
+- Transformacao e upsert Type 1 para `dim_vendedor`.
 - Auditoria de execucao em `audit.etl_run` e `audit.etl_run_entity`.
 - Monitoramento visual via Streamlit.
 
@@ -27,6 +28,7 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 ```powershell
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_vendedor
 ```
 
 4. Opcional: executar ETL local (fora do container), configurando variaveis `ETL_*`:
@@ -34,6 +36,7 @@ docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
 ```powershell
 python python/etl/run_etl.py --entity dim_cliente
 python python/etl/run_etl.py --entity dim_produto
+python python/etl/run_etl.py --entity dim_vendedor
 ```
 
 ## Variaveis de conexao
@@ -51,12 +54,15 @@ python/etl/
 |-- control.py
 |-- entities/
 |   |-- dim_cliente.py
-|   `-- dim_produto.py
+|   |-- dim_produto.py
+|   `-- dim_vendedor.py
 |-- sql/
 |   |-- extract_dim_cliente.sql
 |   |-- extract_dim_produto.sql
+|   |-- extract_dim_vendedor.sql
 |   |-- upsert_dim_cliente.sql
 |   |-- upsert_dim_produto.sql
+|   |-- upsert_dim_vendedor.sql
 |   `-- update_watermark.sql
 |-- monitoring/
 |   |-- app.py
@@ -72,4 +78,4 @@ python/etl/
 
 ## Proximo passo natural
 
-Depois de estabilizar `dim_cliente`/`dim_produto` (auditoria + monitoramento), replicar o padrao para as demais entidades.
+Depois de estabilizar `dim_cliente`/`dim_produto`/`dim_vendedor` (auditoria + monitoramento), replicar o padrao para as demais entidades.
