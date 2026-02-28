@@ -75,6 +75,8 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
 3. Saude por pipeline:
    - seletor dinamico para qualquer entidade/fato cadastrado em `ctl.etl_control`
    - metricas de cobertura, pendencia incremental, latencia, duracao e throughput
+   - painel generico de qualidade/reconciliacao por check
+   - checks automaticos: nulos de chave, duplicidade de chave natural, status invalido e soft delete
    - amostra recente da origem do pipeline selecionado
 4. Contexto geral dos pipelines:
    - status por entidade (`OK`, `FALHA`, `RODANDO`, `PENDENTE_ESTRUTURA`, `SEM_EXECUCAO`)
@@ -128,7 +130,8 @@ Em todas as paginas o bloco de **Pre-flight** fica no topo para validar readines
    - suporte dinamico para entidade/fato
    - volume fonte vs alvo
    - watermark atual da entidade selecionada
-   - checks de integridade basica e auditoria da ultima execucao
+   - checks genericos de qualidade e reconciliacao por pipeline
+   - resumo de checks em `OK`, `ATENCAO` e `ALERTA`
    - amostra recente da origem correspondente
 2. **Auditoria de conexoes SQL**
    - eventos por hora (24h)
