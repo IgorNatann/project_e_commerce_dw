@@ -15,10 +15,11 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 O bootstrap da infra garante principalmente:
 
 - OLTP pronto (`ECOMMERCE_OLTP`)
-- DW com `dim.DIM_CLIENTE`
+- DW com dimensoes do rollout atual
+- fato `fact.FACT_VENDAS`
 - controle ETL e auditoria (`ctl` e `audit`)
 
-Consultas que dependem de tabelas fato e outras dimensoes exigem carga adicional/manual.
+Consultas de negocio em views de consumo exigem executar os scripts de `sql/dw/04_views`.
 
 ## Queries de validacao imediata
 
@@ -104,3 +105,14 @@ Uso:
 
 - definir `@data_inicio` e `@data_fim` iguais ao filtro de periodo aplicado no dashboard;
 - executar o script e comparar KPIs principais (receita, margem, devolucao, ticket e desconto medio).
+
+## Queries de homologacao do dashboard de metas R1
+
+Arquivo de referencia:
+
+- `docs/queries/metas/01_kpis_dash_metas_r1.sql`
+
+Uso:
+
+- definir `@data_inicio` e `@data_fim` iguais ao filtro de periodo aplicado no dashboard;
+- executar o script e comparar KPIs principais (meta total, realizado, atingimento, gap e taxa de meta batida).

@@ -6,6 +6,7 @@ Este diretorio sobe toda a infra de laboratorio em um comando:
 - bootstrap automatico de OLTP + DW (rollout atual: 6 dimensoes + `fact_vendas`)
 - Streamlit para monitoramento ETL
 - Streamlit para dashboard de vendas (R1)
+- Streamlit para dashboard de metas (R1)
 - auditoria de conexoes (tabela + SQL Server Audit em arquivo)
 - backup automatico para volume dedicado
 
@@ -33,6 +34,7 @@ Servicos esperados:
 - `dw_sql_init` (completa e finaliza)
 - `dw_etl_monitor`
 - `dw_dash_vendas`
+- `dw_dash_metas`
 - `dw_sql_backup`
 
 ## Endpoints
@@ -40,6 +42,7 @@ Servicos esperados:
 - SQL Server: `localhost:1433`
 - Streamlit monitor ETL: `http://localhost:8501`
 - Streamlit dashboard vendas: `http://localhost:8502`
+- Streamlit dashboard metas: `http://localhost:8503`
 
 ## Arquivo de credenciais
 
@@ -58,6 +61,7 @@ Principais variaveis:
 - `SQLSERVER_BIND_IP`, `SQLSERVER_PORT`
 - `STREAMLIT_BIND_IP`, `STREAMLIT_PORT`
 - `STREAMLIT_VENDAS_BIND_IP`, `STREAMLIT_VENDAS_PORT`
+- `STREAMLIT_METAS_BIND_IP`, `STREAMLIT_METAS_PORT`
 
 ## Volumes persistentes
 
@@ -87,7 +91,7 @@ powershell -ExecutionPolicy Bypass -File docker/prune_legacy_sql_volumes.ps1 -Ap
 A automacao da stack garante readiness operacional das entidades ETL implementadas:
 `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`.
 
-As entidades `fact_metas` e `fact_descontos` continuam em evolucao para onboarding progressivo.
+O dashboard de metas R1 consome a view `fact.VW_DASH_METAS_R1` (derivada de `fact_vendas` + metas base de vendedores).
 
 Observacao:
 - o `sql-init` executa validacao automatica de rollout (`05_current_rollout_scope_checks.sql`);
