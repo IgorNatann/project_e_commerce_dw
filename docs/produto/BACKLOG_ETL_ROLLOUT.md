@@ -28,7 +28,7 @@ Data de referencia: 2026-02-28
   - criar `entities/fact_metas.py`;
   - criar `extract_fact_metas.sql` e `upsert_fact_metas.sql`;
   - ativar entidade em rollout quando validada.
-- Status: pendente.
+- Status: concluido em 2026-02-28.
 
 2. `Implementar ETL de fact_descontos`
 - Impacto: lacuna funcional do escopo R1.
