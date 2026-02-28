@@ -17,15 +17,20 @@ Esta pasta contem os scripts de controle operacional da carga incremental.
 4. `04_seed_etl_control.sql`
 5. `05_create_connection_audit.sql`
 6. `06_configure_server_audit_file.sql`
-7. `07_activate_dim_cliente_scope.sql`
-8. `08_ensure_dim_cliente_contract.sql`
-9. `09_ensure_dim_produto_contract.sql`
+7. `08_ensure_dim_cliente_contract.sql`
+8. `09_ensure_dim_produto_contract.sql`
+9. `13_ensure_fact_vendas_table.sql`
 10. `10_ensure_fact_vendas_contract.sql`
-11. `11_activate_fact_vendas_scope.sql`
+11. `12_activate_current_rollout_scope.sql`
 12. `99_validation/01_checks.sql`
 13. `99_validation/02_preflight_readiness.sql`
 14. `99_validation/03_connection_audit_checks.sql`
 15. `99_validation/04_server_audit_file_checks.sql`
+
+Scripts legados de rollout:
+
+- `07_activate_dim_cliente_scope.sql` (rollout inicial limitado)
+- `11_activate_fact_vendas_scope.sql` (ativacao pontual da fact)
 
 ## Com Docker
 
@@ -54,4 +59,7 @@ ORDER BY event_time_utc DESC;
 
 ## Escopo atual
 
-`dim_cliente`, `dim_produto` e `fact_vendas` podem ser mantidas ativas conforme estrategia de rollout. O controle de escopo fica em `ctl.etl_control`.
+O rollout padrao ativa as entidades ETL implementadas em Python:
+`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`.
+
+As entidades `fact_metas` e `fact_descontos` seguem cadastradas em `ctl.etl_control`, mas permanecem inativas ate a implementacao da carga.

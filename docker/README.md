@@ -3,7 +3,7 @@
 Este diretorio sobe toda a infra de laboratorio em um comando:
 
 - SQL Server 2022
-- bootstrap automatico de OLTP + DW (escopo atual `dim_cliente` + `dim_produto`)
+- bootstrap automatico de OLTP + DW (rollout atual: 6 dimensoes + `fact_vendas`)
 - Streamlit para monitoramento ETL
 - Streamlit para dashboard de vendas (R1)
 - auditoria de conexoes (tabela + SQL Server Audit em arquivo)
@@ -84,8 +84,10 @@ powershell -ExecutionPolicy Bypass -File docker/prune_legacy_sql_volumes.ps1 -Ap
 
 ## Escopo atual de validacao
 
-A automacao da stack garante readiness operacional de `dim_cliente` e `dim_produto`.
-As demais entidades/fatos continuam em evolucao para onboarding progressivo.
+A automacao da stack garante readiness operacional das entidades ETL implementadas:
+`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`.
+
+As entidades `fact_metas` e `fact_descontos` continuam em evolucao para onboarding progressivo.
 
 Observacao de persistencia:
 
@@ -102,5 +104,9 @@ Observacao de auditoria:
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_regiao
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_equipe
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_vendedor
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_vendas
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity all
 ```

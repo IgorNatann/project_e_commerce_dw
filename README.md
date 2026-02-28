@@ -9,7 +9,7 @@ Projeto de laboratorio para simular um cenario real de dados `OLTP -> DW` em SQL
 
 - Infra Docker one-shot pronta (`SQL Server + init + Streamlit monitor + Streamlit vendas + backup`).
 - Auditoria de conexoes ativa (tabela `audit.connection_login_events` + arquivo `.sqlaudit`).
-- Escopo validado ponta a ponta para `dim_cliente` e `dim_produto`.
+- Escopo validado ponta a ponta para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`.
 - OLTP (`ECOMMERCE_OLTP`) e DW (`DW_ECOMMERCE`) inicializados automaticamente pelo bootstrap.
 
 Este repositorio combina modelagem dimensional com operacao de dados:
@@ -32,7 +32,7 @@ Este repositorio combina modelagem dimensional com operacao de dados:
 
 - Infra Docker one-shot: `SQL Server + sql-init + Streamlit + backup`.
 - Auditoria de conexao ativa: `audit.connection_login_events` e SQL Server Audit (`.sqlaudit`).
-- Readiness operacional no bootstrap da stack para `dim_cliente` e `dim_produto`.
+- Readiness operacional no bootstrap da stack para as entidades ETL implementadas (`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`).
 - ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto` e `fact_vendas`.
 - Dashboards publicados: monitoramento ETL (`:8501`) e vendas R1 (`:8502`).
 - Fluxo validado ponta a ponta: extracao OLTP, upsert DW, watermark, trilha em `audit.*` e monitoramento visual.
@@ -137,8 +137,8 @@ project_e-commerce_dw/
 ## Apontamentos das atualizacoes recentes
 
 - Infra Docker consolidada para operacao one-shot.
-- Escopo operacional de bootstrap consolidado em `dim_cliente + dim_produto`.
-- ETL incremental implementado para dimensoes adicionais e `fact_vendas` (onboarding progressivo por controle ETL).
+- Escopo operacional de bootstrap consolidado para as entidades ETL implementadas (6 dimensoes + `fact_vendas`).
+- ETL incremental implementado para as entidades do rollout atual com onboarding via `ctl.etl_control`.
 - Streamlit evoluido para matriz geral de pipelines, timeline de execucao, qualidade/reconciliacao e painel de SLA/alertas.
 - Auditoria tecnica consolidada no dashboard: conexoes, taxonomia de erros e correlacao temporal com falhas ETL.
 - Direcionamento oficial de projeto atualizado para auditoria de todas as dimensoes e fatos.
