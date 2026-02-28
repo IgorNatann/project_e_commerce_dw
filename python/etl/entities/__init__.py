@@ -6,6 +6,7 @@ from . import dim_equipe
 from . import dim_produto
 from . import dim_regiao
 from . import dim_vendedor
+from . import fact_vendas
 
 
 ENTITY_REGISTRY = {
@@ -15,6 +16,7 @@ ENTITY_REGISTRY = {
     dim_produto.ENTITY_NAME: dim_produto,
     dim_regiao.ENTITY_NAME: dim_regiao,
     dim_vendedor.ENTITY_NAME: dim_vendedor,
+    fact_vendas.ENTITY_NAME: fact_vendas,
 }
 
 
