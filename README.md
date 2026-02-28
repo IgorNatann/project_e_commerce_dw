@@ -1,79 +1,115 @@
 # Data Warehouse E-commerce
 
-Projeto de laboratorio para simular uma esteira real de dados OLTP -> DW em SQL Server, com ETL incremental e monitoramento.
+Projeto de laboratorio para simular um cenario real de dados `OLTP -> DW` em SQL Server, com ETL incremental, auditoria tecnica e monitoramento operacional via Streamlit.
 
-## Estado atual
+[![SQL Server](https://img.shields.io/badge/SQL%20Server-2022+-CC2927?style=flat&logo=microsoft-sql-server)](https://www.microsoft.com/sql-server)
+[![Model](https://img.shields.io/badge/Model-Star%20Schema-blue)](https://en.wikipedia.org/wiki/Star_schema)
+[![Method](https://img.shields.io/badge/Method-Kimball-green)](https://www.kimballgroup.com/)
+[![Infra](https://img.shields.io/badge/Infra-Docker%20One--Shot-2496ED?style=flat&logo=docker)](docker/README.md)
 
-- Infra Docker one-shot pronta (`SQL Server + init + Streamlit + backup`).
-- Auditoria de conexoes ativa (tabela `audit.connection_login_events` + arquivo `.sqlaudit`).
-- Escopo validado ponta a ponta focado em `dim_cliente`.
-- OLTP (`ECOMMERCE_OLTP`) e DW (`DW_ECOMMERCE`) inicializados automaticamente pelo bootstrap.
+## Sobre o projeto
 
-## Quick start (Docker)
+Este repositorio combina modelagem dimensional com operacao de dados:
+
+- OLTP de origem (`ECOMMERCE_OLTP`) com seeds e simulacao incremental.
+- DW de destino (`DW_ECOMMERCE`) com dimensoes, fatos e views analiticas.
+- ETL incremental em Python com watermark e auditoria de execucao.
+- Monitoramento Streamlit com visao de pipeline, qualidade, SLA e auditoria tecnica.
+- Objetivo final: auditar operacionalmente todas as dimensoes e fatos do projeto.
+
+## Objetivo final (escopo completo)
+
+- Garantir execucao auditada para todo o modelo dimensional:
+7 dimensoes (`dim_*`) e 3 fatos (`fact_*`).
+- Rastrear cada etapa de carga em `audit.etl_run` e `audit.etl_run_entity`.
+- Validar qualidade e reconciliacao por entidade/fato antes da evolucao de escopo.
+- Monitorar SLA, atrasos, falhas recorrentes e saude de conectividade em painel unico.
+
+## Escopo atual validado
+
+- Infra Docker one-shot: `SQL Server + sql-init + Streamlit + backup`.
+- Auditoria de conexao ativa: `audit.connection_login_events` e SQL Server Audit (`.sqlaudit`).
+- Entidades ativas por padrao no controle ETL: `dim_cliente` e `dim_produto`.
+- Fluxo validado ponta a ponta: extracao OLTP, upsert DW, watermark, trilha em `audit.*` e monitoramento visual.
+
+## Status de evolucao
+
+1. Fase validada: `dim_cliente` e `dim_produto`.
+2. Em andamento: onboarding progressivo das demais `dim_*` e `fact_*`.
+3. Meta: operacao completa com monitoramento e auditoria para todo o DW.
+
+## Arquitetura resumida
+
+1. Fonte OLTP (`sql/oltp`): tabelas transacionais + seed base + seed incremental.
+2. Destino DW (`sql/dw`): dimensoes, fatos, views e contratos de estrutura.
+3. Controle ETL (`ctl` e `audit`): estado incremental, runs e entidades por run.
+4. ETL Python (`python/etl`): runner, entidades, SQL de extract/upsert e dashboard.
+5. Operacao Docker (`docker`): stack one-shot, variaveis, backup e health checks.
+
+## Quick start (recomendado)
 
 Pre-requisitos:
 
 - Docker Desktop (ou Docker Engine + Compose v2)
 - PowerShell
 
-Subir stack completa:
+Subir a stack completa:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 ```
 
-Acessos padrao:
+Endpoints:
 
 - SQL Server: `localhost:1433`
-- Streamlit monitor: `http://localhost:8501`
+- Streamlit: `http://localhost:8501`
 
-Descer stack:
+Descer a stack:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File docker/down_stack.ps1
 ```
 
-## O que o bootstrap ja entrega
+## Execucao ETL (container)
 
-- Cria databases: `ECOMMERCE_OLTP` e `DW_ECOMMERCE`.
-- Cria schema/tabelas OLTP core e executa seed base + incremental.
-- Cria estrutura minima DW para `dim_cliente`.
-- Cria controle ETL (`ctl.etl_control`) e tabelas de auditoria (`audit`).
-- Ativa somente `dim_cliente` no controle ETL por padrao.
-- Cria logins tecnicos `etl_monitor` e `etl_backup`.
+```powershell
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_cliente
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_produto
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity all
+```
 
-## Fluxo de trabalho recomendado
-
-1. Subir stack Docker com `docker/up_stack.ps1`.
-2. Validar monitoramento no Streamlit.
-3. Rodar ETL de `dim_cliente`.
-4. Expandir para proximas dimensoes apos estabilizar observabilidade.
-
-## Estrutura principal
+## Estrutura real do repositorio
 
 ```text
 project_e-commerce_dw/
 |-- docker/
 |-- docs/
 |-- python/
+|   |-- data_generation/
 |   `-- etl/
 |-- scripts/
-`-- sql/
-    |-- dw/
-    `-- oltp/
+|-- sql/
+|   |-- dw/
+|   `-- oltp/
+`-- data/
 ```
 
-## Documentacao
+## Documentacao principal
 
 - [Infra Docker one-shot](docker/README.md)
 - [Guia SQL (Docker-first)](sql/README.md)
 - [ETL Python](python/etl/README.md)
-- [OLTP (fonte)](sql/oltp/README.md)
 - [Controle ETL e auditoria](sql/dw/03_etl_control/README.md)
-- [Views auxiliares](sql/dw/04_views/README.md)
+- [Monitoramento Streamlit](python/etl/docs/05_monitoramento_streamlit.md)
+- [OLTP (fonte)](sql/oltp/README.md)
+- [Views auxiliares DW](sql/dw/04_views/README.md)
 - [Contratos de dados](docs/contracts/README.md)
 - [Queries analiticas](docs/queries/README.md)
 
-## Observacao de escopo
+## Apontamentos das atualizacoes recentes
 
-As tabelas fato e parte das dimensoes continuam no repositorio, mas a validacao operacional atual da infra Docker esta priorizada em `dim_cliente`.
+- Infra Docker consolidada para operacao one-shot.
+- Escopo operacional padrao evoluido de `dim_cliente` para `dim_cliente + dim_produto`.
+- Streamlit evoluido para matriz geral de pipelines, timeline de execucao, qualidade/reconciliacao e painel de SLA/alertas.
+- Auditoria tecnica consolidada no dashboard: conexoes, taxonomia de erros e correlacao temporal com falhas ETL.
+- Direcionamento oficial de projeto atualizado para auditoria de todas as dimensoes e fatos.
