@@ -27,7 +27,7 @@ Atualize este arquivo ao final de cada entrega:
 
 Preencha semanalmente:
 
-- `Percentual atual`: 78
+- `Percentual atual`: 82
 - `Percentual alvo`: 90
 - `Ultima atualizacao`: 2026-02-28
 
@@ -94,21 +94,22 @@ docker compose --env-file docker/.env.sqlserver -f docker/docker-compose.sqlserv
 
 ### Dia 3 - 2026-03-02 - Dashboard Descontos/ROI
 
-Status: nao_iniciado  
-Responsavel:  
-Delta:  ->  
+Status: concluido  
+Responsavel: Igor/Codex  
+Delta: 78 -> 82  
 
 Checklist:
 
-- [ ] Criar app Streamlit de descontos/ROI em `dashboards/streamlit/descontos`.
-- [ ] Criar README operacional do dashboard de descontos.
-- [ ] Adicionar build/deploy no Docker (novo servico).
-- [ ] Publicar query SQL de referencia de ROI/impacto de margem.
+- [x] Criar app Streamlit de descontos/ROI em `dashboards/streamlit/descontos`.
+- [x] Criar README operacional do dashboard de descontos.
+- [x] Adicionar build/deploy no Docker (novo servico).
+- [x] Publicar query SQL de referencia de ROI/impacto de margem.
 
 Evidencia:
 
-- Arquivos alterados:
-- URL local/publica:
+- Arquivos alterados: `dashboards/streamlit/descontos/*`, `docker/streamlit-descontos.Dockerfile`, `docker/docker-compose.sqlserver.yml`, `sql/dw/04_views/14_vw_dash_descontos_r1.sql`, `docs/queries/descontos/01_kpis_dash_descontos_r1.sql`
+- URL local/publica: `http://localhost:8504` (local)
+- Observacao: entrega executada antecipadamente em 2026-02-28.
 
 Validacao:
 
@@ -237,6 +238,7 @@ rg -n "runbook|go/no-go|portfolio|dashboard" README.md docs -S
 | 2026-02-28 | Plano criado | concluido | `docs/produto/PLANO_FECHAMENTO_PORTFOLIO_MVP.md` | Baseline inicial 72% |
 | 2026-02-28 | Dia 1 - baseline documental | concluido | `README.md`, `docs/produto/PRD.md`, `docs/status_reports/2026-02-28.md` | Escopo facts alinhado e P0 atualizado |
 | 2026-02-28 | Dia 2 - dashboard metas | concluido | `dashboards/streamlit/metas/*`, `docker/streamlit-metas.Dockerfile`, `sql/dw/04_views/13_vw_dash_metas_r1.sql` | Dashboard metas R1 publicado no stack |
+| 2026-02-28 | Dia 3 - dashboard descontos/ROI | concluido | `dashboards/streamlit/descontos/*`, `docker/streamlit-descontos.Dockerfile`, `sql/dw/04_views/14_vw_dash_descontos_r1.sql` | Dashboard descontos/ROI R1 publicado no stack |
 
 ## 7) Blocos de validacao continua (para o Codex seguir evoluindo)
 

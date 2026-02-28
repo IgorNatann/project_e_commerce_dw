@@ -7,6 +7,7 @@ Este diretorio sobe toda a infra de laboratorio em um comando:
 - Streamlit para monitoramento ETL
 - Streamlit para dashboard de vendas (R1)
 - Streamlit para dashboard de metas (R1)
+- Streamlit para dashboard de descontos/ROI (R1)
 - auditoria de conexoes (tabela + SQL Server Audit em arquivo)
 - backup automatico para volume dedicado
 
@@ -35,6 +36,7 @@ Servicos esperados:
 - `dw_etl_monitor`
 - `dw_dash_vendas`
 - `dw_dash_metas`
+- `dw_dash_descontos`
 - `dw_sql_backup`
 
 ## Endpoints
@@ -43,6 +45,7 @@ Servicos esperados:
 - Streamlit monitor ETL: `http://localhost:8501`
 - Streamlit dashboard vendas: `http://localhost:8502`
 - Streamlit dashboard metas: `http://localhost:8503`
+- Streamlit dashboard descontos/ROI: `http://localhost:8504`
 
 ## Arquivo de credenciais
 
@@ -54,7 +57,7 @@ Principais variaveis:
 - `MSSQL_SA_PASSWORD`
 - `MSSQL_MONITOR_PASSWORD` (usuario `etl_monitor` usado no Streamlit e no ETL das entidades monitoradas)
 - `MSSQL_BACKUP_PASSWORD`
-- `MSSQL_BI_PASSWORD` (usuario `bi_reader` usado pelo dashboard de vendas)
+- `MSSQL_BI_PASSWORD` (usuario `bi_reader` usado pelos dashboards de negocio)
 - `CONNECTION_AUDIT_RETENTION_DAYS`
 - `BACKUP_INTERVAL_HOURS`
 - `BACKUP_RETENTION_DAYS`
@@ -62,6 +65,7 @@ Principais variaveis:
 - `STREAMLIT_BIND_IP`, `STREAMLIT_PORT`
 - `STREAMLIT_VENDAS_BIND_IP`, `STREAMLIT_VENDAS_PORT`
 - `STREAMLIT_METAS_BIND_IP`, `STREAMLIT_METAS_PORT`
+- `STREAMLIT_DESCONTOS_BIND_IP`, `STREAMLIT_DESCONTOS_PORT`
 
 ## Volumes persistentes
 
@@ -92,6 +96,7 @@ A automacao da stack garante readiness operacional das entidades ETL implementad
 `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`.
 
 O dashboard de metas R1 consome a view `fact.VW_DASH_METAS_R1` (derivada de `fact_vendas` + metas base de vendedores).
+O dashboard de descontos/ROI R1 consome a view `fact.VW_DASH_DESCONTOS_R1` (derivada de `fact_descontos` + dimensoes de apoio).
 
 Observacao:
 - o `sql-init` executa validacao automatica de rollout (`05_current_rollout_scope_checks.sql`);

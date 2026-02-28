@@ -99,6 +99,12 @@ try {
     if (-not $envMap.ContainsKey("STREAMLIT_METAS_PORT")) {
         $envMap["STREAMLIT_METAS_PORT"] = "8503"
     }
+    if (-not $envMap.ContainsKey("STREAMLIT_DESCONTOS_BIND_IP")) {
+        $envMap["STREAMLIT_DESCONTOS_BIND_IP"] = "127.0.0.1"
+    }
+    if (-not $envMap.ContainsKey("STREAMLIT_DESCONTOS_PORT")) {
+        $envMap["STREAMLIT_DESCONTOS_PORT"] = "8504"
+    }
     if (-not $envMap.ContainsKey("CONNECTION_AUDIT_RETENTION_DAYS")) {
         $envMap["CONNECTION_AUDIT_RETENTION_DAYS"] = "30"
     }
@@ -124,7 +130,9 @@ try {
         "STREAMLIT_VENDAS_BIND_IP=$($envMap["STREAMLIT_VENDAS_BIND_IP"])",
         "STREAMLIT_VENDAS_PORT=$($envMap["STREAMLIT_VENDAS_PORT"])",
         "STREAMLIT_METAS_BIND_IP=$($envMap["STREAMLIT_METAS_BIND_IP"])",
-        "STREAMLIT_METAS_PORT=$($envMap["STREAMLIT_METAS_PORT"])"
+        "STREAMLIT_METAS_PORT=$($envMap["STREAMLIT_METAS_PORT"])",
+        "STREAMLIT_DESCONTOS_BIND_IP=$($envMap["STREAMLIT_DESCONTOS_BIND_IP"])",
+        "STREAMLIT_DESCONTOS_PORT=$($envMap["STREAMLIT_DESCONTOS_PORT"])"
     ) | Set-Content $envPath
 
     if ($envGenerated) {
@@ -137,7 +145,7 @@ try {
     }
 
     # Evita conflito de nomes ao trocar localizacao do compose
-    foreach ($legacyContainer in @("dw_etl_monitor", "dw_dash_vendas", "dw_dash_metas", "dw_sql_init", "dw_sqlserver", "dw_sql_volume_init", "dw_sql_backup")) {
+    foreach ($legacyContainer in @("dw_etl_monitor", "dw_dash_vendas", "dw_dash_metas", "dw_dash_descontos", "dw_sql_init", "dw_sqlserver", "dw_sql_volume_init", "dw_sql_backup")) {
         cmd /c "docker rm -f $legacyContainer >nul 2>nul"
     }
 
@@ -152,6 +160,7 @@ try {
     Write-Host "- Monitor ETL: http://localhost:8501"
     Write-Host "- Dash Vendas: http://localhost:8502"
     Write-Host "- Dash Metas:  http://localhost:8503"
+    Write-Host "- Dash Desc.:  http://localhost:8504"
     Write-Host "- Backup loop: ativo em dw_sql_backup (intervalo em BACKUP_INTERVAL_HOURS)"
 }
 finally {
