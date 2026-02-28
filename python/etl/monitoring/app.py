@@ -83,6 +83,20 @@ def _safe_qualified_name(table_name: str) -> str:
     return f"[{schema_name}].[{object_name}]"
 
 
+def _find_column_case_insensitive(columns: list[str], target_name: str) -> str | None:
+    lookup = {col.lower(): col for col in columns}
+    return lookup.get(target_name.lower())
+
+
+def _find_first_existing_column(columns: list[str], candidates: list[str]) -> str | None:
+    lookup = {col.lower(): col for col in columns}
+    for candidate in candidates:
+        found = lookup.get(candidate.lower())
+        if found:
+            return found
+    return None
+
+
 def _suggest_connection_fix(error_text: str) -> list[str]:
     suggestions: list[str] = []
     upper_error = error_text.upper()
@@ -1057,6 +1071,231 @@ def get_pipeline_recent_source(entity_name: str, limit: int = 20) -> pd.DataFram
 
 
 @st.cache_data(ttl=5)
+def get_pipeline_quality_snapshot(entity_name: str) -> dict[str, Any]:
+    snapshot: dict[str, Any] = {
+        "entity_name": entity_name,
+        "checks": [],
+        "ok_count": 0,
+        "warning_count": 0,
+        "alert_count": 0,
+        "error": None,
+    }
+
+    config = ETLConfig.from_env()
+    dw_connection = None
+    oltp_connection = None
+    try:
+        health = get_pipeline_health(entity_name)
+        if health.get("error"):
+            raise RuntimeError(str(health["error"]))
+
+        dw_connection = connect_sqlserver(
+            config.dw_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+        oltp_connection = connect_sqlserver(
+            config.oltp_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+
+        control_row = query_one(
+            dw_connection,
+            """
+            SELECT TOP (1)
+                source_table,
+                target_table,
+                source_pk_column
+            FROM ctl.etl_control
+            WHERE entity_name = ?;
+            """,
+            (entity_name,),
+        )
+        if control_row is None:
+            raise RuntimeError(f"Entidade nao encontrada em ctl.etl_control: {entity_name}")
+
+        source_table = str(control_row.get("source_table") or "")
+        target_table = str(control_row.get("target_table") or "")
+        source_pk_column = str(control_row.get("source_pk_column") or "").strip()
+        safe_source = _safe_qualified_name(source_table)
+        safe_target = _safe_qualified_name(target_table)
+
+        source_columns = [str(col["COLUMN_NAME"]) for col in _get_table_columns(oltp_connection, source_table)]
+        target_columns = [str(col["COLUMN_NAME"]) for col in _get_table_columns(dw_connection, target_table)]
+
+        def add_check(check: str, status: str, value: Any, detail: str) -> None:
+            snapshot["checks"].append(
+                {
+                    "check": check,
+                    "status": status,
+                    "valor": str(value),
+                    "detalhe": detail,
+                }
+            )
+
+        coverage = health.get("coverage_percent")
+        add_check(
+            "cobertura_oltp_dw",
+            "OK" if (coverage or 0) >= 95 else "ATENCAO",
+            _format_ratio(coverage),
+            "Razao target_total/source_total do pipeline.",
+        )
+
+        pending = _to_int(health.get("source_pending_since_watermark"), 0)
+        add_check(
+            "pendencia_incremental",
+            "OK" if pending == 0 else "ATENCAO",
+            pending,
+            "Registros na origem apos watermark atual.",
+        )
+
+        source_pk = _find_column_case_insensitive(source_columns, source_pk_column)
+        if source_pk and _is_safe_identifier(source_pk):
+            source_null_pk = query_one(
+                oltp_connection,
+                f"SELECT COUNT(*) AS total FROM {safe_source} WHERE [{source_pk}] IS NULL;",
+            )
+            source_null_pk_count = _to_int(source_null_pk.get("total") if source_null_pk else 0, 0)
+            add_check(
+                "fonte_pk_nulos",
+                "OK" if source_null_pk_count == 0 else "ALERTA",
+                source_null_pk_count,
+                f"Nulos na coluna chave da origem: {source_pk}.",
+            )
+
+        target_natural_key = None
+        for col in target_columns:
+            if col.lower().endswith("_original_id"):
+                target_natural_key = col
+                break
+        if target_natural_key is None:
+            target_natural_key = _find_column_case_insensitive(target_columns, source_pk_column)
+
+        if target_natural_key and _is_safe_identifier(target_natural_key):
+            target_null_nk = query_one(
+                dw_connection,
+                f"SELECT COUNT(*) AS total FROM {safe_target} WHERE [{target_natural_key}] IS NULL;",
+            )
+            target_null_nk_count = _to_int(target_null_nk.get("total") if target_null_nk else 0, 0)
+            add_check(
+                "alvo_chave_natural_nulos",
+                "OK" if target_null_nk_count == 0 else "ALERTA",
+                target_null_nk_count,
+                f"Nulos da chave natural no DW: {target_natural_key}.",
+            )
+
+            target_dup_nk = query_one(
+                dw_connection,
+                f"""
+                SELECT COUNT(*) AS total_dup
+                FROM
+                (
+                    SELECT [{target_natural_key}]
+                    FROM {safe_target}
+                    GROUP BY [{target_natural_key}]
+                    HAVING COUNT(*) > 1
+                ) AS d;
+                """,
+            )
+            target_dup_nk_count = _to_int(target_dup_nk.get("total_dup") if target_dup_nk else 0, 0)
+            add_check(
+                "alvo_chave_natural_duplicada",
+                "OK" if target_dup_nk_count == 0 else "ALERTA",
+                target_dup_nk_count,
+                f"Duplicidades da chave natural no DW: {target_natural_key}.",
+            )
+
+        target_updated_col = _find_first_existing_column(
+            target_columns,
+            [
+                "data_ultima_atualizacao",
+                "updated_at",
+                "data_atualizacao",
+                "data_carga",
+                "dt_atualizacao",
+                "load_at",
+                "loaded_at",
+            ],
+        )
+        if target_updated_col and _is_safe_identifier(target_updated_col):
+            target_null_updated = query_one(
+                dw_connection,
+                f"SELECT COUNT(*) AS total FROM {safe_target} WHERE [{target_updated_col}] IS NULL;",
+            )
+            target_null_updated_count = _to_int(target_null_updated.get("total") if target_null_updated else 0, 0)
+            add_check(
+                "alvo_updated_nulos",
+                "OK" if target_null_updated_count == 0 else "ATENCAO",
+                target_null_updated_count,
+                f"Nulos da coluna de atualizacao no DW: {target_updated_col}.",
+            )
+
+        target_status_col = _find_column_case_insensitive(target_columns, "situacao")
+        if target_status_col and _is_safe_identifier(target_status_col):
+            invalid_status = query_one(
+                dw_connection,
+                f"""
+                SELECT COUNT(*) AS total
+                FROM {safe_target}
+                WHERE [{target_status_col}] IS NOT NULL
+                  AND [{target_status_col}] NOT IN ('Ativo', 'Inativo', 'Descontinuado');
+                """,
+            )
+            invalid_status_count = _to_int(invalid_status.get("total") if invalid_status else 0, 0)
+            add_check(
+                "alvo_status_invalido",
+                "OK" if invalid_status_count == 0 else "ATENCAO",
+                invalid_status_count,
+                f"Valores fora do dominio esperado em {target_status_col}.",
+            )
+
+        source_soft_deleted = _to_int(health.get("source_soft_deleted"), 0)
+        target_soft_deleted_proxy = None
+        target_inactive_col = _find_column_case_insensitive(target_columns, "eh_ativo")
+        if target_status_col and _is_safe_identifier(target_status_col):
+            inactive_row = query_one(
+                dw_connection,
+                f"""
+                SELECT COUNT(*) AS total
+                FROM {safe_target}
+                WHERE [{target_status_col}] IN ('Inativo', 'Descontinuado');
+                """,
+            )
+            target_soft_deleted_proxy = _to_int(inactive_row.get("total") if inactive_row else 0, 0)
+        elif target_inactive_col and _is_safe_identifier(target_inactive_col):
+            inactive_row = query_one(
+                dw_connection,
+                f"SELECT COUNT(*) AS total FROM {safe_target} WHERE [{target_inactive_col}] = 0;",
+            )
+            target_soft_deleted_proxy = _to_int(inactive_row.get("total") if inactive_row else 0, 0)
+
+        if target_soft_deleted_proxy is not None:
+            delta_soft_delete = abs(target_soft_deleted_proxy - source_soft_deleted)
+            tolerance = max(5, int(source_soft_deleted * 0.10))
+            add_check(
+                "reconciliacao_soft_delete",
+                "OK" if delta_soft_delete <= tolerance else "ATENCAO",
+                f"fonte={source_soft_deleted} | alvo={target_soft_deleted_proxy}",
+                f"Diferenca absoluta={delta_soft_delete} (tolerancia={tolerance}).",
+            )
+
+        for row in snapshot["checks"]:
+            status = str(row.get("status") or "")
+            if status == "OK":
+                snapshot["ok_count"] += 1
+            elif status == "ATENCAO":
+                snapshot["warning_count"] += 1
+            elif status == "ALERTA":
+                snapshot["alert_count"] += 1
+    except Exception as exc:  # noqa: BLE001
+        snapshot["error"] = str(exc)
+    finally:
+        close_quietly(dw_connection)
+        close_quietly(oltp_connection)
+
+    return snapshot
+
+
+@st.cache_data(ttl=5)
 def get_dim_cliente_health() -> dict[str, Any]:
     config = ETLConfig.from_env()
     snapshot: dict[str, Any] = {
@@ -1742,14 +1981,21 @@ def _render_pipeline_health_section(control_df: pd.DataFrame) -> None:
         ]
         st.dataframe(pd.DataFrame(audit_rows), use_container_width=True, hide_index=True)
     with detail_right:
-        st.markdown("**Integridade basica**")
-        integrity_rows = [
-            {"check": "source_total >= 0", "status": "OK" if source_total >= 0 else "PENDENTE"},
-            {"check": "target_total >= 0", "status": "OK" if target_total >= 0 else "PENDENTE"},
-            {"check": "pendencia incremental", "status": "OK" if pending_total == 0 else "ATENCAO"},
-            {"check": "cobertura >= 95%", "status": "OK" if (health.get("coverage_percent") or 0) >= 95 else "ATENCAO"},
-        ]
-        st.dataframe(pd.DataFrame(integrity_rows), use_container_width=True, hide_index=True)
+        st.markdown("**Qualidade e reconciliacao (generico)**")
+        quality_snapshot = get_pipeline_quality_snapshot(selected_entity)
+        if quality_snapshot.get("error"):
+            st.warning("Falha ao calcular checks genericos de qualidade/reconciliacao.")
+            st.code(str(quality_snapshot["error"]))
+        else:
+            q1, q2, q3 = st.columns(3)
+            q1.metric("Checks OK", _to_int(quality_snapshot.get("ok_count"), 0))
+            q2.metric("Checks atencao", _to_int(quality_snapshot.get("warning_count"), 0))
+            q3.metric("Checks alerta", _to_int(quality_snapshot.get("alert_count"), 0))
+            checks_df = pd.DataFrame(quality_snapshot.get("checks", []))
+            if checks_df.empty:
+                st.info("Sem checks disponiveis para este pipeline.")
+            else:
+                st.dataframe(checks_df, use_container_width=True, hide_index=True)
 
     last_error = str(health.get("last_entity_error") or "").strip()
     if last_error:
