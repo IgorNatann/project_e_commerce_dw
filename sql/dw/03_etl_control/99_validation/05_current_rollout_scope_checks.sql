@@ -35,10 +35,18 @@ IF OBJECT_ID('dim.DIM_DESCONTO', 'U') IS NULL
     INSERT INTO @errors(error_message) VALUES ('Tabela dim.DIM_DESCONTO nao encontrada.');
 IF OBJECT_ID('fact.FACT_VENDAS', 'U') IS NULL
     INSERT INTO @errors(error_message) VALUES ('Tabela fact.FACT_VENDAS nao encontrada.');
+IF OBJECT_ID('fact.FACT_METAS', 'U') IS NULL
+    INSERT INTO @errors(error_message) VALUES ('Tabela fact.FACT_METAS nao encontrada.');
+IF OBJECT_ID('fact.FACT_DESCONTOS', 'U') IS NULL
+    INSERT INTO @errors(error_message) VALUES ('Tabela fact.FACT_DESCONTOS nao encontrada.');
 
 IF OBJECT_ID('fact.FACT_VENDAS', 'U') IS NOT NULL
 AND COL_LENGTH('fact.FACT_VENDAS', 'venda_original_id') IS NULL
     INSERT INTO @errors(error_message) VALUES ('Coluna fact.FACT_VENDAS.venda_original_id nao encontrada.');
+
+IF OBJECT_ID('fact.FACT_DESCONTOS', 'U') IS NOT NULL
+AND COL_LENGTH('fact.FACT_DESCONTOS', 'desconto_aplicado_original_id') IS NULL
+    INSERT INTO @errors(error_message) VALUES ('Coluna fact.FACT_DESCONTOS.desconto_aplicado_original_id nao encontrada.');
 
 IF OBJECT_ID('ctl.etl_control', 'U') IS NOT NULL
 BEGIN
@@ -53,10 +61,7 @@ BEGIN
         ('dim_equipe'),
         ('dim_vendedor'),
         ('dim_desconto'),
-        ('fact_vendas');
-
-    INSERT INTO @expected_inactive(entity_name)
-    VALUES
+        ('fact_vendas'),
         ('fact_metas'),
         ('fact_descontos');
 

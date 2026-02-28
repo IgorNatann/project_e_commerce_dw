@@ -3,7 +3,7 @@
 Este diretorio sobe toda a infra de laboratorio em um comando:
 
 - SQL Server 2022
-- bootstrap automatico de OLTP + DW (rollout atual: 6 dimensoes + `fact_vendas`)
+- bootstrap automatico de OLTP + DW (rollout atual: 6 dimensoes + `fact_vendas` + `fact_metas` + `fact_descontos`)
 - Streamlit para monitoramento ETL
 - Streamlit para dashboard de vendas (R1)
 - Streamlit para dashboard de metas (R1)
@@ -116,5 +116,7 @@ docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_equipe
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_vendedor
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity dim_desconto
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_vendas
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_metas
+docker exec dw_etl_monitor python python/etl/run_etl.py --entity fact_descontos
 docker exec dw_etl_monitor python python/etl/run_etl.py --entity all
 ```

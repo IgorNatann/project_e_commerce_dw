@@ -2193,6 +2193,28 @@ def get_connection_audit_recent(limit: int = 200) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=5)
+def get_connection_audit_oltp_extraction_recent(hours: int = 24, limit: int = 300) -> pd.DataFrame:
+    query = """
+    SELECT TOP (?)
+        connection_event_id,
+        event_time_utc,
+        login_name,
+        host_name,
+        program_name,
+        database_name,
+        status,
+        client_net_address,
+        encrypt_option,
+        auth_scheme
+    FROM audit.connection_login_events
+    WHERE database_name = 'ECOMMERCE_OLTP'
+      AND event_time_utc >= DATEADD(HOUR, -?, SYSUTCDATETIME())
+    ORDER BY connection_event_id DESC;
+    """
+    return _fetch_df(query, (int(limit), int(hours)))
+
+
+@st.cache_data(ttl=5)
 def get_connection_audit_logins(hours: int = 24) -> pd.DataFrame:
     query = """
     SELECT
@@ -3158,6 +3180,10 @@ def _render_connection_audit_section() -> None:
         get_connection_audit_recent(recent_limit),
         ["event_time_utc", "login_time"],
     )
+    conn_oltp_extract_df = _ensure_datetime_columns(
+        get_connection_audit_oltp_extraction_recent(hours_window, recent_limit),
+        ["event_time_utc", "login_time"],
+    )
     etl_fail_hourly_df = _ensure_datetime_columns(get_etl_failures_hourly(hours_window), ["event_hour_utc"])
     etl_fail_summary_df = _ensure_datetime_columns(get_etl_failure_summary(hours_window), ["last_failed_at"])
     etl_error_taxonomy_df = get_etl_error_taxonomy(failure_days)
@@ -3227,6 +3253,71 @@ def _render_connection_audit_section() -> None:
             st.info("Sem eventos por status na janela.")
         else:
             st.dataframe(conn_status_df, use_container_width=True, hide_index=True)
+
+    st.markdown("**Eventos de extracao OLTP (filtro dedicado)**")
+    if conn_oltp_extract_df.empty:
+        st.info("Sem eventos de conexao para `ECOMMERCE_OLTP` na janela selecionada.")
+    else:
+        oltp_df = conn_oltp_extract_df.copy()
+        for col in ["login_name", "program_name", "host_name", "status", "database_name"]:
+            if col in oltp_df.columns:
+                oltp_df[col] = oltp_df[col].fillna("(null)").astype(str)
+
+        login_opts = sorted(oltp_df["login_name"].unique().tolist())
+        program_opts = sorted(oltp_df["program_name"].unique().tolist())
+        host_opts = sorted(oltp_df["host_name"].unique().tolist())
+
+        default_logins = ["etl_monitor"] if "etl_monitor" in login_opts else login_opts
+        python_programs = [program for program in program_opts if "python" in program.lower()]
+        default_programs = python_programs if python_programs else program_opts
+        default_hosts = host_opts
+
+        ex_flt1, ex_flt2, ex_flt3 = st.columns(3)
+        with ex_flt1:
+            selected_extract_logins = st.multiselect(
+                "Login (extracao OLTP)",
+                options=login_opts,
+                default=default_logins,
+            )
+        with ex_flt2:
+            selected_extract_programs = st.multiselect(
+                "Programa (extracao OLTP)",
+                options=program_opts,
+                default=default_programs,
+            )
+        with ex_flt3:
+            selected_extract_hosts = st.multiselect(
+                "Host (extracao OLTP)",
+                options=host_opts,
+                default=default_hosts,
+            )
+
+        filtered_oltp_df = oltp_df[
+            oltp_df["login_name"].isin(selected_extract_logins)
+            & oltp_df["program_name"].isin(selected_extract_programs)
+            & oltp_df["host_name"].isin(selected_extract_hosts)
+        ].copy()
+
+        extract_events_total = len(filtered_oltp_df)
+        extract_hosts_total = int(filtered_oltp_df["host_name"].nunique()) if not filtered_oltp_df.empty else 0
+        extract_programs_total = (
+            int(filtered_oltp_df["program_name"].nunique()) if not filtered_oltp_df.empty else 0
+        )
+        last_extract_event = (
+            filtered_oltp_df["event_time_utc"].max() if "event_time_utc" in filtered_oltp_df.columns else None
+        )
+
+        em1, em2, em3, em4 = st.columns(4)
+        em1.metric("Eventos extracao OLTP", extract_events_total)
+        em2.metric("Hosts extracao", extract_hosts_total)
+        em3.metric("Programas extracao", extract_programs_total)
+        em4.metric("Ultimo evento OLTP", "-" if pd.isna(last_extract_event) else str(last_extract_event))
+
+        st.caption(
+            "Filtro dedicado para acessos de extracao na base `ECOMMERCE_OLTP`. "
+            "Sugestao: manter `etl_monitor` + programas Python para foco no runner ETL."
+        )
+        st.dataframe(filtered_oltp_df, use_container_width=True, hide_index=True)
 
     st.markdown("**Falhas ETL por tipo de erro**")
     if etl_error_taxonomy_df.empty:
