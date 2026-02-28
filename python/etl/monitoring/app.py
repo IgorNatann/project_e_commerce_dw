@@ -2232,6 +2232,132 @@ def _render_execution_timeline_section() -> None:
     )
 
 
+def _render_alerts_sla_section(runs_df: pd.DataFrame, entity_runs_df: pd.DataFrame) -> None:
+    st.subheader("Alertas e SLA dos pipelines")
+    overview_df = _ensure_datetime_columns(
+        get_pipeline_overview(),
+        ["last_success_at", "entity_last_started_at", "entity_last_finished_at"],
+    )
+    if overview_df.empty:
+        st.info("Sem pipelines para avaliar SLA.")
+        return
+
+    now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
+    cutoff_24h = now_utc - timedelta(hours=24)
+    cutoff_7d = now_utc - timedelta(days=7)
+
+    runs_24h = (
+        runs_df[runs_df["started_at"] >= cutoff_24h]
+        if (not runs_df.empty and "started_at" in runs_df.columns)
+        else pd.DataFrame()
+    )
+    runs_7d = (
+        runs_df[runs_df["started_at"] >= cutoff_7d]
+        if (not runs_df.empty and "started_at" in runs_df.columns)
+        else pd.DataFrame()
+    )
+
+    success_rate_24h = _safe_ratio(
+        int((runs_24h["status"] == "success").sum()) if not runs_24h.empty else 0,
+        len(runs_24h),
+    )
+    success_rate_7d = _safe_ratio(
+        int((runs_7d["status"] == "success").sum()) if not runs_7d.empty else 0,
+        len(runs_7d),
+    )
+
+    active_df = overview_df[overview_df["is_active"].apply(_to_bool)].copy()
+    alert_rows: list[dict[str, Any]] = []
+
+    if not entity_runs_df.empty and "entity_started_at" in entity_runs_df.columns:
+        entity_runs_7d = entity_runs_df[entity_runs_df["entity_started_at"] >= cutoff_7d].copy()
+    else:
+        entity_runs_7d = pd.DataFrame()
+
+    for _, row in active_df.iterrows():
+        entity_name = str(row.get("entity_name") or "")
+        freshness = row.get("freshness_minutes")
+        if freshness is not None and not pd.isna(freshness):
+            freshness_value = float(freshness)
+            if freshness_value > 120:
+                severity = "ALERTA" if freshness_value > 360 else "ATENCAO"
+                alert_rows.append(
+                    {
+                        "severidade": severity,
+                        "tipo": "ATRASO_WATERMARK",
+                        "entidade": entity_name,
+                        "valor": _format_minutes(freshness_value),
+                        "detalhe": "Latencia acima do limite (120 minutos).",
+                    }
+                )
+
+        last_finished = row.get("entity_last_finished_at")
+        if pd.isna(last_finished) or last_finished is None:
+            alert_rows.append(
+                {
+                    "severidade": "ALERTA",
+                    "tipo": "SEM_EXECUCAO_RECENTE",
+                    "entidade": entity_name,
+                    "valor": "-",
+                    "detalhe": "Pipeline ativo sem historico de execucao da entidade.",
+                }
+            )
+        else:
+            idle_hours = (now_utc - last_finished).total_seconds() / 3600.0
+            if idle_hours > 24:
+                severity = "ALERTA" if idle_hours > 72 else "ATENCAO"
+                alert_rows.append(
+                    {
+                        "severidade": severity,
+                        "tipo": "SEM_EXECUCAO_RECENTE",
+                        "entidade": entity_name,
+                        "valor": f"{idle_hours:.1f}h",
+                        "detalhe": "Ultima execucao acima do limite (24 horas).",
+                    }
+                )
+
+        if not entity_runs_7d.empty:
+            entity_scope = entity_runs_7d[entity_runs_7d["entity_name"] == entity_name]
+            total_entity_runs = len(entity_scope)
+            failed_entity_runs = int((entity_scope["status"] == "failed").sum()) if total_entity_runs > 0 else 0
+            fail_rate = _safe_ratio(failed_entity_runs, total_entity_runs)
+            if total_entity_runs >= 3 and (fail_rate or 0) >= 30.0:
+                severity = "ALERTA" if (fail_rate or 0) >= 50.0 else "ATENCAO"
+                alert_rows.append(
+                    {
+                        "severidade": severity,
+                        "tipo": "FALHA_RECORRENTE",
+                        "entidade": entity_name,
+                        "valor": _format_ratio(fail_rate),
+                        "detalhe": f"Falha recorrente na janela de 7 dias ({failed_entity_runs}/{total_entity_runs}).",
+                    }
+                )
+
+    alerts_df = pd.DataFrame(alert_rows)
+    total_active = len(active_df)
+    entities_with_alert = int(alerts_df["entidade"].nunique()) if not alerts_df.empty else 0
+    sla_compliance = _safe_ratio(total_active - entities_with_alert, total_active)
+
+    k1, k2, k3, k4 = st.columns(4)
+    k1.metric("Taxa sucesso (24h)", _format_ratio(success_rate_24h))
+    k2.metric("Taxa sucesso (7d)", _format_ratio(success_rate_7d))
+    k3.metric("Conformidade SLA", _format_ratio(sla_compliance))
+    k4.metric("Alertas abertos", len(alerts_df))
+
+    if alerts_df.empty:
+        st.success("Sem alertas ativos para os pipelines monitorados.")
+    else:
+        severity_order = {"ALERTA": 0, "ATENCAO": 1}
+        alerts_df["order"] = alerts_df["severidade"].map(severity_order).fillna(9)
+        alerts_df = alerts_df.sort_values(["order", "tipo", "entidade"]).drop(columns=["order"])
+        st.dataframe(alerts_df, use_container_width=True, hide_index=True)
+
+    st.caption(
+        "Regras de alerta: atraso de watermark > 120m, pipeline sem execucao > 24h, "
+        "falha recorrente >= 30% na janela de 7 dias (com minimo de 3 execucoes)."
+    )
+
+
 def _render_runs_control_section(runs_df: pd.DataFrame, control_df: pd.DataFrame) -> None:
     st.subheader("Controle incremental (ctl.etl_control)")
     st.dataframe(control_df, use_container_width=True, hide_index=True)
@@ -2424,6 +2550,7 @@ def render_dashboard() -> None:
     if page == "Resumo operacional":
         _render_kpi_cards(runs_df, control_df, entity_runs_df)
         _render_pipeline_overview_section()
+        _render_alerts_sla_section(runs_df, entity_runs_df)
         _render_execution_timeline_section()
         _render_running_section()
         _render_charts_section()
