@@ -73,6 +73,8 @@ def _suggest_connection_fix(error_text: str) -> list[str]:
         suggestions.append("Objetos de controle nao existem no DW. Execute os scripts de `sql/dw/03_etl_control`.")
     if "CORE.CUSTOMERS" in upper_error:
         suggestions.append("Tabela de origem `core.customers` indisponivel. Execute bootstrap OLTP ou valide permissoes no OLTP.")
+    if "CORE.PRODUCTS" in upper_error:
+        suggestions.append("Tabela de origem `core.products` indisponivel. Execute bootstrap OLTP ou valide permissoes no OLTP.")
     if "PERMISSION" in upper_error or "DENIED" in upper_error:
         suggestions.append("Permissao insuficiente para consulta. Revise grants do usuario de monitoramento.")
 
@@ -122,8 +124,13 @@ def get_preflight_snapshot() -> dict[str, Any]:
         "has_audit_etl_run_entity": False,
         "has_dim_cliente_table": False,
         "has_dim_cliente_active": False,
+        "has_dim_produto_table": False,
+        "has_dim_produto_active": False,
         "oltp_connection_ok": False,
         "has_core_customers_table": False,
+        "has_core_products_table": False,
+        "ready_for_dim_cliente": False,
+        "ready_for_dim_produto": False,
         "control_entities": 0,
         "active_entities": 0,
         "run_count": 0,
@@ -151,7 +158,8 @@ def get_preflight_snapshot() -> dict[str, Any]:
             CASE WHEN OBJECT_ID('ctl.etl_control', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_ctl_etl_control,
             CASE WHEN OBJECT_ID('audit.etl_run', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_audit_etl_run,
             CASE WHEN OBJECT_ID('audit.etl_run_entity', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_audit_etl_run_entity,
-            CASE WHEN OBJECT_ID('dim.DIM_CLIENTE', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_dim_cliente_table;
+            CASE WHEN OBJECT_ID('dim.DIM_CLIENTE', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_dim_cliente_table,
+            CASE WHEN OBJECT_ID('dim.DIM_PRODUTO', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_dim_produto_table;
         """
         base_info = query_one(connection, base_info_sql)
         if base_info is None:
@@ -165,6 +173,7 @@ def get_preflight_snapshot() -> dict[str, Any]:
         snapshot["has_audit_etl_run"] = _to_bool(base_info.get("has_audit_etl_run"))
         snapshot["has_audit_etl_run_entity"] = _to_bool(base_info.get("has_audit_etl_run_entity"))
         snapshot["has_dim_cliente_table"] = _to_bool(base_info.get("has_dim_cliente_table"))
+        snapshot["has_dim_produto_table"] = _to_bool(base_info.get("has_dim_produto_table"))
 
         if snapshot["has_ctl_etl_control"]:
             control_counts = query_one(
@@ -173,7 +182,8 @@ def get_preflight_snapshot() -> dict[str, Any]:
                 SELECT
                     COUNT(*) AS control_entities,
                     SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) AS active_entities,
-                    SUM(CASE WHEN entity_name = 'dim_cliente' AND is_active = 1 THEN 1 ELSE 0 END) AS dim_cliente_active
+                    SUM(CASE WHEN entity_name = 'dim_cliente' AND is_active = 1 THEN 1 ELSE 0 END) AS dim_cliente_active,
+                    SUM(CASE WHEN entity_name = 'dim_produto' AND is_active = 1 THEN 1 ELSE 0 END) AS dim_produto_active
                 FROM ctl.etl_control;
                 """,
             )
@@ -181,6 +191,7 @@ def get_preflight_snapshot() -> dict[str, Any]:
                 snapshot["control_entities"] = _to_int(control_counts.get("control_entities"), 0)
                 snapshot["active_entities"] = _to_int(control_counts.get("active_entities"), 0)
                 snapshot["has_dim_cliente_active"] = _to_int(control_counts.get("dim_cliente_active"), 0) > 0
+                snapshot["has_dim_produto_active"] = _to_int(control_counts.get("dim_produto_active"), 0) > 0
 
         if snapshot["has_audit_etl_run"]:
             run_counts = query_one(connection, "SELECT COUNT(*) AS run_count FROM audit.etl_run;")
@@ -196,11 +207,14 @@ def get_preflight_snapshot() -> dict[str, Any]:
             source_check = query_one(
                 oltp_connection,
                 """
-                SELECT CASE WHEN OBJECT_ID('core.customers', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_core_customers_table;
+                SELECT
+                    CASE WHEN OBJECT_ID('core.customers', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_core_customers_table,
+                    CASE WHEN OBJECT_ID('core.products', 'U') IS NOT NULL THEN 1 ELSE 0 END AS has_core_products_table;
                 """,
             )
             if source_check:
                 snapshot["has_core_customers_table"] = _to_bool(source_check.get("has_core_customers_table"))
+                snapshot["has_core_products_table"] = _to_bool(source_check.get("has_core_products_table"))
         except Exception as exc:  # noqa: BLE001
             snapshot["oltp_error"] = str(exc)
 
@@ -212,13 +226,21 @@ def get_preflight_snapshot() -> dict[str, Any]:
             and snapshot["has_audit_etl_run"]
             and snapshot["has_audit_etl_run_entity"]
         )
-        snapshot["ready_for_first_run"] = (
+        snapshot["ready_for_dim_cliente"] = (
             snapshot["ready_for_monitoring"]
             and snapshot["has_dim_cliente_table"]
             and snapshot["has_dim_cliente_active"]
             and snapshot["oltp_connection_ok"]
             and snapshot["has_core_customers_table"]
         )
+        snapshot["ready_for_dim_produto"] = (
+            snapshot["ready_for_monitoring"]
+            and snapshot["has_dim_produto_table"]
+            and snapshot["has_dim_produto_active"]
+            and snapshot["oltp_connection_ok"]
+            and snapshot["has_core_products_table"]
+        )
+        snapshot["ready_for_first_run"] = snapshot["ready_for_dim_cliente"]
 
     except Exception as exc:  # noqa: BLE001
         error_text = str(exc)
@@ -239,10 +261,11 @@ def _render_preflight(snapshot: dict[str, Any]) -> None:
     with st.expander("Pre-flight de monitoramento", expanded=True):
         st.caption("Checklist tecnico antes do primeiro run do ETL.")
 
-        a, b, c = st.columns(3)
+        a, b, c, d = st.columns(4)
         a.metric("Conexao DW", _status_badge(bool(snapshot["connection_ok"])))
         b.metric("Conexao OLTP", _status_badge(bool(snapshot["oltp_connection_ok"])))
-        c.metric("Dim Cliente pronta", _status_badge(bool(snapshot["ready_for_first_run"])))
+        c.metric("Dim Cliente pronta", _status_badge(bool(snapshot.get("ready_for_dim_cliente"))))
+        d.metric("Dim Produto pronta", _status_badge(bool(snapshot.get("ready_for_dim_produto"))))
 
         details_left, details_right = st.columns(2)
         with details_left:
@@ -253,6 +276,7 @@ def _render_preflight(snapshot: dict[str, Any]) -> None:
             st.write(f"- entities ativas: `{snapshot.get('active_entities', 0)}`")
             st.write(f"- runs historicos: `{snapshot.get('run_count', 0)}`")
             st.write(f"- dim_cliente ativa: `{_status_badge(bool(snapshot.get('has_dim_cliente_active')))} `")
+            st.write(f"- dim_produto ativa: `{_status_badge(bool(snapshot.get('has_dim_produto_active')))} `")
 
         with details_right:
             st.write(f"- schema ctl: `{_status_badge(bool(snapshot['has_schema_ctl']))}`")
@@ -261,7 +285,9 @@ def _render_preflight(snapshot: dict[str, Any]) -> None:
             st.write(f"- tabela audit.etl_run: `{_status_badge(bool(snapshot['has_audit_etl_run']))}`")
             st.write(f"- tabela audit.etl_run_entity: `{_status_badge(bool(snapshot['has_audit_etl_run_entity']))}`")
             st.write(f"- tabela dim.DIM_CLIENTE: `{_status_badge(bool(snapshot.get('has_dim_cliente_table')))} `")
+            st.write(f"- tabela dim.DIM_PRODUTO: `{_status_badge(bool(snapshot.get('has_dim_produto_table')))} `")
             st.write(f"- tabela core.customers: `{_status_badge(bool(snapshot.get('has_core_customers_table')))} `")
+            st.write(f"- tabela core.products: `{_status_badge(bool(snapshot.get('has_core_products_table')))} `")
 
         if snapshot.get("error"):
             st.error("Falha no pre-flight de conexao.")
@@ -278,10 +304,10 @@ def _render_preflight(snapshot: dict[str, Any]) -> None:
 
         if not snapshot.get("ready_for_monitoring"):
             st.warning("Monitoramento ainda nao pronto. Execute os scripts de controle ETL e revise a conexao.")
-        elif not snapshot.get("ready_for_first_run"):
-            st.info("Monitoramento pronto, mas o escopo `dim_cliente` ainda nao esta totalmente validado.")
+        elif not snapshot.get("ready_for_dim_cliente") or not snapshot.get("ready_for_dim_produto"):
+            st.info("Monitoramento pronto, mas o escopo `dim_cliente`/`dim_produto` ainda nao esta totalmente validado.")
         else:
-            st.success("Pre-flight concluido. Ambiente pronto para validar `dim_cliente`.")
+            st.success("Pre-flight concluido. Ambiente pronto para validar `dim_cliente` e `dim_produto`.")
 
 
 @st.cache_data(ttl=5)
@@ -404,6 +430,98 @@ def get_entity_volume(days: int = 14) -> pd.DataFrame:
     ORDER BY re.entity_name;
     """
     return _fetch_df(query, (int(days),))
+
+
+def _object_exists_table(connection: Any, table_name: str) -> bool:
+    row = query_one(
+        connection,
+        "SELECT CASE WHEN OBJECT_ID(?, 'U') IS NOT NULL THEN 1 ELSE 0 END AS exists_flag;",
+        (table_name,),
+    )
+    return _to_bool(row.get("exists_flag")) if row is not None else False
+
+
+def _resolve_pipeline_status(row: dict[str, Any]) -> str:
+    if not bool(row.get("source_exists")) or not bool(row.get("target_exists")):
+        return "PENDENTE_ESTRUTURA"
+
+    entity_last_status = str(row.get("entity_last_status") or "").lower()
+    control_last_status = str(row.get("control_last_status") or "").lower()
+    if entity_last_status == "running":
+        return "RODANDO"
+    if entity_last_status == "failed" or control_last_status == "failed":
+        return "FALHA"
+    if entity_last_status == "success" or control_last_status == "success":
+        return "OK"
+    return "SEM_EXECUCAO"
+
+
+@st.cache_data(ttl=5)
+def get_pipeline_overview() -> pd.DataFrame:
+    query = """
+    SELECT
+        c.entity_name,
+        c.is_active,
+        c.source_table,
+        c.target_table,
+        c.watermark_updated_at,
+        c.watermark_id,
+        c.last_status AS control_last_status,
+        c.last_success_at,
+        c.last_run_id,
+        re.status AS entity_last_status,
+        re.entity_finished_at AS entity_last_finished_at,
+        re.extracted_count AS entity_last_extracted,
+        re.upserted_count AS entity_last_upserted,
+        re.soft_deleted_count AS entity_last_soft_deleted,
+        re.error_message AS entity_last_error
+    FROM ctl.etl_control AS c
+    OUTER APPLY
+    (
+        SELECT TOP (1)
+            status,
+            entity_finished_at,
+            extracted_count,
+            upserted_count,
+            soft_deleted_count,
+            error_message
+        FROM audit.etl_run_entity AS re
+        WHERE re.entity_name = c.entity_name
+        ORDER BY re.run_entity_id DESC
+    ) AS re
+    ORDER BY c.entity_name;
+    """
+    df = _fetch_df(query)
+    if df.empty:
+        return df
+
+    config = ETLConfig.from_env()
+    dw_connection = None
+    oltp_connection = None
+    try:
+        dw_connection = connect_sqlserver(
+            config.dw_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+        oltp_connection = connect_sqlserver(
+            config.oltp_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+
+        source_exists: list[bool] = []
+        target_exists: list[bool] = []
+        for _, row in df.iterrows():
+            source_exists.append(_object_exists_table(oltp_connection, str(row["source_table"])))
+            target_exists.append(_object_exists_table(dw_connection, str(row["target_table"])))
+        df["source_exists"] = source_exists
+        df["target_exists"] = target_exists
+    finally:
+        close_quietly(dw_connection)
+        close_quietly(oltp_connection)
+
+    records = df.to_dict("records")
+    df["pipeline_status"] = [str(_resolve_pipeline_status(rec)) for rec in records]
+    return df
 
 
 @st.cache_data(ttl=5)
@@ -609,6 +727,172 @@ def get_dim_cliente_recent_source(limit: int = 20) -> pd.DataFrame:
 
 
 @st.cache_data(ttl=5)
+def get_dim_produto_health() -> dict[str, Any]:
+    config = ETLConfig.from_env()
+    snapshot: dict[str, Any] = {
+        "source_total": 0,
+        "source_soft_deleted": 0,
+        "source_pending_since_watermark": 0,
+        "source_max_updated_at": None,
+        "target_total": 0,
+        "target_active": 0,
+        "target_discontinued": 0,
+        "target_invalid_status": 0,
+        "target_invalid_price": 0,
+        "target_max_updated_at": None,
+        "watermark_updated_at": None,
+        "watermark_id": 0,
+        "last_run_id": None,
+        "last_status": None,
+        "last_success_at": None,
+        "last_entity_status": None,
+        "last_entity_finished_at": None,
+        "error": None,
+    }
+
+    dw_connection = None
+    oltp_connection = None
+    try:
+        dw_connection = connect_sqlserver(
+            config.dw_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+        target_row = query_one(
+            dw_connection,
+            """
+            SELECT
+                COUNT(*) AS target_total,
+                SUM(CASE WHEN situacao = 'Ativo' THEN 1 ELSE 0 END) AS target_active,
+                SUM(CASE WHEN situacao = 'Descontinuado' THEN 1 ELSE 0 END) AS target_discontinued,
+                SUM(CASE WHEN situacao NOT IN ('Ativo','Inativo','Descontinuado') THEN 1 ELSE 0 END) AS target_invalid_status,
+                SUM(CASE WHEN preco_custo < 0 OR preco_sugerido < 0 THEN 1 ELSE 0 END) AS target_invalid_price,
+                MAX(data_ultima_atualizacao) AS target_max_updated_at
+            FROM dim.DIM_PRODUTO;
+            """,
+        )
+        if target_row:
+            snapshot["target_total"] = _to_int(target_row.get("target_total"), 0)
+            snapshot["target_active"] = _to_int(target_row.get("target_active"), 0)
+            snapshot["target_discontinued"] = _to_int(target_row.get("target_discontinued"), 0)
+            snapshot["target_invalid_status"] = _to_int(target_row.get("target_invalid_status"), 0)
+            snapshot["target_invalid_price"] = _to_int(target_row.get("target_invalid_price"), 0)
+            snapshot["target_max_updated_at"] = target_row.get("target_max_updated_at")
+
+        control_row = query_one(
+            dw_connection,
+            """
+            SELECT
+                watermark_updated_at,
+                watermark_id,
+                last_run_id,
+                last_status,
+                last_success_at
+            FROM ctl.etl_control
+            WHERE entity_name = 'dim_produto';
+            """,
+        )
+        if control_row:
+            snapshot["watermark_updated_at"] = control_row.get("watermark_updated_at")
+            snapshot["watermark_id"] = _to_int(control_row.get("watermark_id"), 0)
+            snapshot["last_run_id"] = control_row.get("last_run_id")
+            snapshot["last_status"] = control_row.get("last_status")
+            snapshot["last_success_at"] = control_row.get("last_success_at")
+
+        entity_row = query_one(
+            dw_connection,
+            """
+            SELECT TOP (1)
+                status AS last_entity_status,
+                entity_finished_at AS last_entity_finished_at
+            FROM audit.etl_run_entity
+            WHERE entity_name = 'dim_produto'
+            ORDER BY run_entity_id DESC;
+            """,
+        )
+        if entity_row:
+            snapshot["last_entity_status"] = entity_row.get("last_entity_status")
+            snapshot["last_entity_finished_at"] = entity_row.get("last_entity_finished_at")
+
+        oltp_connection = connect_sqlserver(
+            config.oltp_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+        source_row = query_one(
+            oltp_connection,
+            """
+            SELECT
+                COUNT(*) AS source_total,
+                SUM(CASE WHEN deleted_at IS NOT NULL THEN 1 ELSE 0 END) AS source_soft_deleted,
+                MAX(updated_at) AS source_max_updated_at
+            FROM core.products;
+            """,
+        )
+        if source_row:
+            snapshot["source_total"] = _to_int(source_row.get("source_total"), 0)
+            snapshot["source_soft_deleted"] = _to_int(source_row.get("source_soft_deleted"), 0)
+            snapshot["source_max_updated_at"] = source_row.get("source_max_updated_at")
+
+        if snapshot["watermark_updated_at"] is not None:
+            pending_row = query_one(
+                oltp_connection,
+                """
+                SELECT
+                    COUNT(*) AS pending_since_watermark
+                FROM core.products
+                WHERE updated_at > ?
+                   OR (updated_at = ? AND product_id > ?);
+                """,
+                (
+                    snapshot["watermark_updated_at"],
+                    snapshot["watermark_updated_at"],
+                    _to_int(snapshot["watermark_id"], 0),
+                ),
+            )
+            if pending_row:
+                snapshot["source_pending_since_watermark"] = _to_int(
+                    pending_row.get("pending_since_watermark"),
+                    0,
+                )
+    except Exception as exc:  # noqa: BLE001
+        snapshot["error"] = str(exc)
+    finally:
+        close_quietly(dw_connection)
+        close_quietly(oltp_connection)
+
+    return snapshot
+
+
+@st.cache_data(ttl=5)
+def get_dim_produto_recent_source(limit: int = 20) -> pd.DataFrame:
+    config = ETLConfig.from_env()
+    connection = None
+    try:
+        connection = connect_sqlserver(
+            config.oltp_conn_str,
+            command_timeout_seconds=config.command_timeout_seconds,
+        )
+        rows = query_all(
+            connection,
+            """
+            SELECT TOP (?)
+                product_id,
+                product_name,
+                brand,
+                category_name,
+                product_status,
+                updated_at,
+                deleted_at
+            FROM core.products
+            ORDER BY updated_at DESC, product_id DESC;
+            """,
+            (int(limit),),
+        )
+        return _to_dataframe(rows)
+    finally:
+        close_quietly(connection)
+
+
+@st.cache_data(ttl=5)
 def get_connection_audit_recent(limit: int = 200) -> pd.DataFrame:
     query = """
     SELECT TOP (?)
@@ -666,30 +950,194 @@ def _ensure_datetime_columns(df: pd.DataFrame, columns: list[str]) -> pd.DataFra
     return df
 
 
+def _safe_ratio(numerator: int, denominator: int) -> float | None:
+    if denominator <= 0:
+        return None
+    return (numerator / denominator) * 100.0
+
+
+def _format_ratio(value: float | None) -> str:
+    if value is None:
+        return "-"
+    return f"{value:.1f}%"
+
+
+def _compute_freshness_minutes(source_updated_at: Any, target_updated_at: Any) -> float | None:
+    if source_updated_at is None or target_updated_at is None:
+        return None
+    try:
+        delta_minutes = (source_updated_at - target_updated_at).total_seconds() / 60.0
+    except Exception:  # noqa: BLE001
+        return None
+    return max(0.0, float(delta_minutes))
+
+
+def _format_minutes(value: float | None) -> str:
+    if value is None:
+        return "-"
+    if value >= 1440:
+        return f"{value / 1440:.1f}d"
+    if value >= 60:
+        return f"{value / 60:.1f}h"
+    return f"{value:.0f}m"
+
+
 def _render_kpi_cards(runs_df: pd.DataFrame, control_df: pd.DataFrame, entity_runs_df: pd.DataFrame) -> None:
+    st.subheader("KPIs OLTP -> DW (escopo atual)")
+
     latest_run = runs_df.iloc[0] if not runs_df.empty else None
     active_entities = int((control_df["is_active"] == 1).sum()) if "is_active" in control_df.columns else 0
 
     now_utc = datetime.now(timezone.utc).replace(tzinfo=None)
     last_24h_cutoff = now_utc - timedelta(hours=24)
-    failed_last_24h = 0
-    if not entity_runs_df.empty and "entity_started_at" in entity_runs_df.columns:
-        failed_last_24h = int(
-            (
-                (entity_runs_df["status"] == "failed")
-                & (entity_runs_df["entity_started_at"] >= last_24h_cutoff)
-            ).sum()
-        )
+    runs_last_24h = (
+        runs_df[runs_df["started_at"] >= last_24h_cutoff]
+        if (not runs_df.empty and "started_at" in runs_df.columns)
+        else pd.DataFrame()
+    )
+    total_runs_last_24h = len(runs_last_24h)
+    success_runs_last_24h = (
+        int((runs_last_24h["status"] == "success").sum()) if not runs_last_24h.empty else 0
+    )
+    failed_last_24h = (
+        int((runs_last_24h["status"] == "failed").sum()) if not runs_last_24h.empty else 0
+    )
+    success_rate_last_24h = _safe_ratio(success_runs_last_24h, total_runs_last_24h)
 
     metric_1, metric_2, metric_3, metric_4 = st.columns(4)
     metric_1.metric("Entidades ativas", active_entities)
-    metric_2.metric("Falhas (24h)", failed_last_24h)
+    metric_2.metric("Taxa de sucesso (24h)", _format_ratio(success_rate_last_24h))
+    metric_3.metric("Falhas de run (24h)", failed_last_24h)
     if latest_run is not None:
-        metric_3.metric("Ultimo run_id", int(latest_run["run_id"]))
         metric_4.metric("Status ultimo run", str(latest_run["status"]))
     else:
-        metric_3.metric("Ultimo run_id", "-")
         metric_4.metric("Status ultimo run", "-")
+
+    dim_cliente_health = get_dim_cliente_health()
+    dim_produto_health = get_dim_produto_health()
+
+    coverage_cliente = _safe_ratio(
+        _to_int(dim_cliente_health.get("target_total"), 0),
+        _to_int(dim_cliente_health.get("source_total"), 0),
+    )
+    coverage_produto = _safe_ratio(
+        _to_int(dim_produto_health.get("target_total"), 0),
+        _to_int(dim_produto_health.get("source_total"), 0),
+    )
+    pending_total = _to_int(dim_cliente_health.get("source_pending_since_watermark"), 0) + _to_int(
+        dim_produto_health.get("source_pending_since_watermark"),
+        0,
+    )
+    freshness_cliente = _compute_freshness_minutes(
+        dim_cliente_health.get("source_max_updated_at"),
+        dim_cliente_health.get("target_max_updated_at"),
+    )
+    freshness_produto = _compute_freshness_minutes(
+        dim_produto_health.get("source_max_updated_at"),
+        dim_produto_health.get("target_max_updated_at"),
+    )
+
+    throughput_rows_per_sec = None
+    if not entity_runs_df.empty:
+        success_entities = entity_runs_df[
+            (entity_runs_df["status"] == "success")
+            & (entity_runs_df["entity_started_at"] >= last_24h_cutoff)
+            & entity_runs_df["entity_started_at"].notna()
+            & entity_runs_df["entity_finished_at"].notna()
+        ].copy()
+        if not success_entities.empty:
+            duration_seconds = (
+                success_entities["entity_finished_at"] - success_entities["entity_started_at"]
+            ).dt.total_seconds()
+            success_entities["duration_seconds"] = duration_seconds.clip(lower=1.0)
+            success_entities["upserted_count"] = pd.to_numeric(
+                success_entities["upserted_count"],
+                errors="coerce",
+            ).fillna(0)
+            throughput_series = success_entities["upserted_count"] / success_entities["duration_seconds"]
+            throughput_rows_per_sec = float(throughput_series.mean()) if not throughput_series.empty else None
+
+    metric_5, metric_6, metric_7, metric_8 = st.columns(4)
+    metric_5.metric("Cobertura dim_cliente", _format_ratio(coverage_cliente))
+    metric_6.metric("Cobertura dim_produto", _format_ratio(coverage_produto))
+    metric_7.metric("Pendentes watermark", pending_total)
+    metric_8.metric("Throughput medio (24h)", "-" if throughput_rows_per_sec is None else f"{throughput_rows_per_sec:.1f} l/s")
+
+    metric_9, metric_10 = st.columns(2)
+    metric_9.metric("Latencia dim_cliente", _format_minutes(freshness_cliente))
+    metric_10.metric("Latencia dim_produto", _format_minutes(freshness_produto))
+
+    st.caption(
+        "KPIs principais: cobertura (fonte x alvo), pendencia incremental, "
+        "latencia de atualizacao, taxa de sucesso e throughput medio."
+    )
+
+
+def _render_pipeline_overview_section() -> None:
+    st.subheader("Contexto geral dos pipelines")
+    overview_df = _ensure_datetime_columns(
+        get_pipeline_overview(),
+        ["watermark_updated_at", "last_success_at", "entity_last_finished_at"],
+    )
+    if overview_df.empty:
+        st.info("Sem entidades cadastradas no controle ETL.")
+        return
+
+    total = len(overview_df)
+    ok_count = int((overview_df["pipeline_status"] == "OK").sum())
+    fail_count = int((overview_df["pipeline_status"] == "FALHA").sum())
+    running_count = int((overview_df["pipeline_status"] == "RODANDO").sum())
+    pending_struct_count = int((overview_df["pipeline_status"] == "PENDENTE_ESTRUTURA").sum())
+    no_exec_count = int((overview_df["pipeline_status"] == "SEM_EXECUCAO").sum())
+
+    k1, k2, k3, k4, k5, k6 = st.columns(6)
+    k1.metric("Pipelines", total)
+    k2.metric("OK", ok_count)
+    k3.metric("Falha", fail_count)
+    k4.metric("Rodando", running_count)
+    k5.metric("Pendente estrutura", pending_struct_count)
+    k6.metric("Sem execucao", no_exec_count)
+
+    status_options = sorted(overview_df["pipeline_status"].astype(str).unique().tolist())
+    selected_status = st.multiselect(
+        "Filtrar status do pipeline",
+        options=status_options,
+        default=status_options,
+    )
+    filtered_df = overview_df[overview_df["pipeline_status"].isin(selected_status)].copy()
+    filtered_df["is_active"] = filtered_df["is_active"].apply(lambda x: "SIM" if _to_bool(x) else "NAO")
+    filtered_df["source_exists"] = filtered_df["source_exists"].apply(lambda x: "OK" if bool(x) else "PENDENTE")
+    filtered_df["target_exists"] = filtered_df["target_exists"].apply(lambda x: "OK" if bool(x) else "PENDENTE")
+    filtered_df["entity_last_error"] = filtered_df["entity_last_error"].fillna("")
+
+    display_columns = [
+        "entity_name",
+        "pipeline_status",
+        "is_active",
+        "source_exists",
+        "target_exists",
+        "control_last_status",
+        "entity_last_status",
+        "entity_last_extracted",
+        "entity_last_upserted",
+        "entity_last_soft_deleted",
+        "entity_last_finished_at",
+        "watermark_updated_at",
+        "watermark_id",
+        "entity_last_error",
+    ]
+    st.dataframe(
+        filtered_df[display_columns],
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    st.caption(
+        "Use `pipeline_status` para auditoria rapida: "
+        "`OK` (saudavel), `FALHA` (ultima execucao com erro), "
+        "`RODANDO` (run em andamento), `PENDENTE_ESTRUTURA` (fonte/alvo ausente), "
+        "`SEM_EXECUCAO` (ainda sem historico)."
+    )
 
 
 def _render_dim_cliente_section() -> None:
@@ -736,6 +1184,58 @@ def _render_dim_cliente_section() -> None:
         try:
             source_recent_df = _ensure_datetime_columns(
                 get_dim_cliente_recent_source(20),
+                ["updated_at", "deleted_at"],
+            )
+            st.dataframe(source_recent_df, use_container_width=True, hide_index=True)
+        except Exception as exc:  # noqa: BLE001
+            st.warning("Nao foi possivel consultar os registros recentes da origem.")
+            st.code(str(exc))
+
+
+def _render_dim_produto_section() -> None:
+    st.subheader("Saude da dim_produto")
+    dim_produto_health = get_dim_produto_health()
+    if dim_produto_health.get("error"):
+        st.warning("Nao foi possivel calcular a saude da dim_produto.")
+        st.code(str(dim_produto_health["error"]))
+        return
+
+    source_total = _to_int(dim_produto_health.get("source_total"), 0)
+    target_total = _to_int(dim_produto_health.get("target_total"), 0)
+    delta_rows = target_total - source_total
+
+    health_col_1, health_col_2, health_col_3, health_col_4 = st.columns(4)
+    health_col_1.metric("Fonte core.products", source_total)
+    health_col_2.metric("Alvo dim.DIM_PRODUTO", target_total, delta=delta_rows)
+    health_col_3.metric("Pendentes no cutoff", _to_int(dim_produto_health.get("source_pending_since_watermark"), 0))
+    health_col_4.metric("Descontinuados (DW)", _to_int(dim_produto_health.get("target_discontinued"), 0))
+
+    st.caption(
+        "Watermark atual dim_produto: "
+        f"{dim_produto_health.get('watermark_updated_at')} / {dim_produto_health.get('watermark_id')}"
+    )
+
+    quality_left, quality_right = st.columns(2)
+    with quality_left:
+        st.markdown("**Qualidade no alvo (dim.DIM_PRODUTO)**")
+        quality_rows = [
+            {"check": "produtos ativos", "valor": _to_int(dim_produto_health.get("target_active"), 0)},
+            {"check": "soft delete na fonte", "valor": _to_int(dim_produto_health.get("source_soft_deleted"), 0)},
+            {"check": "status invalido", "valor": _to_int(dim_produto_health.get("target_invalid_status"), 0)},
+            {"check": "preco invalido", "valor": _to_int(dim_produto_health.get("target_invalid_price"), 0)},
+            {"check": "ultima atualizacao alvo", "valor": str(dim_produto_health.get("target_max_updated_at"))},
+            {"check": "ultima atualizacao fonte", "valor": str(dim_produto_health.get("source_max_updated_at"))},
+            {"check": "ultimo status controle", "valor": str(dim_produto_health.get("last_status"))},
+            {"check": "ultimo status entidade", "valor": str(dim_produto_health.get("last_entity_status"))},
+        ]
+        quality_df = pd.DataFrame(quality_rows)
+        quality_df["valor"] = quality_df["valor"].astype(str)
+        st.dataframe(quality_df, use_container_width=True, hide_index=True)
+    with quality_right:
+        st.markdown("**Registros mais recentes na origem (core.products)**")
+        try:
+            source_recent_df = _ensure_datetime_columns(
+                get_dim_produto_recent_source(20),
                 ["updated_at", "deleted_at"],
             )
             st.dataframe(source_recent_df, use_container_width=True, hide_index=True)
@@ -901,12 +1401,13 @@ def render_dashboard() -> None:
             options=[
                 "Resumo operacional",
                 "Saude dim_cliente",
+                "Saude dim_produto",
                 "Runs e controle",
                 "Auditoria de conexoes",
             ],
             index=0,
         )
-        st.caption("Escopo atual validado: dim_cliente")
+        st.caption("Escopo atual: dim_cliente + dim_produto")
 
     preflight = get_preflight_snapshot()
     _render_preflight(preflight)
@@ -953,11 +1454,14 @@ def render_dashboard() -> None:
 
     if page == "Resumo operacional":
         _render_kpi_cards(runs_df, control_df, entity_runs_df)
+        _render_pipeline_overview_section()
         _render_running_section()
         _render_charts_section()
         _render_failures_section(entity_runs_df)
     elif page == "Saude dim_cliente":
         _render_dim_cliente_section()
+    elif page == "Saude dim_produto":
+        _render_dim_produto_section()
     elif page == "Runs e controle":
         _render_runs_control_section(runs_df, control_df)
     else:
