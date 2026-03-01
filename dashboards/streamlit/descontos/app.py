@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -11,11 +12,12 @@ import streamlit as st
 
 try:
     import pyodbc  # type: ignore
-except ModuleNotFoundError:  # pragma: no cover
+except ImportError:  # pragma: no cover
     pyodbc = None
 
 
 VIEW_NAME = "fact.VW_DASH_DESCONTOS_R1"
+DEFAULT_SNAPSHOT_FILE = "descontos_r1.csv.gz"
 
 NUMERIC_COLUMNS = [
     "valor_sem_desconto",
@@ -158,6 +160,88 @@ def _safe_int(value: Any, default: int = 0) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _to_bool(raw_value: str | None, default: bool = False) -> bool:
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _resolve_snapshot_path(env_name: str, default_filename: str) -> str:
+    raw_path = os.getenv(env_name, "").strip()
+    if raw_path:
+        candidate = Path(raw_path)
+        resolved = candidate if candidate.is_absolute() else (_repo_root() / candidate)
+    else:
+        resolved = _repo_root() / "data" / "snapshots" / default_filename
+    return str(resolved.resolve())
+
+
+def _use_snapshot_mode() -> bool:
+    generic_value = os.getenv("USE_SNAPSHOT")
+    if generic_value is not None:
+        return _to_bool(generic_value, default=False)
+    return _to_bool(os.getenv("DASH_DESC_USE_SNAPSHOT", "false"), default=False)
+
+
+def _snapshot_generated_at(snapshot_path: str) -> str | None:
+    path = Path(snapshot_path)
+    if not path.exists():
+        return None
+    ts = datetime.fromtimestamp(path.stat().st_mtime)
+    return ts.strftime("%Y-%m-%d %H:%M:%S")
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _load_snapshot_frame(snapshot_path: str) -> pd.DataFrame:
+    path = Path(snapshot_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Snapshot nao encontrado: {path}")
+
+    suffix = path.suffix.lower()
+    if suffix == ".parquet":
+        return pd.read_parquet(path)
+    if suffix == ".csv" or str(path).lower().endswith(".csv.gz"):
+        return pd.read_csv(path, low_memory=False)
+
+    raise ValueError(
+        f"Formato de snapshot nao suportado: {path.name}. Use .csv, .csv.gz ou .parquet."
+    )
+
+
+def _normalize_discount_df(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df.copy()
+
+    normalized = df.copy()
+    for column, default_value in TEXT_COLUMNS_DEFAULTS.items():
+        if column not in normalized.columns:
+            normalized[column] = default_value
+        normalized[column] = normalized[column].fillna(default_value).astype(str)
+
+    for column in NUMERIC_COLUMNS:
+        if column not in normalized.columns:
+            normalized[column] = 0.0
+        normalized[column] = pd.to_numeric(normalized[column], errors="coerce").fillna(0.0)
+
+    if "desconto_aprovado" not in normalized.columns:
+        normalized["desconto_aprovado"] = 0
+    normalized["desconto_aprovado"] = pd.to_numeric(normalized["desconto_aprovado"], errors="coerce").fillna(0).astype(int)
+
+    if "data_completa" not in normalized.columns:
+        raise ValueError("Coluna `data_completa` nao encontrada na view de consumo.")
+    normalized["data_completa"] = pd.to_datetime(normalized["data_completa"], errors="coerce")
+    normalized = normalized.dropna(subset=["data_completa"]).copy()
+
+    if "data_atualizacao" in normalized.columns:
+        normalized["data_atualizacao"] = pd.to_datetime(normalized["data_atualizacao"], errors="coerce")
+
+    return normalized
 
 
 def _fmt_currency(value: float) -> str:
@@ -312,6 +396,33 @@ def _load_metadata(conn_str: str) -> dict[str, Any]:
         connection.close()
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def _load_metadata_snapshot(snapshot_path: str) -> dict[str, Any]:
+    df = _normalize_discount_df(_load_snapshot_frame(snapshot_path))
+    if df.empty:
+        raise ValueError("Snapshot de descontos vazio. Gere um novo snapshot para continuar.")
+
+    min_data = pd.to_datetime(df["data_completa"].min()).date()
+    max_data = pd.to_datetime(df["data_completa"].max()).date()
+
+    def _distinct_values(column: str) -> list[str]:
+        if column not in df.columns:
+            return []
+        values = df[column].dropna().astype(str).str.strip()
+        values = values[values != ""]
+        return sorted(values.unique().tolist())
+
+    return {
+        "min_data": min_data,
+        "max_data": max_data,
+        "regioes": _distinct_values("regiao_pais"),
+        "tipos_desconto": _distinct_values("tipo_desconto"),
+        "metodos_desconto": _distinct_values("metodo_desconto"),
+        "codigos_desconto": _distinct_values("codigo_desconto"),
+        "niveis_aplicacao": _distinct_values("nivel_aplicacao"),
+    }
+
+
 @st.cache_data(ttl=180, show_spinner=False)
 def _load_discount_data(
     conn_str: str,
@@ -369,30 +480,39 @@ def _load_discount_data(
     finally:
         connection.close()
 
+    return _normalize_discount_df(df)
+
+
+@st.cache_data(ttl=180, show_spinner=False)
+def _load_discount_data_snapshot(
+    snapshot_path: str,
+    start_date: date,
+    end_date: date,
+    regioes: tuple[str, ...],
+    tipos_desconto: tuple[str, ...],
+    metodos_desconto: tuple[str, ...],
+    codigos_desconto: tuple[str, ...],
+    niveis_aplicacao: tuple[str, ...],
+) -> pd.DataFrame:
+    df = _normalize_discount_df(_load_snapshot_frame(snapshot_path))
     if df.empty:
-        return df
+        return df.copy()
 
-    for column, default_value in TEXT_COLUMNS_DEFAULTS.items():
-        if column not in df.columns:
-            df[column] = default_value
-        df[column] = df[column].fillna(default_value).astype(str)
+    data_date = df["data_completa"].dt.date
+    mask = (data_date >= start_date) & (data_date <= end_date)
 
-    for column in NUMERIC_COLUMNS:
-        if column not in df.columns:
-            df[column] = 0.0
-        df[column] = pd.to_numeric(df[column], errors="coerce").fillna(0.0)
+    if regioes:
+        mask &= df["regiao_pais"].isin(regioes)
+    if tipos_desconto:
+        mask &= df["tipo_desconto"].isin(tipos_desconto)
+    if metodos_desconto:
+        mask &= df["metodo_desconto"].isin(metodos_desconto)
+    if codigos_desconto:
+        mask &= df["codigo_desconto"].isin(codigos_desconto)
+    if niveis_aplicacao:
+        mask &= df["nivel_aplicacao"].isin(niveis_aplicacao)
 
-    if "desconto_aprovado" not in df.columns:
-        df["desconto_aprovado"] = 0
-    df["desconto_aprovado"] = pd.to_numeric(df["desconto_aprovado"], errors="coerce").fillna(0).astype(int)
-
-    df["data_completa"] = pd.to_datetime(df["data_completa"], errors="coerce")
-    df = df.dropna(subset=["data_completa"]).copy()
-
-    if "data_atualizacao" in df.columns:
-        df["data_atualizacao"] = pd.to_datetime(df["data_atualizacao"], errors="coerce")
-
-    return df
+    return df.loc[mask].copy()
 
 
 def _compute_kpis(df: pd.DataFrame) -> dict[str, float]:
@@ -740,6 +860,8 @@ def _render_data_tab(df: pd.DataFrame) -> None:
 
 def main() -> None:
     _inject_css()
+    use_snapshot = _use_snapshot_mode()
+    snapshot_path = _resolve_snapshot_path("DASH_DESC_SNAPSHOT_PATH", DEFAULT_SNAPSHOT_FILE)
 
     st.markdown(
         """
@@ -752,10 +874,22 @@ def main() -> None:
     )
 
     try:
-        conn_str = _build_conn_str()
-        metadata = _load_metadata(conn_str)
+        if use_snapshot:
+            conn_str = ""
+            metadata = _load_metadata_snapshot(snapshot_path)
+        else:
+            conn_str = _build_conn_str()
+            metadata = _load_metadata(conn_str)
     except Exception as exc:  # noqa: BLE001
-        st.error("Nao foi possivel inicializar o dashboard de descontos.")
+        if use_snapshot:
+            st.error("Nao foi possivel inicializar o dashboard de descontos em modo snapshot.")
+            st.code(str(exc))
+            st.write("- Confirme se o arquivo de snapshot existe e tem dados validos.")
+            st.write(f"- Caminho esperado: `{snapshot_path}`")
+            st.write("- Gere novamente com `python scripts/snapshots/export_dash_snapshots.py`.")
+            st.stop()
+
+        st.error("Nao foi possivel inicializar o dashboard de descontos em modo SQL.")
         st.code(str(exc))
         for suggestion in _suggest_connection_fix(str(exc)):
             st.write(f"- {suggestion}")
@@ -792,19 +926,47 @@ def main() -> None:
             st.cache_data.clear()
             st.rerun()
 
-    with st.spinner("Consultando descontos no DW..."):
+        if use_snapshot:
+            st.info("Fonte de dados: snapshot local")
+            generated_at = _snapshot_generated_at(snapshot_path)
+            if generated_at:
+                st.caption(f"Snapshot atualizado em: {generated_at}")
+            st.caption(f"Arquivo: {snapshot_path}")
+        else:
+            st.info("Fonte de dados: SQL Server DW")
+
+    spinner_text = "Carregando snapshot de descontos..." if use_snapshot else "Consultando descontos no DW..."
+    with st.spinner(spinner_text):
         try:
-            df = _load_discount_data(
-                conn_str=conn_str,
-                start_date=start_date,
-                end_date=end_date,
-                regioes=selected_regioes,
-                tipos_desconto=selected_tipos,
-                metodos_desconto=selected_metodos,
-                codigos_desconto=selected_codigos,
-                niveis_aplicacao=selected_niveis,
-            )
+            if use_snapshot:
+                df = _load_discount_data_snapshot(
+                    snapshot_path=snapshot_path,
+                    start_date=start_date,
+                    end_date=end_date,
+                    regioes=selected_regioes,
+                    tipos_desconto=selected_tipos,
+                    metodos_desconto=selected_metodos,
+                    codigos_desconto=selected_codigos,
+                    niveis_aplicacao=selected_niveis,
+                )
+            else:
+                df = _load_discount_data(
+                    conn_str=conn_str,
+                    start_date=start_date,
+                    end_date=end_date,
+                    regioes=selected_regioes,
+                    tipos_desconto=selected_tipos,
+                    metodos_desconto=selected_metodos,
+                    codigos_desconto=selected_codigos,
+                    niveis_aplicacao=selected_niveis,
+                )
         except Exception as exc:  # noqa: BLE001
+            if use_snapshot:
+                st.error("Falha ao carregar os dados de snapshot de descontos.")
+                st.code(str(exc))
+                st.write(f"- Caminho do snapshot: `{snapshot_path}`")
+                st.stop()
+
             st.error("Falha ao consultar os dados da view de descontos.")
             st.code(str(exc))
             for suggestion in _suggest_connection_fix(str(exc)):
@@ -820,16 +982,28 @@ def main() -> None:
         days = (end_date - start_date).days + 1
         prev_end = start_date - timedelta(days=1)
         prev_start = prev_end - timedelta(days=days - 1)
-        prev_df = _load_discount_data(
-            conn_str=conn_str,
-            start_date=prev_start,
-            end_date=prev_end,
-            regioes=selected_regioes,
-            tipos_desconto=selected_tipos,
-            metodos_desconto=selected_metodos,
-            codigos_desconto=selected_codigos,
-            niveis_aplicacao=selected_niveis,
-        )
+        if use_snapshot:
+            prev_df = _load_discount_data_snapshot(
+                snapshot_path=snapshot_path,
+                start_date=prev_start,
+                end_date=prev_end,
+                regioes=selected_regioes,
+                tipos_desconto=selected_tipos,
+                metodos_desconto=selected_metodos,
+                codigos_desconto=selected_codigos,
+                niveis_aplicacao=selected_niveis,
+            )
+        else:
+            prev_df = _load_discount_data(
+                conn_str=conn_str,
+                start_date=prev_start,
+                end_date=prev_end,
+                regioes=selected_regioes,
+                tipos_desconto=selected_tipos,
+                metodos_desconto=selected_metodos,
+                codigos_desconto=selected_codigos,
+                niveis_aplicacao=selected_niveis,
+            )
         if not prev_df.empty:
             previous_kpis = _compute_kpis(prev_df)
 

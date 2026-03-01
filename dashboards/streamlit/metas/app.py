@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -12,11 +13,12 @@ import streamlit as st
 
 try:
     import pyodbc  # type: ignore
-except ModuleNotFoundError:  # pragma: no cover
+except ImportError:  # pragma: no cover
     pyodbc = None
 
 
 VIEW_NAME = "fact.VW_DASH_METAS_R1"
+DEFAULT_SNAPSHOT_FILE = "metas_r1.csv.gz"
 
 NUMERIC_COLUMNS = [
     "valor_meta",
@@ -152,6 +154,89 @@ def _safe_int(value: Any, default: int = 0) -> int:
         return int(value)
     except (TypeError, ValueError):
         return default
+
+
+def _to_bool(raw_value: str | None, default: bool = False) -> bool:
+    if raw_value is None:
+        return default
+    return raw_value.strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[3]
+
+
+def _resolve_snapshot_path(env_name: str, default_filename: str) -> str:
+    raw_path = os.getenv(env_name, "").strip()
+    if raw_path:
+        candidate = Path(raw_path)
+        resolved = candidate if candidate.is_absolute() else (_repo_root() / candidate)
+    else:
+        resolved = _repo_root() / "data" / "snapshots" / default_filename
+    return str(resolved.resolve())
+
+
+def _use_snapshot_mode() -> bool:
+    generic_value = os.getenv("USE_SNAPSHOT")
+    if generic_value is not None:
+        return _to_bool(generic_value, default=False)
+    return _to_bool(os.getenv("DASH_METAS_USE_SNAPSHOT", "false"), default=False)
+
+
+def _snapshot_generated_at(snapshot_path: str) -> str | None:
+    path = Path(snapshot_path)
+    if not path.exists():
+        return None
+    ts = datetime.fromtimestamp(path.stat().st_mtime)
+    return ts.strftime("%Y-%m-%d %H:%M:%S")
+
+
+@st.cache_data(ttl=600, show_spinner=False)
+def _load_snapshot_frame(snapshot_path: str) -> pd.DataFrame:
+    path = Path(snapshot_path)
+    if not path.exists():
+        raise FileNotFoundError(f"Snapshot nao encontrado: {path}")
+
+    suffix = path.suffix.lower()
+    if suffix == ".parquet":
+        return pd.read_parquet(path)
+    if suffix == ".csv" or str(path).lower().endswith(".csv.gz"):
+        return pd.read_csv(path, low_memory=False)
+
+    raise ValueError(
+        f"Formato de snapshot nao suportado: {path.name}. Use .csv, .csv.gz ou .parquet."
+    )
+
+
+def _normalize_goals_df(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df.copy()
+
+    normalized = df.copy()
+    for column, default_value in TEXT_COLUMNS_DEFAULTS.items():
+        if column not in normalized.columns:
+            normalized[column] = default_value
+        normalized[column] = normalized[column].fillna(default_value).astype(str)
+
+    for column in NUMERIC_COLUMNS:
+        if column not in normalized.columns:
+            normalized[column] = 0.0
+        normalized[column] = pd.to_numeric(normalized[column], errors="coerce").fillna(0.0)
+
+    for column in ("meta_batida", "meta_superada"):
+        if column not in normalized.columns:
+            normalized[column] = 0
+        normalized[column] = pd.to_numeric(normalized[column], errors="coerce").fillna(0).astype(int)
+
+    if "data_completa" not in normalized.columns:
+        raise ValueError("Coluna `data_completa` nao encontrada na view de consumo.")
+    normalized["data_completa"] = pd.to_datetime(normalized["data_completa"], errors="coerce")
+    normalized = normalized.dropna(subset=["data_completa"]).copy()
+
+    if "data_atualizacao" in normalized.columns:
+        normalized["data_atualizacao"] = pd.to_datetime(normalized["data_atualizacao"], errors="coerce")
+
+    return normalized
 
 
 def _fmt_currency(value: float) -> str:
@@ -297,6 +382,32 @@ def _load_metadata(conn_str: str) -> dict[str, Any]:
         connection.close()
 
 
+@st.cache_data(ttl=600, show_spinner=False)
+def _load_metadata_snapshot(snapshot_path: str) -> dict[str, Any]:
+    df = _normalize_goals_df(_load_snapshot_frame(snapshot_path))
+    if df.empty:
+        raise ValueError("Snapshot de metas vazio. Gere um novo snapshot para continuar.")
+
+    min_data = pd.to_datetime(df["data_completa"].min()).date()
+    max_data = pd.to_datetime(df["data_completa"].max()).date()
+
+    def _distinct_values(column: str) -> list[str]:
+        if column not in df.columns:
+            return []
+        values = df[column].dropna().astype(str).str.strip()
+        values = values[values != ""]
+        return sorted(values.unique().tolist())
+
+    return {
+        "min_data": min_data,
+        "max_data": max_data,
+        "regionais": _distinct_values("regional"),
+        "equipes": _distinct_values("nome_equipe"),
+        "vendedores": _distinct_values("nome_vendedor"),
+        "tipos_equipe": _distinct_values("tipo_equipe"),
+    }
+
+
 @st.cache_data(ttl=180, show_spinner=False)
 def _load_goals_data(
     conn_str: str,
@@ -348,31 +459,36 @@ def _load_goals_data(
     finally:
         connection.close()
 
+    return _normalize_goals_df(df)
+
+
+@st.cache_data(ttl=180, show_spinner=False)
+def _load_goals_data_snapshot(
+    snapshot_path: str,
+    start_date: date,
+    end_date: date,
+    regionais: tuple[str, ...],
+    equipes: tuple[str, ...],
+    vendedores: tuple[str, ...],
+    tipos_equipe: tuple[str, ...],
+) -> pd.DataFrame:
+    df = _normalize_goals_df(_load_snapshot_frame(snapshot_path))
     if df.empty:
-        return df
+        return df.copy()
 
-    for column, default_value in TEXT_COLUMNS_DEFAULTS.items():
-        if column not in df.columns:
-            df[column] = default_value
-        df[column] = df[column].fillna(default_value).astype(str)
+    data_date = df["data_completa"].dt.date
+    mask = (data_date >= start_date) & (data_date <= end_date)
 
-    for column in NUMERIC_COLUMNS:
-        if column not in df.columns:
-            df[column] = 0.0
-        df[column] = pd.to_numeric(df[column], errors="coerce").fillna(0.0)
+    if regionais:
+        mask &= df["regional"].isin(regionais)
+    if equipes:
+        mask &= df["nome_equipe"].isin(equipes)
+    if vendedores:
+        mask &= df["nome_vendedor"].isin(vendedores)
+    if tipos_equipe:
+        mask &= df["tipo_equipe"].isin(tipos_equipe)
 
-    for column in ("meta_batida", "meta_superada"):
-        if column not in df.columns:
-            df[column] = 0
-        df[column] = pd.to_numeric(df[column], errors="coerce").fillna(0).astype(int)
-
-    df["data_completa"] = pd.to_datetime(df["data_completa"], errors="coerce")
-    df = df.dropna(subset=["data_completa"]).copy()
-
-    if "data_atualizacao" in df.columns:
-        df["data_atualizacao"] = pd.to_datetime(df["data_atualizacao"], errors="coerce")
-
-    return df
+    return df.loc[mask].copy()
 
 def _compute_kpis(df: pd.DataFrame) -> dict[str, float]:
     meta_total = _safe_float(df["valor_meta"].sum())
@@ -650,6 +766,8 @@ def _render_data_tab(df: pd.DataFrame) -> None:
 
 def main() -> None:
     _inject_css()
+    use_snapshot = _use_snapshot_mode()
+    snapshot_path = _resolve_snapshot_path("DASH_METAS_SNAPSHOT_PATH", DEFAULT_SNAPSHOT_FILE)
 
     st.markdown(
         """
@@ -662,10 +780,22 @@ def main() -> None:
     )
 
     try:
-        conn_str = _build_conn_str()
-        metadata = _load_metadata(conn_str)
+        if use_snapshot:
+            conn_str = ""
+            metadata = _load_metadata_snapshot(snapshot_path)
+        else:
+            conn_str = _build_conn_str()
+            metadata = _load_metadata(conn_str)
     except Exception as exc:  # noqa: BLE001
-        st.error("Nao foi possivel inicializar o dashboard de metas.")
+        if use_snapshot:
+            st.error("Nao foi possivel inicializar o dashboard de metas em modo snapshot.")
+            st.code(str(exc))
+            st.write("- Confirme se o arquivo de snapshot existe e tem dados validos.")
+            st.write(f"- Caminho esperado: `{snapshot_path}`")
+            st.write("- Gere novamente com `python scripts/snapshots/export_dash_snapshots.py`.")
+            st.stop()
+
+        st.error("Nao foi possivel inicializar o dashboard de metas em modo SQL.")
         st.code(str(exc))
         for suggestion in _suggest_connection_fix(str(exc)):
             st.write(f"- {suggestion}")
@@ -701,18 +831,45 @@ def main() -> None:
             st.cache_data.clear()
             st.rerun()
 
-    with st.spinner("Consultando metas no DW..."):
+        if use_snapshot:
+            st.info("Fonte de dados: snapshot local")
+            generated_at = _snapshot_generated_at(snapshot_path)
+            if generated_at:
+                st.caption(f"Snapshot atualizado em: {generated_at}")
+            st.caption(f"Arquivo: {snapshot_path}")
+        else:
+            st.info("Fonte de dados: SQL Server DW")
+
+    spinner_text = "Carregando snapshot de metas..." if use_snapshot else "Consultando metas no DW..."
+    with st.spinner(spinner_text):
         try:
-            df = _load_goals_data(
-                conn_str=conn_str,
-                start_date=start_date,
-                end_date=end_date,
-                regionais=selected_regionais,
-                equipes=selected_equipes,
-                vendedores=selected_vendedores,
-                tipos_equipe=selected_tipos_equipe,
-            )
+            if use_snapshot:
+                df = _load_goals_data_snapshot(
+                    snapshot_path=snapshot_path,
+                    start_date=start_date,
+                    end_date=end_date,
+                    regionais=selected_regionais,
+                    equipes=selected_equipes,
+                    vendedores=selected_vendedores,
+                    tipos_equipe=selected_tipos_equipe,
+                )
+            else:
+                df = _load_goals_data(
+                    conn_str=conn_str,
+                    start_date=start_date,
+                    end_date=end_date,
+                    regionais=selected_regionais,
+                    equipes=selected_equipes,
+                    vendedores=selected_vendedores,
+                    tipos_equipe=selected_tipos_equipe,
+                )
         except Exception as exc:  # noqa: BLE001
+            if use_snapshot:
+                st.error("Falha ao carregar os dados de snapshot de metas.")
+                st.code(str(exc))
+                st.write(f"- Caminho do snapshot: `{snapshot_path}`")
+                st.stop()
+
             st.error("Falha ao consultar os dados da view de metas.")
             st.code(str(exc))
             for suggestion in _suggest_connection_fix(str(exc)):
@@ -728,15 +885,26 @@ def main() -> None:
         days = (end_date - start_date).days + 1
         prev_end = start_date - timedelta(days=1)
         prev_start = prev_end - timedelta(days=days - 1)
-        prev_df = _load_goals_data(
-            conn_str=conn_str,
-            start_date=prev_start,
-            end_date=prev_end,
-            regionais=selected_regionais,
-            equipes=selected_equipes,
-            vendedores=selected_vendedores,
-            tipos_equipe=selected_tipos_equipe,
-        )
+        if use_snapshot:
+            prev_df = _load_goals_data_snapshot(
+                snapshot_path=snapshot_path,
+                start_date=prev_start,
+                end_date=prev_end,
+                regionais=selected_regionais,
+                equipes=selected_equipes,
+                vendedores=selected_vendedores,
+                tipos_equipe=selected_tipos_equipe,
+            )
+        else:
+            prev_df = _load_goals_data(
+                conn_str=conn_str,
+                start_date=prev_start,
+                end_date=prev_end,
+                regionais=selected_regionais,
+                equipes=selected_equipes,
+                vendedores=selected_vendedores,
+                tipos_equipe=selected_tipos_equipe,
+            )
         if not prev_df.empty:
             previous_kpis = _compute_kpis(prev_df)
 

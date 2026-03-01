@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "generated_at_utc": "2026-03-01T00:34:21.787771+00:00",
+  "format": "csv.gz",
+  "items": {
+    "vendas_r1": {
+      "snapshot_key": "vendas_r1",
+      "view_name": "fact.VW_DASH_VENDAS_R1",
+      "file": "vendas_r1.csv.gz",
+      "row_count": 229149,
+      "date_min": "2023-02-28",
+      "date_max": "2026-02-28",
+      "generated_at_utc": "2026-03-01T00:34:21.787771+00:00"
+    },
+    "metas_r1": {
+      "snapshot_key": "metas_r1",
+      "view_name": "fact.VW_DASH_METAS_R1",
+      "file": "metas_r1.csv.gz",
+      "row_count": 7325,
+      "date_min": "2024-03-01",
+      "date_max": "2026-03-01",
+      "generated_at_utc": "2026-03-01T00:34:21.787771+00:00"
+    },
+    "descontos_r1": {
+      "snapshot_key": "descontos_r1",
+      "view_name": "fact.VW_DASH_DESCONTOS_R1",
+      "file": "descontos_r1.csv.gz",
+      "row_count": 46046,
+      "date_min": "2023-02-28",
+      "date_max": "2026-02-28",
+      "generated_at_utc": "2026-03-01T00:34:21.787771+00:00"
+    }
+  }
+}
