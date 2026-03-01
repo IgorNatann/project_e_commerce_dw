@@ -26,6 +26,24 @@ streamlit run dashboards/streamlit/descontos/app.py
 - `DASH_DESC_SQL_TRUST_SERVER_CERTIFICATE` (default: `yes`)
 - `DASH_DESC_SQL_TIMEOUT_SECONDS` (default: `120`)
 - `DASH_DESC_TIMEZONE` (default: `America/Sao_Paulo`) para avaliacao de SLA D+1 08:00
+- `USE_SNAPSHOT` (opcional, override global `true|false`)
+- `DASH_DESC_USE_SNAPSHOT` (default: `false`; ativa leitura offline de snapshot)
+- `DASH_DESC_SNAPSHOT_PATH` (default: `data/snapshots/descontos_r1.csv.gz`)
+
+## Modo snapshot (portfolio/community cloud)
+
+Gerar snapshots locais:
+
+```powershell
+python scripts/snapshots/export_dash_snapshots.py
+```
+
+Executar dashboard com snapshot:
+
+```powershell
+$env:DASH_DESC_USE_SNAPSHOT = "true"
+streamlit run dashboards/streamlit/descontos/app.py
+```
 
 ## Dependencias
 

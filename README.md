@@ -143,6 +143,8 @@ project_e-commerce_dw/
 - [Dashboard de descontos/ROI R1](dashboards/streamlit/descontos/README.md)
 - [Testes recorrentes operacionais](scripts/recurring_tests/README.md)
 - [Alertas externos ETL](scripts/alerts/README.md)
+- [Snapshots de dashboards para portfolio](scripts/snapshots/README.md)
+- [Deploy Streamlit Community (snapshot)](docs/deploy/STREAMLIT_COMMUNITY_SNAPSHOT.md)
 - [OLTP (fonte)](sql/oltp/README.md)
 - [Views auxiliares DW](sql/dw/04_views/README.md)
 - [Seguranca de consumo BI](sql/dw/05_security/README.md)

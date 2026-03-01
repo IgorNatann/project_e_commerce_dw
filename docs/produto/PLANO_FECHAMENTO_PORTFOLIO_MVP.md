@@ -174,9 +174,9 @@ docker logs --tail 50 dw_alert_runner
 
 ### Dia 6 - 2026-03-05 - Deploy portfolio
 
-Status: nao_iniciado  
-Responsavel:  
-Delta:  ->  
+Status: em_andamento  
+Responsavel: Igor/Codex  
+Delta: 89 -> 89  
 
 Checklist:
 
@@ -187,8 +187,9 @@ Checklist:
 
 Evidencia:
 
-- Ambiente/host:
-- URLs publicas:
+- Preparacao snapshot pronta: `dashboards/streamlit/vendas/app.py`, `dashboards/streamlit/metas/app.py`, `dashboards/streamlit/descontos/app.py`, `scripts/snapshots/export_dash_snapshots.py`, `scripts/snapshots/README.md`
+- Ambiente/host: pendente
+- URLs publicas: pendente
 
 Validacao:
 
@@ -243,6 +244,7 @@ rg -n "runbook|go/no-go|portfolio|dashboard" README.md docs -S
 | 2026-02-28 | Dia 3 - dashboard descontos/ROI | concluido | `dashboards/streamlit/descontos/*`, `docker/streamlit-descontos.Dockerfile`, `sql/dw/04_views/14_vw_dash_descontos_r1.sql` | Dashboard descontos/ROI R1 publicado no stack |
 | 2026-02-28 | Dia 4 - testes automatizados | concluido | `scripts/recurring_tests/*`, `dashboards/streamlit/metas/README.md`, `dashboards/streamlit/descontos/README.md` | Suite consolidada com 60/60 checks aprovados |
 | 2026-02-28 | Dia 5 - alertas externos ETL | concluido | `scripts/alerts/*`, `docker/alerts-runner.Dockerfile`, `docker/docker-compose.sqlserver.yml`, `docker/up_stack.ps1` | Runner Discord/Webhook com cooldown, estado persistente e fallback seguro |
+| 2026-02-28 | Dia 6 - adaptacao snapshot para deploy gratuito | em_andamento | `dashboards/streamlit/*/app.py`, `scripts/snapshots/*` | Dashboards aptos a rodar sem SQL ativo (modo snapshot) |
 
 ## 7) Blocos de validacao continua (para o Codex seguir evoluindo)
 

@@ -31,6 +31,18 @@ streamlit run dashboards/streamlit/metas/app.py
 streamlit run dashboards/streamlit/descontos/app.py
 ```
 
+Modo snapshot (deploy de portfolio/community cloud):
+
+```powershell
+python scripts/snapshots/export_dash_snapshots.py
+$env:USE_SNAPSHOT="true"
+streamlit run dashboards/streamlit/vendas/app.py
+streamlit run dashboards/streamlit/metas/app.py
+streamlit run dashboards/streamlit/descontos/app.py
+```
+
+Referencia do export: `scripts/snapshots/README.md`.
+
 ## Docker
 
 - Build monitor: `docker/streamlit-monitor.Dockerfile`
