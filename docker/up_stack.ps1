@@ -105,6 +105,36 @@ try {
     if (-not $envMap.ContainsKey("STREAMLIT_DESCONTOS_PORT")) {
         $envMap["STREAMLIT_DESCONTOS_PORT"] = "8504"
     }
+    if (-not $envMap.ContainsKey("ALERT_ENABLED")) {
+        $envMap["ALERT_ENABLED"] = "false"
+    }
+    if (-not $envMap.ContainsKey("ALERT_PROVIDER")) {
+        $envMap["ALERT_PROVIDER"] = "discord"
+    }
+    if (-not $envMap.ContainsKey("ALERT_DISCORD_WEBHOOK_URL")) {
+        $envMap["ALERT_DISCORD_WEBHOOK_URL"] = ""
+    }
+    if (-not $envMap.ContainsKey("ALERT_CHECK_INTERVAL_SECONDS")) {
+        $envMap["ALERT_CHECK_INTERVAL_SECONDS"] = "300"
+    }
+    if (-not $envMap.ContainsKey("ALERT_COOLDOWN_MINUTES")) {
+        $envMap["ALERT_COOLDOWN_MINUTES"] = "30"
+    }
+    if (-not $envMap.ContainsKey("ALERT_SLA_WATERMARK_DELAY_MINUTES")) {
+        $envMap["ALERT_SLA_WATERMARK_DELAY_MINUTES"] = "120"
+    }
+    if (-not $envMap.ContainsKey("ALERT_SLA_NO_RUN_HOURS")) {
+        $envMap["ALERT_SLA_NO_RUN_HOURS"] = "24"
+    }
+    if (-not $envMap.ContainsKey("ALERT_FAIL_RATE_THRESHOLD")) {
+        $envMap["ALERT_FAIL_RATE_THRESHOLD"] = "0.30"
+    }
+    if (-not $envMap.ContainsKey("ALERT_FAIL_RATE_MIN_RUNS")) {
+        $envMap["ALERT_FAIL_RATE_MIN_RUNS"] = "3"
+    }
+    if (-not $envMap.ContainsKey("ALERT_TIMEZONE")) {
+        $envMap["ALERT_TIMEZONE"] = "America/Sao_Paulo"
+    }
     if (-not $envMap.ContainsKey("CONNECTION_AUDIT_RETENTION_DAYS")) {
         $envMap["CONNECTION_AUDIT_RETENTION_DAYS"] = "30"
     }
@@ -132,7 +162,17 @@ try {
         "STREAMLIT_METAS_BIND_IP=$($envMap["STREAMLIT_METAS_BIND_IP"])",
         "STREAMLIT_METAS_PORT=$($envMap["STREAMLIT_METAS_PORT"])",
         "STREAMLIT_DESCONTOS_BIND_IP=$($envMap["STREAMLIT_DESCONTOS_BIND_IP"])",
-        "STREAMLIT_DESCONTOS_PORT=$($envMap["STREAMLIT_DESCONTOS_PORT"])"
+        "STREAMLIT_DESCONTOS_PORT=$($envMap["STREAMLIT_DESCONTOS_PORT"])",
+        "ALERT_ENABLED=$($envMap["ALERT_ENABLED"])",
+        "ALERT_PROVIDER=$($envMap["ALERT_PROVIDER"])",
+        "ALERT_DISCORD_WEBHOOK_URL=$($envMap["ALERT_DISCORD_WEBHOOK_URL"])",
+        "ALERT_CHECK_INTERVAL_SECONDS=$($envMap["ALERT_CHECK_INTERVAL_SECONDS"])",
+        "ALERT_COOLDOWN_MINUTES=$($envMap["ALERT_COOLDOWN_MINUTES"])",
+        "ALERT_SLA_WATERMARK_DELAY_MINUTES=$($envMap["ALERT_SLA_WATERMARK_DELAY_MINUTES"])",
+        "ALERT_SLA_NO_RUN_HOURS=$($envMap["ALERT_SLA_NO_RUN_HOURS"])",
+        "ALERT_FAIL_RATE_THRESHOLD=$($envMap["ALERT_FAIL_RATE_THRESHOLD"])",
+        "ALERT_FAIL_RATE_MIN_RUNS=$($envMap["ALERT_FAIL_RATE_MIN_RUNS"])",
+        "ALERT_TIMEZONE=$($envMap["ALERT_TIMEZONE"])"
     ) | Set-Content $envPath
 
     if ($envGenerated) {
@@ -145,7 +185,7 @@ try {
     }
 
     # Evita conflito de nomes ao trocar localizacao do compose
-    foreach ($legacyContainer in @("dw_etl_monitor", "dw_dash_vendas", "dw_dash_metas", "dw_dash_descontos", "dw_sql_init", "dw_sqlserver", "dw_sql_volume_init", "dw_sql_backup")) {
+    foreach ($legacyContainer in @("dw_etl_monitor", "dw_dash_vendas", "dw_dash_metas", "dw_dash_descontos", "dw_alert_runner", "dw_sql_init", "dw_sqlserver", "dw_sql_volume_init", "dw_sql_backup")) {
         cmd /c "docker rm -f $legacyContainer >nul 2>nul"
     }
 
@@ -161,6 +201,7 @@ try {
     Write-Host "- Dash Vendas: http://localhost:8502"
     Write-Host "- Dash Metas:  http://localhost:8503"
     Write-Host "- Dash Desc.:  http://localhost:8504"
+    Write-Host "- Alertas ETL: dw_alert_runner (Discord/Webhook via ALERT_*)"
     Write-Host "- Backup loop: ativo em dw_sql_backup (intervalo em BACKUP_INTERVAL_HOURS)"
 }
 finally {

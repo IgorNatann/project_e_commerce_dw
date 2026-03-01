@@ -7,7 +7,7 @@ Projeto de laboratorio para simular um cenario real de dados `OLTP -> DW` em SQL
 [![Method](https://img.shields.io/badge/Method-Kimball-green)](https://www.kimballgroup.com/)
 [![Infra](https://img.shields.io/badge/Infra-Docker%20One--Shot-2496ED?style=flat&logo=docker)](docker/README.md)
 
-- Infra Docker one-shot pronta (`SQL Server + init + Streamlit monitor + Streamlit vendas + Streamlit metas + Streamlit descontos + backup`).
+- Infra Docker one-shot pronta (`SQL Server + init + Streamlit monitor + Streamlit vendas + Streamlit metas + Streamlit descontos + alerts-runner + backup`).
 - Auditoria de conexoes ativa (tabela `audit.connection_login_events` + arquivo `.sqlaudit`).
 - Escopo validado ponta a ponta para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
 - OLTP (`ECOMMERCE_OLTP`) e DW (`DW_ECOMMERCE`) inicializados automaticamente pelo bootstrap.
@@ -30,7 +30,7 @@ Este repositorio combina modelagem dimensional com operacao de dados:
 
 ## Escopo atual validado
 
-- Infra Docker one-shot: `SQL Server + sql-init + Streamlit + backup`.
+- Infra Docker one-shot: `SQL Server + sql-init + Streamlit monitor + Streamlit vendas + Streamlit metas + Streamlit descontos + alerts-runner + backup`.
 - Auditoria de conexao ativa: `audit.connection_login_events` e SQL Server Audit (`.sqlaudit`).
 - Readiness operacional no bootstrap da stack para as entidades ETL implementadas (`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`).
 - ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
@@ -42,7 +42,8 @@ Este repositorio combina modelagem dimensional com operacao de dados:
 1. Base operacional concluida: OLTP funcional, DW base, ETL incremental inicial e monitoramento tecnico.
 2. Concluido: publicacao dos dashboards R1 de vendas, metas e descontos/ROI.
 3. Concluido: consolidacao da suite automatizada minima de testes (integridade + smoke de filtros em vendas, metas e descontos).
-4. Meta: alertas externos de falha/SLA, runbook operacional formal e deploy de portfolio.
+4. Concluido: runner de alertas externos para falha ETL e atraso de SLA (Discord webhook com fallback seguro).
+5. Meta: runbook operacional formal e deploy de portfolio.
 
 Fonte oficial do estado atual:
 
@@ -141,6 +142,7 @@ project_e-commerce_dw/
 - [Dashboard de metas R1](dashboards/streamlit/metas/README.md)
 - [Dashboard de descontos/ROI R1](dashboards/streamlit/descontos/README.md)
 - [Testes recorrentes operacionais](scripts/recurring_tests/README.md)
+- [Alertas externos ETL](scripts/alerts/README.md)
 - [OLTP (fonte)](sql/oltp/README.md)
 - [Views auxiliares DW](sql/dw/04_views/README.md)
 - [Seguranca de consumo BI](sql/dw/05_security/README.md)
