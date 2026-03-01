@@ -8,6 +8,7 @@ Este diretorio sobe toda a infra de laboratorio em um comando:
 - Streamlit para dashboard de vendas (R1)
 - Streamlit para dashboard de metas (R1)
 - Streamlit para dashboard de descontos/ROI (R1)
+- runner de alertas externos ETL (Discord webhook)
 - auditoria de conexoes (tabela + SQL Server Audit em arquivo)
 - backup automatico para volume dedicado
 
@@ -37,6 +38,7 @@ Servicos esperados:
 - `dw_dash_vendas`
 - `dw_dash_metas`
 - `dw_dash_descontos`
+- `dw_alert_runner`
 - `dw_sql_backup`
 
 ## Endpoints
@@ -66,6 +68,16 @@ Principais variaveis:
 - `STREAMLIT_VENDAS_BIND_IP`, `STREAMLIT_VENDAS_PORT`
 - `STREAMLIT_METAS_BIND_IP`, `STREAMLIT_METAS_PORT`
 - `STREAMLIT_DESCONTOS_BIND_IP`, `STREAMLIT_DESCONTOS_PORT`
+- `ALERT_ENABLED` (`false` por default; `true` para envio real)
+- `ALERT_PROVIDER` (`discord`)
+- `ALERT_DISCORD_WEBHOOK_URL`
+- `ALERT_CHECK_INTERVAL_SECONDS`
+- `ALERT_COOLDOWN_MINUTES`
+- `ALERT_SLA_WATERMARK_DELAY_MINUTES`
+- `ALERT_SLA_NO_RUN_HOURS`
+- `ALERT_FAIL_RATE_THRESHOLD`
+- `ALERT_FAIL_RATE_MIN_RUNS`
+- `ALERT_TIMEZONE`
 
 ## Volumes persistentes
 
@@ -75,6 +87,34 @@ Principais variaveis:
 - `sqlserver_secrets` -> `/var/opt/mssql/secrets`
 - `sqlserver_backup` -> `/var/opt/mssql/backup`
 - `sqlserver_audit` -> `/var/opt/mssql/audit`
+- `etl_alerts_state` -> `/var/lib/etl-alerts`
+
+## Alertas externos (Dia 5)
+
+Implementado runner dedicado em `scripts/alerts/check_and_alert.py`, executado no servico `dw_alert_runner`.
+
+Regras ativas no MVP:
+
+- falha ETL (`ctl.etl_control.last_status` ou ultimo `audit.etl_run_entity.status` = `failed`);
+- atraso de SLA por watermark/sucesso;
+- ausencia de execucao recente;
+- falha recorrente (janela de 7 dias por taxa de falha).
+
+Teste rapido (sem envio externo):
+
+```powershell
+docker logs --tail 50 dw_alert_runner
+```
+
+Teste com envio real (one-shot):
+
+```powershell
+docker compose --env-file docker/.env.sqlserver -f docker/docker-compose.sqlserver.yml run --rm -e ALERT_ENABLED=true -e ALERT_RUN_ONCE=true alerts-runner
+```
+
+Detalhes do runner e variaveis:
+
+- `scripts/alerts/README.md`
 
 ## Limpeza de volumes legados
 

@@ -327,6 +327,42 @@ services:
       retries: 20
       start_period: 20s
 
+  alerts-runner:
+    build:
+      context: ..
+      dockerfile: docker/alerts-runner.Dockerfile
+    container_name: dw_alert_runner
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      sql-init:
+        condition: service_completed_successfully
+    environment:
+      ETL_SQL_DRIVER: "ODBC Driver 18 for SQL Server"
+      ETL_SQL_SERVER: "sqlserver"
+      ETL_SQL_PORT: "1433"
+      ETL_DW_DB: "DW_ECOMMERCE"
+      ETL_SQL_USER: "etl_monitor"
+      ETL_SQL_PASSWORD: "${MSSQL_MONITOR_PASSWORD}"
+      ETL_SQL_ENCRYPT: "yes"
+      ETL_SQL_TRUST_SERVER_CERTIFICATE: "yes"
+      ETL_SQL_TIMEOUT_SECONDS: "120"
+      ALERT_ENABLED: "${ALERT_ENABLED:-false}"
+      ALERT_PROVIDER: "${ALERT_PROVIDER:-discord}"
+      ALERT_DISCORD_WEBHOOK_URL: "${ALERT_DISCORD_WEBHOOK_URL:-}"
+      ALERT_CHECK_INTERVAL_SECONDS: "${ALERT_CHECK_INTERVAL_SECONDS:-300}"
+      ALERT_COOLDOWN_MINUTES: "${ALERT_COOLDOWN_MINUTES:-30}"
+      ALERT_SLA_WATERMARK_DELAY_MINUTES: "${ALERT_SLA_WATERMARK_DELAY_MINUTES:-120}"
+      ALERT_SLA_NO_RUN_HOURS: "${ALERT_SLA_NO_RUN_HOURS:-24}"
+      ALERT_FAIL_RATE_THRESHOLD: "${ALERT_FAIL_RATE_THRESHOLD:-0.30}"
+      ALERT_FAIL_RATE_MIN_RUNS: "${ALERT_FAIL_RATE_MIN_RUNS:-3}"
+      ALERT_TIMEZONE: "${ALERT_TIMEZONE:-America/Sao_Paulo}"
+      ALERT_STATE_FILE: "/var/lib/etl-alerts/state.json"
+      ALERT_RUN_ONCE: "false"
+    volumes:
+      - etl_alerts_state:/var/lib/etl-alerts
+
 volumes:
   sqlserver_system:
   sqlserver_data:
@@ -334,3 +370,4 @@ volumes:
   sqlserver_secrets:
   sqlserver_backup:
   sqlserver_audit:
+  etl_alerts_state:
