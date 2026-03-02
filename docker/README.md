@@ -133,7 +133,7 @@ powershell -ExecutionPolicy Bypass -File docker/prune_legacy_sql_volumes.ps1 -Ap
 ## Escopo atual de validacao
 
 A automacao da stack garante readiness operacional das entidades ETL implementadas:
-`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto` e `fact_vendas`.
+`dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
 
 O dashboard de metas R1 consome a view `fact.VW_DASH_METAS_R1` (derivada de `fact_vendas` + metas base de vendedores).
 O dashboard de descontos/ROI R1 consome a view `fact.VW_DASH_DESCONTOS_R1` (derivada de `fact_descontos` + dimensoes de apoio).

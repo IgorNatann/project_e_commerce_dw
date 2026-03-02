@@ -9,7 +9,7 @@ flowchart LR
     subgraph HOST["Host Local (Windows + PowerShell + Docker Compose v2)"]
         UP["up_stack.ps1"]
         DOWN["down_stack.ps1"]
-        BROWSER["Browser<br/>localhost:8501 / localhost:8502"]
+        BROWSER["Browser<br/>8501 monitor<br/>8502 vendas<br/>8503 metas<br/>8504 descontos"]
     end
 
     UP --> COMPOSE["docker-compose.sqlserver.yml"]
@@ -20,9 +20,13 @@ flowchart LR
         SQL["dw_sqlserver<br/>SQL Server 2022 (Developer)<br/>porta 1433"]
         INIT["dw_sql_init<br/>sqlcmd + bootstrap SQL<br/>sql/oltp + sql/dw"]
         MON["dw_etl_monitor<br/>Python 3.11 + Streamlit + pyodbc<br/>app: dashboards/streamlit/monitoring/app.py"]
-        DASH["dw_dash_vendas<br/>Python 3.11 + Streamlit + pyodbc<br/>app: dashboards/streamlit/vendas/app.py"]
+        DASHV["dw_dash_vendas<br/>Python 3.11 + Streamlit + pyodbc<br/>app: dashboards/streamlit/vendas/app.py"]
+        DASHM["dw_dash_metas<br/>Python 3.11 + Streamlit + pyodbc<br/>app: dashboards/streamlit/metas/app.py"]
+        DASHD["dw_dash_descontos<br/>Python 3.11 + Streamlit + pyodbc<br/>app: dashboards/streamlit/descontos/app.py"]
+        ALERT["dw_alert_runner<br/>Python 3.11 + pyodbc<br/>scripts/alerts/check_and_alert.py"]
         BACKUP["dw_sql_backup<br/>sqlcmd backup loop + retention"]
         VOLS["Volumes:<br/>system, data, log, secrets, backup, audit"]
+        AVOL["Volume:<br/>etl_alerts_state"]
     end
 
     subgraph DBS["Databases (SQL Server)"]
@@ -33,12 +37,16 @@ flowchart LR
     COMPOSE --> VINIT --> SQL
     SQL --> INIT
     SQL --> MON
-    SQL --> DASH
+    SQL --> DASHV
+    SQL --> DASHM
+    SQL --> DASHD
+    SQL --> ALERT
     SQL --> BACKUP
 
     SQL --- VOLS
     INIT --- VOLS
     BACKUP --- VOLS
+    ALERT --- AVOL
 
     SQL --> OLTP
     SQL --> DW
@@ -47,12 +55,17 @@ flowchart LR
     INIT --> DW
     MON --> OLTP
     MON --> DW
-    DASH --> DW
+    DASHV --> DW
+    DASHM --> DW
+    DASHD --> DW
+    ALERT --> DW
     BACKUP --> OLTP
     BACKUP --> DW
 
     BROWSER --> MON
-    BROWSER --> DASH
+    BROWSER --> DASHV
+    BROWSER --> DASHM
+    BROWSER --> DASHD
 ```
 
 ## Fluxo De Dados ETL
@@ -65,7 +78,10 @@ flowchart LR
     AUD["Auditoria<br/>audit.etl_run<br/>audit.etl_run_entity<br/>audit.connection_login_events"]
     DW["DW (dim/fact)<br/>DIM_* e FACT_*"]
     MON["Streamlit Monitor<br/>pipeline + qualidade + SLA"]
-    BI["Streamlit Dashboard Vendas<br/>consumo read-only"]
+    BIV["Streamlit Vendas R1<br/>consumo read-only"]
+    BIM["Streamlit Metas R1<br/>consumo read-only"]
+    BID["Streamlit Descontos/ROI R1<br/>consumo read-only"]
+    ALERT["Alerts Runner<br/>falha ETL + SLA + recorrencia"]
 
     SRC --> ETL --> DW
     ETL --> CTRL
@@ -73,7 +89,11 @@ flowchart LR
     CTRL --> MON
     AUD --> MON
     DW --> MON
-    DW --> BI
+    DW --> BIV
+    DW --> BIM
+    DW --> BID
+    CTRL --> ALERT
+    AUD --> ALERT
 ```
 
 ## Tecnologias Por Camada
@@ -84,11 +104,13 @@ flowchart LR
 | Banco de dados | SQL Server 2022 (Developer), T-SQL, `sqlcmd` |
 | ETL | Python 3.11, `pyodbc`, ODBC Driver 18, SQL parametrizado em arquivos |
 | Monitoramento | Streamlit (`dashboards/streamlit/monitoring/app.py`), tabelas `audit.*` |
-| Consumo BI | Streamlit (`dashboards/streamlit/vendas/app.py`), usuario `bi_reader` |
+| Consumo BI | Streamlit (`vendas`, `metas`, `descontos`), usuario `bi_reader`, modo SQL e snapshot |
+| Alertas | `scripts/alerts/check_and_alert.py`, webhook Discord, estado persistido em volume |
 | Seguranca e acesso | logins SQL (`sa`, `etl_monitor`, `etl_backup`, `bi_reader`) |
 | Backup e retencao | job continuo em container (`dw_sql_backup`), arquivos `.bak`, limpeza por idade |
 
 ## Observacoes
 
 - Esta visao representa o estado atual do `docker/docker-compose.sqlserver.yml`.
-- O dashboard de vendas esta apontado para `dashboards/streamlit/vendas/` (nao `python/dashboards/vendas/`).
+- Os dashboards de negocio estao em `dashboards/streamlit/{vendas,metas,descontos}`.
+- O deploy externo de portfolio ainda esta em andamento no plano de fechamento (`docs/produto/PLANO_FECHAMENTO_PORTFOLIO_MVP.md`).

@@ -15,7 +15,7 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 
 O servico `sql-init` ja executa o bootstrap do rollout atual:
 `dim_data`, `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_equipe`, `dim_vendedor`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
-Tambem configura o perfil de leitura `bi_reader` para consumo do dashboard de vendas.
+Tambem configura o perfil de leitura `bi_reader` para consumo dos dashboards de vendas, metas e descontos/ROI.
 
 Observacao:
 - `sql/dw/02_ddl/dimensions/02_dim_cliente.sql` esta em modo idempotente (nao faz `DROP TABLE` e preserva dados).
