@@ -1,14 +1,14 @@
 # PRD - Plataforma de Analytics para E-commerce (DW)
 
-Versao: 1.2  
-Data: 2026-02-28  
-Status: Atualizado com baseline real do repositorio
+Versao: 1.3  
+Data: 2026-03-02  
+Status: Atualizado com estado consolidado do fechamento MVP (89/90)
 
 ## 1. Resumo executivo
 
 Este produto cria uma plataforma de analytics para e-commerce baseada em SQL Server, modelagem dimensional (Kimball) e camada de consumo para decisao comercial.
 
-O repositorio ja possui operacao ponta a ponta em ambiente Docker para o escopo inicial: camada OLTP funcional, ETL incremental em Python, auditoria tecnica e dashboards Streamlit (monitor ETL e vendas R1).
+O repositorio ja possui operacao ponta a ponta em ambiente Docker para o escopo MVP: camada OLTP funcional, ETL incremental em Python, auditoria tecnica e dashboards Streamlit (monitor ETL, vendas R1, metas R1 e descontos/ROI R1).
 
 Este PRD consolida o estado atual e define o que ainda precisa ser entregue para evoluir de escopo inicial validado para produto de dados operacional completo para negocio.
 
@@ -102,16 +102,17 @@ Entregar uma plataforma de dados analiticos que permita:
 - Camada DW (`DW_ECOMMERCE`) com setup, DDL dimensional (7 dimensoes e 3 fatos), views auxiliares e seguranca de leitura (`bi_reader`).
 - Controle ETL e auditoria tecnica ativos (`ctl.etl_control`, `audit.etl_run`, `audit.etl_run_entity`, `audit.connection_login_events`).
 - ETL incremental Python implementado para `dim_cliente`, `dim_produto`, `dim_regiao`, `dim_vendedor`, `dim_equipe`, `dim_desconto`, `fact_vendas`, `fact_metas` e `fact_descontos`.
-- Dashboard tecnico de monitoramento ETL publicado (`:8501`) e dashboard de vendas R1 publicado (`:8502`).
+- Dashboards Streamlit publicados: monitoramento ETL (`:8501`), vendas R1 (`:8502`), metas R1 (`:8503`) e descontos/ROI R1 (`:8504`).
+- Suite recorrente de testes consolidada (smoke de filtros + integridade minima DW) com saida JSON para execucao manual/agendada/CI.
+- Runner de alertas externos implementado para falha ETL e atraso de SLA (webhook com fallback seguro).
 - Documentacao tecnica ampla (modelagem, contratos, queries e evolucao diaria/mensal/marcos).
 
 ### 7.2 Lacunas criticas
 
-- Suite automatizada de validacao ponta a ponta ainda nao consolidada (integridade, regressao e smoke diario).
-- Carga de fatos ja implementada, porem ainda sem consolidacao operacional completa (quality gates, smoke diario e evidencias recorrentes).
-- Dashboards de metas/atingimento e descontos/ROI ainda nao publicados.
-- Alertas automatizados externos para falhas de pipeline ainda nao implementados.
-- Runbook operacional formal de rotina, incidente e recuperacao ainda incompleto.
+- Consolidar deploy de portfolio em ambiente externo com stack acessivel publicamente sem expor o banco de dados.
+- Definir URLs finais de consumo dos dashboards e validar healthchecks/restart policy no ambiente alvo.
+- Formalizar runbook operacional completo (rotina, incidente, recuperacao e rollback).
+- Consolidar evidencias operacionais recorrentes para aceite final (janela de 7 dias + checklist Go/No-Go).
 
 ### 7.3 Fonte oficial de acompanhamento
 
@@ -220,11 +221,12 @@ Entregar uma plataforma de dados analiticos que permita:
 
 ### Fase 2 - Fatos e qualidade (2 a 3 semanas)
 
-- Em andamento: consolidar qualidade operacional de fatos (`fact_metas`, `fact_descontos`) com testes automatizados e evidencias recorrentes.
+- Concluida tecnicamente em 2026-02-28: ETL de fatos (`fact_vendas`, `fact_metas`, `fact_descontos`) e suite minima automatizada implementados.
+- Em acompanhamento operacional: manter evidencias recorrentes de execucao e qualidade para aceite final.
 
 ### Fase 3 - Consumo e rollout (1 a 2 semanas)
 
-- Em andamento: expandir camada de consumo para metas/descontos e formalizar homologacao operacional com negocio.
+- Em andamento: formalizar deploy externo para portfolio, runbook e homologacao final com Go/No-Go.
 
 ## 14. Dependencias
 
@@ -254,20 +256,19 @@ Entregar uma plataforma de dados analiticos que permita:
 - Qual frequencia de carga e SLA final esperado pelo negocio (diario, intra-dia)?
 - Quais usuarios terao permissao de escrita em estruturas analiticas?
 
-## 17. Backlog inicial priorizado (P0/P1)
+## 17. Backlog atual priorizado (P0/P1)
 
 ### P0
 
-- P0-01: Consolidar suite automatizada de testes (integridade, regressao, smoke diario).
-- P0-02: Consolidar validacao operacional de `fact_metas` e `fact_descontos` (smoke, reconciliacao e evidencias de execucao).
-- P0-03: Publicar dashboards R1 pendentes (metas/atingimento e descontos/ROI).
-- P0-04: Implementar alertas automatizados para falha de pipeline e atraso de SLA.
-- P0-05: Formalizar runbook de operacao, incidente e recuperacao.
+- P0-01: Concluir deploy de portfolio em ambiente externo (stack publica, banco privado, URLs finais, healthcheck e restart policy).
+- P0-02: Formalizar runbook de operacao, incidente, recuperacao e rollback.
+- P0-03: Consolidar evidencias de operacao por 7 dias (ETL, monitoria e testes recorrentes).
+- P0-04: Fechar checklist de Go/No-Go e atualizar `README.md` com links finais de demo/portfolio.
 
 ### P1
 
-- P1-01: Automatizar geracao de documentacao de metricas.
-- P1-02: Melhorar observabilidade (metricas de job e alertas detalhados).
+- P1-01: Automatizar renovacao/publicacao de snapshots dos dashboards para demo externa.
+- P1-02: Melhorar observabilidade (metricas de job, alertas detalhados e historico de incidentes).
 - P1-03: Planejar evolucao para SCD Type 2 em dimensoes selecionadas.
 
 ## 18. Definicao de pronto (DoD)

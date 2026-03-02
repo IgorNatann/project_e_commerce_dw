@@ -14,7 +14,7 @@ python scripts/evolution/run_all.py
 
 | mes | total commits | no merges | merges | volume (+/-) | evidencia |
 |---|---:|---:|---:|---:|---|
-| 2026-02 | 44 | 21 | 23 | +4668/-1781 | [relatorio mensal](../evolucao_mensal/2026-02.md) |
+| 2026-02 | 144 | 70 | 74 | +30916/-6615 | [relatorio mensal](../evolucao_mensal/2026-02.md) |
 | 2026-01 | 12 | 7 | 5 | +1715/-168 | [relatorio mensal](../evolucao_mensal/2026-01.md) |
 | 2025-12 | 89 | 55 | 34 | +15550/-945 | [relatorio mensal](../evolucao_mensal/2025-12.md) |
 
@@ -22,11 +22,11 @@ python scripts/evolution/run_all.py
 
 ### Indicadores
 
-- total de commits: 44
-- commits de trabalho: 21
-- commits de integracao: 23
-- volume sem merge: +4668 / -1781
-- arquivos unicos alterados sem merge: 63
+- total de commits: 144
+- commits de trabalho: 70
+- commits de integracao: 74
+- volume sem merge: +30916 / -6615
+- arquivos unicos alterados sem merge: 241
 
 ### Entregas Em Destaque
 
@@ -34,8 +34,8 @@ python scripts/evolution/run_all.py
 - [feat] feat(docs): adiciona PRD para a plataforma de analytics de e-commerce (c56ac68) em 2026-02-25 16:06:58
 - [feat] feat(oltp): implementa modelagem fisica para origem do ETL (c61a6f5) em 2026-02-25 17:52:15
 - [feat] feat(oltp): implementa seeds base/incremental e checks de qualidade para extracao (24fb4ca) em 2026-02-25 18:31:30
-- [refactor] refactor(sql): centralizar views dimensionais em sql/04_views e remover duplicidades do DDL (9fcf7d9) em 2026-02-25 10:41:47
-- [refactor] refactor(sql): substitui cargas procedurais por insercoes set-based nas facts (a983826) em 2026-02-25 11:50:37
+- [feat] feat(evolution): automatiza auditoria diaria, mensal e por marcos (5317b00) em 2026-02-26 09:37:12
+- [feat] feat(sql): adiciona camada de controle e auditoria da fase ETL (cdc619f) em 2026-02-26 12:39:38
 
 ### Evidencias
 

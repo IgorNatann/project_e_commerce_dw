@@ -29,7 +29,7 @@ Preencha semanalmente:
 
 - `Percentual atual`: 89
 - `Percentual alvo`: 90
-- `Ultima atualizacao`: 2026-02-28
+- `Ultima atualizacao`: 2026-03-02
 
 Sugestao de criterio:
 
@@ -227,8 +227,8 @@ rg -n "runbook|go/no-go|portfolio|dashboard" README.md docs -S
 
 - [ ] ETL executa ponta a ponta sem erro critico por 7 dias.
 - [ ] Monitoria Streamlit mostra status, falhas e SLA corretamente.
-- [ ] Dashboards de vendas, metas e descontos publicados.
-- [ ] Testes recorrentes executando com artefato JSON.
+- [x] Dashboards de vendas, metas e descontos publicados.
+- [x] Testes recorrentes executando com artefato JSON.
 - [x] Alertas externos ativos para falha e atraso.
 - [ ] Runbook operacional completo e versionado.
 - [ ] README com arquitetura, como executar e links de demo.
@@ -245,6 +245,7 @@ rg -n "runbook|go/no-go|portfolio|dashboard" README.md docs -S
 | 2026-02-28 | Dia 4 - testes automatizados | concluido | `scripts/recurring_tests/*`, `dashboards/streamlit/metas/README.md`, `dashboards/streamlit/descontos/README.md` | Suite consolidada com 60/60 checks aprovados |
 | 2026-02-28 | Dia 5 - alertas externos ETL | concluido | `scripts/alerts/*`, `docker/alerts-runner.Dockerfile`, `docker/docker-compose.sqlserver.yml`, `docker/up_stack.ps1` | Runner Discord/Webhook com cooldown, estado persistente e fallback seguro |
 | 2026-02-28 | Dia 6 - adaptacao snapshot para deploy gratuito | em_andamento | `dashboards/streamlit/*/app.py`, `scripts/snapshots/*` | Dashboards aptos a rodar sem SQL ativo (modo snapshot) |
+| 2026-03-02 | Higienizacao documental do fechamento | concluido | `docs/produto/PRD.md`, `docs/produto/BACKLOG_ETL_ROLLOUT.md`, `docs/status_reports/2026-03-02.md` | Estado consolidado para continuidade da evolucao |
 
 ## 7) Blocos de validacao continua (para o Codex seguir evoluindo)
 

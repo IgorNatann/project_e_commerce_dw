@@ -20,4 +20,5 @@ python scripts/status_reports/generate_status_report.py --date 2026-02-28 --forc
 
 | data | report |
 |---|---|
+| 2026-03-02 | [abrir](2026-03-02.md) |
 | 2026-02-28 | [abrir](2026-02-28.md) |
