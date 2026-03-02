@@ -12,14 +12,15 @@ powershell -ExecutionPolicy Bypass -File docker/up_stack.ps1
 
 ## Escopo atual da stack
 
-O bootstrap da infra garante principalmente:
+O bootstrap da infra garante:
 
 - OLTP pronto (`ECOMMERCE_OLTP`)
-- DW com dimensoes do rollout atual
-- fato `fact.FACT_VENDAS`
+- DW com dimensoes e fatos do rollout atual
+- fatos `fact.FACT_VENDAS`, `fact.FACT_METAS` e `fact.FACT_DESCONTOS`
 - controle ETL e auditoria (`ctl` e `audit`)
+- views de consumo R1 (`fact.VW_DASH_VENDAS_R1`, `fact.VW_DASH_METAS_R1`, `fact.VW_DASH_DESCONTOS_R1`)
 
-Consultas de negocio em views de consumo exigem executar os scripts de `sql/dw/04_views`.
+As queries deste diretorio podem ser executadas imediatamente apos o `docker/up_stack.ps1`.
 
 ## Queries de validacao imediata
 
@@ -91,9 +92,13 @@ FROM audit.connection_login_events
 ORDER BY event_time_utc DESC;
 ```
 
-## Expansao para analytics completo
+## Evolucao sugerida
 
-Quando as proximas dimensoes e fatos estiverem carregadas, este README pode ser estendido com as consultas de vendas, performance, geografia e campanhas.
+Para proxima fase, expandir este README com consultas de:
+
+- desempenho/latencia das views no volume real;
+- reconciliacao diaria automatizada (OLTP x DW) por entidade;
+- qualidade de dados por regra de negocio (alem dos KPIs de homologacao).
 
 ## Queries de homologacao do dashboard de vendas R1
 

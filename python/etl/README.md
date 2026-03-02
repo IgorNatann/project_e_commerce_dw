@@ -113,6 +113,11 @@ Dashboard Streamlit de monitoramento:
 - `dashboards/streamlit/monitoring/app.py`
 - `dashboards/streamlit/monitoring/requirements.txt`
 
-## Proximo passo natural
+## Proximos passos operacionais
 
-Depois de estabilizar `dim_cliente`/`dim_produto`/`dim_regiao`/`dim_vendedor`/`dim_equipe`/`dim_desconto`/`fact_vendas` (auditoria + monitoramento), replicar o padrao para as demais entidades.
+Com o escopo atual ja implementado (`6 dimensoes + 3 fatos`), os proximos passos de evolucao sao:
+
+- consolidar evidencias recorrentes de execucao ETL e qualidade (janela de 7 dias);
+- formalizar runbook operacional de incidente/recuperacao/rollback;
+- concluir deploy externo de portfolio mantendo banco nao exposto;
+- evoluir observabilidade e quality gates para crescimento de volume.
