@@ -2,10 +2,6 @@
 
 Relatorios mensais gerados a partir do historico Git.
 
-## Nota de infra
-
-Este fluxo e independente da stack Docker (`docker/up_stack.ps1`).
-
 ## Como Atualizar
 
 Mensal incremental (recomendado):
@@ -24,6 +20,6 @@ python scripts/evolution/run_all.py
 
 | mes | total commits | no merges | merges | relatorio |
 |---|---:|---:|---:|---|
-| 2026-02 | 44 | 21 | 23 | [abrir](2026-02.md) |
+| 2026-02 | 144 | 70 | 74 | [abrir](2026-02.md) |
 | 2026-01 | 12 | 7 | 5 | [abrir](2026-01.md) |
 | 2025-12 | 89 | 55 | 34 | [abrir](2025-12.md) |
