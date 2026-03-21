@@ -98,6 +98,9 @@ log/
 !python/requirements.txt
 !dashboards/streamlit/monitoring/requirements.txt
 !dashboards/streamlit/vendas/requirements.txt
+!dashboards/streamlit/metas/requirements.txt
+!dashboards/streamlit/descontos/requirements.txt
+!scripts/alerts/requirements.txt
 
 # ============ IDE / EDITORS ============
 # VS Code
